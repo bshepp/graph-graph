@@ -9,11 +9,11 @@ Requires: pip install amazon-braket-sdk
 
 import numpy as np
 import networkx as nx
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, Tuple
 
 # Braket imports - will fail gracefully if not installed
 try:
-    from braket.circuits import Circuit, Observable
+    from braket.circuits import Circuit
     from braket.devices import LocalSimulator
     BRAKET_AVAILABLE = True
 except ImportError:

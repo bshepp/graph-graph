@@ -18,7 +18,7 @@ The goal is emergence first, physics (maybe) later.
 
 ## Core Question
 
-> Can local classical rules on a graph produce long-range correlations or structure that wasn't explicitly programmed?
+> Can simple local rules on a graph produce long-range correlations or structure that wasn't explicitly programmed?
 
 ## Status
 
@@ -55,8 +55,9 @@ If graph-graph produces interesting results, they could inform a V3 of the photo
 ## Usage
 
 ```bash
-python simulation.py --nodes 1000 --steps 1000 --rule activation
-python measure.py results/run_001.pkl
-python visualize.py results/run_001.pkl
+python simulation.py --nodes 1000 --steps 1000 --rules activation
+python simulation.py --nodes 1000 --steps 1000 --rules activation majority  # combine rules
+python measure.py results/run_TIMESTAMP.pkl
+python visualize.py results/run_TIMESTAMP.pkl
 ```
 
