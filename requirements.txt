@@ -1,0 +1,16 @@
+# graph-graph dependencies
+
+# Core
+numpy>=1.20
+networkx>=2.6
+matplotlib>=3.5
+tqdm>=4.60
+
+# Optional: GPU acceleration for large scale
+# torch>=2.0
+# torch-geometric>=2.0
+# cudf  # RAPIDS for GPU graphs
+
+# Optional: Quantum walk analysis
+# amazon-braket-sdk>=1.50
+
