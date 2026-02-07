@@ -61,10 +61,10 @@ def plot_graph_state(G: nx.Graph, title: str = "Graph State",
                      save_path: str | None = None, max_nodes: int = 500):
     """Visualize graph with node states as colors."""
     
-    # Subsample if too large
+    # Subsample if too large (random sample for unbiased view)
     total_nodes = len(G)
     if total_nodes > max_nodes:
-        nodes = list(G.nodes())[:max_nodes]
+        nodes = np.random.choice(list(G.nodes()), max_nodes, replace=False)
         G = G.subgraph(nodes)
         title += f" (showing {max_nodes}/{total_nodes} nodes)"
     

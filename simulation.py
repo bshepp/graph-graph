@@ -5,6 +5,7 @@ Creates a graph, applies rules, records history.
 """
 
 import argparse
+import random
 import pickle
 from pathlib import Path
 from datetime import datetime
@@ -17,19 +18,20 @@ from rules import get_rule, RULES
 
 
 def create_initial_graph(n_nodes: int, topology: str = 'small_world',
-                         k: int = 6, p: float = 0.1) -> nx.Graph:
+                         k: int = 6, p: float = 0.1,
+                         seed: int | None = None) -> nx.Graph:
     """Create initial graph topology."""
     
     if topology == 'small_world':
-        G = nx.watts_strogatz_graph(n_nodes, k, p)
+        G = nx.watts_strogatz_graph(n_nodes, k, p, seed=seed)
     elif topology == 'scale_free':
-        G = nx.barabasi_albert_graph(n_nodes, k // 2)
+        G = nx.barabasi_albert_graph(n_nodes, k // 2, seed=seed)
     elif topology == 'lattice':
         side = int(np.sqrt(n_nodes))
         G = nx.grid_2d_graph(side, side)
         G = nx.convert_node_labels_to_integers(G)
     elif topology == 'random':
-        G = nx.erdos_renyi_graph(n_nodes, k / n_nodes)
+        G = nx.erdos_renyi_graph(n_nodes, k / n_nodes, seed=seed)
     else:
         raise ValueError(f"Unknown topology: {topology}")
     
@@ -46,16 +48,22 @@ def create_initial_graph(n_nodes: int, topology: str = 'small_world',
 
 
 def run_simulation(G: nx.Graph, rules: List[str], n_steps: int,
-                   record_interval: int = 10) -> Dict[str, Any]:
+                   record_interval: int = 10,
+                   snapshot_interval: int = 0) -> Dict[str, Any]:
     """
     Run simulation and record history.
     
+    Args:
+        snapshot_interval: Save full graph copies every N steps. 
+                           0 (default) disables snapshots to save memory.
+    
     Returns dict with:
-        - 'snapshots': List of graph copies at intervals
+        - 'snapshots': List of graph copies at intervals (if enabled)
         - 'metrics': Dict of metric timeseries
         - 'params': Simulation parameters
     """
     
+    n_nodes_initial = len(G)
     rule_funcs = [get_rule(r) for r in rules]
     
     # Metrics to track
@@ -90,8 +98,8 @@ def run_simulation(G: nx.Graph, rules: List[str], n_steps: int,
             else:
                 metrics['largest_component'].append(0)
         
-        # Save snapshots less frequently
-        if step % (record_interval * 10) == 0:
+        # Save snapshots (only when explicitly enabled)
+        if snapshot_interval > 0 and step % snapshot_interval == 0:
             snapshots.append(G.copy())
     
     return {
@@ -99,7 +107,7 @@ def run_simulation(G: nx.Graph, rules: List[str], n_steps: int,
         'metrics': metrics,
         'final_graph': G,
         'params': {
-            'n_nodes': len(G),
+            'n_nodes': n_nodes_initial,
             'rules': rules,
             'n_steps': n_steps,
         }
@@ -115,18 +123,22 @@ def main():
     parser.add_argument('--rules', type=str, nargs='+', default=['activation'],
                         choices=list(RULES.keys()))
     parser.add_argument('--seed', type=int, default=None, help='Random seed')
+    parser.add_argument('--snapshot-interval', type=int, default=0,
+                        help='Save full graph snapshots every N steps (0=disabled)')
     parser.add_argument('--output', type=str, default=None, help='Output file')
     
     args = parser.parse_args()
     
     if args.seed is not None:
+        random.seed(args.seed)
         np.random.seed(args.seed)
     
     print(f"Creating {args.topology} graph with {args.nodes} nodes...")
-    G = create_initial_graph(args.nodes, args.topology)
+    G = create_initial_graph(args.nodes, args.topology, seed=args.seed)
     
     print(f"Running {args.steps} steps with rules: {args.rules}")
-    results = run_simulation(G, args.rules, args.steps)
+    results = run_simulation(G, args.rules, args.steps,
+                             snapshot_interval=args.snapshot_interval)
     
     # Save results
     if args.output is None:

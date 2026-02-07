@@ -57,6 +57,8 @@ def edge_reinforcement(G: nx.Graph, weight_key: str = 'weight',
     
     Hebbian-style learning: "neurons that fire together wire together"
     """
+    new_weights = {}
+    
     for u, v in G.edges():
         current_weight = G[u][v].get(weight_key, 0.5)
         
@@ -72,7 +74,11 @@ def edge_reinforcement(G: nx.Graph, weight_key: str = 'weight',
         
         # Clamp
         current_weight = max(min_weight, min(max_weight, current_weight))
-        G[u][v][weight_key] = current_weight
+        new_weights[(u, v)] = current_weight
+    
+    # Apply batched updates
+    for (u, v), w in new_weights.items():
+        G[u][v][weight_key] = w
     
     return G
 
@@ -89,8 +95,15 @@ def majority_vote(G: nx.Graph, state_key: str = 'state',
     
     for node in G.nodes():
         # Count neighbor states
+        neighbors = list(G.neighbors(node))
+        
+        if not neighbors:
+            # Isolated nodes keep their current state
+            new_states[node] = G.nodes[node].get(state_key, 0)
+            continue
+        
         state_counts = [0] * num_states
-        for neighbor in G.neighbors(node):
+        for neighbor in neighbors:
             s = G.nodes[neighbor].get(state_key, 0)
             state_counts[s] += 1
         
@@ -118,13 +131,18 @@ def random_rewire(G: nx.Graph, rewire_prob: float = 0.01,
                                the graph. More expensive but maintains single component.
                                Default False lets fragmentation happen naturally.
     """
-    edges_to_remove = []
-    edges_to_add = []
     nodes = list(G.nodes())
     
-    for u, v in G.edges():
-        if np.random.random() < rewire_prob:
-            # Pick new endpoint
+    # Snapshot edge list so we don't iterate over a mutating collection
+    edges = list(G.edges())
+    
+    if preserve_connectivity:
+        # Apply rewirings one at a time so connectivity checks account
+        # for all prior changes within this step.
+        for u, v in edges:
+            if np.random.random() >= rewire_prob:
+                continue
+            
             new_v = np.random.choice(nodes)
             attempts = 0
             while (new_v == u or G.has_edge(u, new_v)) and attempts < 10:
@@ -132,22 +150,42 @@ def random_rewire(G: nx.Graph, rewire_prob: float = 0.01,
                 attempts += 1
             
             if attempts >= 10:
-                continue  # Skip if can't find valid rewire
+                continue
             
-            if preserve_connectivity:
-                # Check if this rewiring would disconnect
-                # (expensive, only do if requested)
-                G.remove_edge(u, v)
-                would_disconnect = not nx.has_path(G, u, v)
-                G.add_edge(u, v)
-                if would_disconnect:
-                    continue
+            # Check connectivity *after* tentative removal
+            old_weight = G[u][v].get('weight', 0.5)
+            G.remove_edge(u, v)
+            if not nx.has_path(G, u, v):
+                # Would disconnect -- roll back
+                G.add_edge(u, v, weight=old_weight)
+                continue
             
+            # Safe to rewire; carry over the edge weight
+            G.add_edge(u, new_v, weight=old_weight)
+    else:
+        # Batch mode (faster, no connectivity guarantee)
+        edges_to_remove = []
+        edges_to_add = []
+        
+        for u, v in edges:
+            if np.random.random() >= rewire_prob:
+                continue
+            
+            new_v = np.random.choice(nodes)
+            attempts = 0
+            while (new_v == u or G.has_edge(u, new_v)) and attempts < 10:
+                new_v = np.random.choice(nodes)
+                attempts += 1
+            
+            if attempts >= 10:
+                continue
+            
+            old_weight = G[u][v].get('weight', 0.5)
             edges_to_remove.append((u, v))
-            edges_to_add.append((u, new_v))
-    
-    G.remove_edges_from(edges_to_remove)
-    G.add_edges_from(edges_to_add)
+            edges_to_add.append((u, new_v, {'weight': old_weight}))
+        
+        G.remove_edges_from(edges_to_remove)
+        G.add_edges_from(edges_to_add)
     
     return G
 

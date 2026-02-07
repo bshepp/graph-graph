@@ -65,12 +65,13 @@ def correlation_function(G: nx.Graph, state_key: str = 'active',
     return result
 
 
-def mutual_information_estimate(G: nx.Graph, state_key: str = 'active',
-                                n_bins: int = 2) -> float:
+def agreement_fraction(G: nx.Graph, state_key: str = 'active') -> float:
     """
-    Estimate mutual information between distant node pairs.
+    Compute state agreement between distant node pairs.
     
-    High MI suggests non-trivial correlations.
+    Returns P(s_i == s_j | dist > 3) - 0.5, where 0.5 is the random baseline.
+    Positive values mean distant nodes agree more than chance.
+    This is a correlation proxy, not mutual information.
     """
     # Get states
     states = [G.nodes[n].get(state_key, False) for n in G.nodes()]
@@ -154,9 +155,9 @@ def analyze_results(results: Dict[str, Any]) -> Dict[str, Any]:
     print("  Computing correlation function...")
     corr = correlation_function(G, 'active')
     
-    # Mutual information
-    print("  Estimating mutual information...")
-    mi = mutual_information_estimate(G, 'active')
+    # Agreement fraction (distant node correlation)
+    print("  Computing agreement fraction...")
+    mi = agreement_fraction(G, 'active')
     
     # Domain detection
     print("  Detecting domains...")
@@ -164,7 +165,7 @@ def analyze_results(results: Dict[str, Any]) -> Dict[str, Any]:
     
     analysis = {
         'correlation_function': corr,
-        'mutual_information': mi,
+        'agreement_fraction': mi,
         'domains': domains,
         'metrics_summary': {
             'final_active_fraction': metrics['n_active'][-1] / results['params']['n_nodes'],
@@ -190,7 +191,7 @@ def print_analysis(analysis: Dict[str, Any]):
         sign = '+' if corr[r] >= 0 else '-'
         print(f"  r={r:2d}: {sign}{abs(corr[r]):.4f} {bar}")
     
-    print(f"\n🔗 Mutual Information Estimate: {analysis['mutual_information']:.4f}")
+    print(f"\n🔗 Agreement Fraction: {analysis['agreement_fraction']:.4f}")
     print("   (0 = random, >0.1 = interesting correlations)")
     
     print(f"\n🗺️ Domain Structure:")
@@ -213,9 +214,9 @@ def print_analysis(analysis: Dict[str, Any]):
     interesting = False
     reasons = []
     
-    if analysis['mutual_information'] > 0.1:
+    if analysis['agreement_fraction'] > 0.1:
         interesting = True
-        reasons.append("Non-trivial mutual information detected")
+        reasons.append("Non-trivial distant-node agreement detected")
     
     if any(abs(c) > 0.1 for c in corr.values() if corr):
         interesting = True

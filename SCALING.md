@@ -18,7 +18,11 @@ Beyond 500K nodes, NetworkX becomes impractical due to:
 
 ## Upgrade Path
 
-### Phase 1: Optimized CPU (up to 1M nodes)
+### Phase 1: Optimized CPU (up to 1M nodes) -- IMPLEMENTED
+
+> Implemented in `simulation_fast.py`. All four rules (activation, reinforcement,
+> majority, rewire) are vectorized using sparse mat-vec operations, Hadamard-product
+> clustering, and scipy connected components.
 
 **NumPy/SciPy sparse matrices**
 
@@ -45,7 +49,7 @@ new_active = np.random.random(len(states)) < activation_prob
 - 1M nodes feasible
 - Keep NetworkX for initialization and measurement only
 
-**Implementation:** Create `rules_fast.py` with NumPy equivalents.
+**Implementation:** See `simulation_fast.py` (already implemented).
 
 ---
 
@@ -93,9 +97,13 @@ clustering = cugraph.clustering_coefficient(G_gpu)
 
 ---
 
-### Phase 3: Batch Processing (Parameter Sweeps)
+### Phase 3: Batch Processing (Parameter Sweeps) -- IMPLEMENTED
 
-**Local: Joblib parallelization**
+> Implemented in `sweep.py` using `concurrent.futures.ProcessPoolExecutor`.
+> Supports parameter grids over nodes, topologies, rule combos, and seeds.
+> Outputs CSV with per-run metrics and a text summary of interesting results.
+
+**Local: Parallel execution**
 
 ```python
 from joblib import Parallel, delayed
@@ -330,14 +338,14 @@ class BraketGraphAnalyzer:
 
 ## Recommended Progression
 
-| Phase | When | Investment |
-|-------|------|------------|
-| 1. NumPy sparse | Now | 1-2 days coding |
-| 2. PyTorch Geometric | When 100K isn't enough | 3-5 days + GPU |
-| 3. AWS Batch | For parameter sweeps | ~$50-200/sweep |
-| 4. Braket (simulator) | When probing emergent structure | Free locally, ~$5-20/experiment |
-| 5. Distributed | If results are exciting | Significant |
-| 6. Braket (hardware) | Comparing quantum vs classical walks | ~$50-200/experiment |
+| Phase | When | Investment | Status |
+|-------|------|------------|--------|
+| 1. NumPy sparse | Now | 1-2 days coding | **Done** (`simulation_fast.py`) |
+| 2. PyTorch Geometric | When 100K isn't enough | 3-5 days + GPU | Planned |
+| 3. Parameter sweeps | For systematic exploration | ~$50-200/sweep (cloud) | **Done** (`sweep.py`) |
+| 4. Braket (simulator) | When probing emergent structure | Free locally, ~$5-20/experiment | Planned |
+| 5. Distributed | If results are exciting | Significant | Planned |
+| 6. Braket (hardware) | Comparing quantum vs classical walks | ~$50-200/experiment | Planned |
 
 ### The Emergence Pipeline
 
@@ -362,9 +370,9 @@ class BraketGraphAnalyzer:
 
 ---
 
-## Quick Start: NumPy Acceleration
+## Reference: NumPy Acceleration Design
 
-Create `simulation_fast.py`:
+The following sketch informed the implementation in `simulation_fast.py`:
 
 ```python
 """
@@ -420,5 +428,6 @@ class FastGraph:
         return G
 ```
 
-This gives you 10-50x speedup immediately with minimal code changes.
+The full implementation in `simulation_fast.py` extends this with all four rules,
+sparse clustering computation, and scipy connected-component analysis.
 

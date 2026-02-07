@@ -4,7 +4,7 @@
 
 ## Philosophy
 
-Unlike other projects that hand-code physics and then "discover" it, this project starts with **only simple local rules** and observes what emerges—Game of Life style.
+Unlike other projects that hand-code physics and then "discover" it, this project starts with **only simple local rules** and observes what emerges -- Game of Life style.
 
 - No hand-coded physics (classical or quantum)
 - No spatial coordinates baked in
@@ -22,42 +22,97 @@ The goal is emergence first, physics (maybe) later.
 
 ## Status
 
-🚧 **Just Starting** - Scaffolding phase
+**Core simulation working.** Rules, measurement, visualization, and a sparse fast path are all implemented. Ready for experiments.
 
-## Rules to Explore
+## Setup
 
-1. **Activation spreading** - Active nodes activate neighbors
-2. **Edge dynamics** - Edges strengthen/weaken based on use
-3. **Birth/death** - Nodes spawn or die based on connectivity
-4. **Rewiring** - Random edge rewiring (small-world dynamics)
-5. **State voting** - Nodes adopt majority state of neighbors
+```bash
+pip install -r requirements.txt
+```
+
+Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplotlib`, `tqdm`.
+
+## Project Structure
+
+| File | Purpose |
+|------|---------|
+| `simulation.py` | Main simulation loop (NetworkX backend) |
+| `simulation_fast.py` | Sparse-matrix simulation (10-50x faster) |
+| `rules.py` | Local update rules (activation, reinforcement, majority, rewire) |
+| `measure.py` | Analysis: correlation functions, agreement fraction, domain detection |
+| `visualize.py` | Metric plots and graph-state visualization |
+| `sweep.py` | Parameter sweep with parallel execution and CSV export |
+| `braket_walks.py` | Quantum walk analysis (optional, experimental) |
+| `SCALING.md` | Roadmap from 1K to 100M+ nodes |
+
+## Rules
+
+All rules are **local** -- each node only sees its immediate neighbors. Rules can be combined freely.
+
+| Rule | Key | What it does |
+|------|-----|--------------|
+| Activation spreading | `activation` | Active nodes spread activation to neighbors; active nodes may decay (SIS epidemic model) |
+| Edge reinforcement | `reinforcement` | Edges between co-active nodes strengthen; all edges slowly decay (Hebbian learning) |
+| Majority vote | `majority` | Nodes adopt the majority state of their neighbors; small noise prevents freezing |
+| Random rewiring | `rewire` | Small probability of rewiring edges, creating small-world structure over time |
 
 ## Measurements
 
-- Correlation functions C(r) between nodes at distance r
-- Clustering coefficient over time
-- Information propagation speed
-- Spontaneous symmetry breaking
-- Any long-range order
-
-## Goals
-
-1. **Small scale (1K nodes)** - Verify rules work, debug
-2. **Medium scale (100K nodes)** - Look for emergent patterns
-3. **Large scale (1M+ nodes)** - GPU acceleration, serious exploration
-
-## Relationship to photon_web_reality
-
-This is what `photon_web_reality` *should* have been - an honest experiment rather than circular verification of hand-coded QM.
-
-If graph-graph produces interesting results, they could inform a V3 of the photon web concept.
+- **Correlation function** C(r): state correlation between nodes at graph distance r
+- **Agreement fraction**: how often distant node pairs share the same state vs. random baseline
+- **Domain detection**: coherent regions of same state, largest domain size
+- **Clustering coefficient** over time
+- **Largest connected component** fraction
 
 ## Usage
 
+### Single run
+
 ```bash
-python simulation.py --nodes 1000 --steps 1000 --rules activation
-python simulation.py --nodes 1000 --steps 1000 --rules activation majority  # combine rules
+# NetworkX backend (up to ~10K nodes)
+python simulation.py --nodes 1000 --steps 1000 --rules activation majority --seed 42
+
+# Fast sparse backend (up to ~500K nodes)
+python simulation_fast.py --nodes 50000 --steps 2000 --rules activation reinforcement --seed 42
+```
+
+### Analyze and visualize
+
+```bash
 python measure.py results/run_TIMESTAMP.pkl
 python visualize.py results/run_TIMESTAMP.pkl
 ```
+
+### Parameter sweep
+
+```bash
+python sweep.py \
+    --nodes 1000 5000 \
+    --topologies small_world scale_free random \
+    --rules "activation" "activation majority" "activation reinforcement" \
+    --steps 2000 --seeds 5 --jobs 4
+```
+
+Results are saved to `results/sweep_TIMESTAMP.csv` with a summary of which configurations showed interesting emergent behavior.
+
+## Graph Topologies
+
+Four initial topologies are available via `--topology`:
+
+- `small_world` -- Watts-Strogatz (default, k=6, p=0.1)
+- `scale_free` -- Barabasi-Albert preferential attachment
+- `lattice` -- 2D grid
+- `random` -- Erdos-Renyi
+
+## Goals
+
+1. **Small scale (1K nodes)** -- Verify rules work, debug
+2. **Medium scale (100K nodes)** -- Look for emergent patterns (use `simulation_fast.py`)
+3. **Large scale (1M+ nodes)** -- GPU acceleration, serious exploration (see `SCALING.md`)
+
+## Relationship to photon_web_reality
+
+This is what `photon_web_reality` *should* have been -- an honest experiment rather than circular verification of hand-coded QM.
+
+If graph-graph produces interesting results, they could inform a V3 of the photon web concept.
 
