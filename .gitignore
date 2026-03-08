@@ -41,7 +41,9 @@ env/
 # Results and outputs (generated, not tracked)
 results/
 plots/
+showcase/
 *.pkl
+*.gif
 
 # OS
 .DS_Store

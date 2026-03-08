@@ -98,6 +98,111 @@ def plot_graph_state(G: nx.Graph, title: str = "Graph State",
         plt.show()
 
 
+def plot_dimension_map(G: nx.Graph, dim_field: dict,
+                       title: str = "Effective Dimension Map",
+                       save_path: str | None = None, max_nodes: int = 500):
+    """
+    Visualize graph with nodes colored by local effective dimension d_eff.
+
+    Args:
+        G:         NetworkX graph.
+        dim_field: Output of dimension.dimension_field() --
+                   {node: (d_eff, r_squared, ball_sizes)}.
+        title:     Plot title.
+        save_path: If set, save to file instead of showing.
+        max_nodes: Subsample threshold for large graphs.
+    """
+    total_nodes = len(G)
+    if total_nodes > max_nodes:
+        nodes = np.random.choice(list(G.nodes()), max_nodes, replace=False)
+        G = G.subgraph(nodes)
+        title += f" (showing {max_nodes}/{total_nodes} nodes)"
+
+    fig, ax = plt.subplots(figsize=(12, 12))
+
+    # Build color array: d_eff for sampled nodes, NaN for unsampled
+    node_list = list(G.nodes())
+    d_effs = np.array([
+        dim_field[n][0] if n in dim_field else np.nan
+        for n in node_list
+    ])
+
+    # Separate sampled vs unsampled nodes for drawing
+    sampled_mask = ~np.isnan(d_effs)
+    sampled_nodes = [n for n, m in zip(node_list, sampled_mask) if m]
+    unsampled_nodes = [n for n, m in zip(node_list, sampled_mask) if not m]
+    sampled_d_effs = d_effs[sampled_mask]
+
+    pos = nx.spring_layout(G, k=1 / np.sqrt(len(G)), iterations=50)
+
+    # Draw edges
+    nx.draw_networkx_edges(G, pos, ax=ax, edge_color='gray',
+                           alpha=0.3, width=0.5)
+
+    # Draw unsampled nodes in gray
+    if unsampled_nodes:
+        nx.draw_networkx_nodes(G, pos, nodelist=unsampled_nodes, ax=ax,
+                               node_color='lightgray', node_size=30,
+                               alpha=0.4)
+
+    # Draw sampled nodes with d_eff colormap
+    if len(sampled_nodes) > 0:
+        sc = nx.draw_networkx_nodes(
+            G, pos, nodelist=sampled_nodes, ax=ax,
+            node_color=sampled_d_effs.tolist(), cmap=plt.get_cmap('viridis'),
+            node_size=50, alpha=0.85,
+        )
+        plt.colorbar(sc, ax=ax, label='$d_{eff}$', shrink=0.7)
+
+    ax.set_title(title)
+    ax.axis('off')
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        print(f"Saved dimension map to {save_path}")
+    else:
+        plt.show()
+
+
+def plot_dimension_histogram(dim_field: dict,
+                             save_path: str | None = None):
+    """
+    Histogram of local effective dimension values.
+
+    Args:
+        dim_field: Output of dimension.dimension_field().
+        save_path: If set, save to file instead of showing.
+    """
+    d_effs = np.array([v[0] for v in dim_field.values()])
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    ax.hist(d_effs, bins=30, color='steelblue', alpha=0.7, edgecolor='white')
+
+    # Reference lines at integer dimensions
+    for d in [1, 2, 3, 4]:
+        ax.axvline(x=d, color='black', linestyle='--', alpha=0.4, linewidth=1)
+
+    mean_d = float(np.mean(d_effs))
+    std_d = float(np.std(d_effs))
+    ax.axvline(x=mean_d, color='red', linestyle='-', alpha=0.6, linewidth=1.5,
+               label=f'mean = {mean_d:.2f} $\\pm$ {std_d:.2f}')
+
+    ax.set_xlabel('Effective Dimension $d_{eff}$')
+    ax.set_ylabel('Count')
+    ax.set_title('Distribution of Local Effective Dimension')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        print(f"Saved dimension histogram to {save_path}")
+    else:
+        plt.show()
+
+
 def plot_correlation_function(corr: dict, save_path: str | None = None):
     """Plot correlation function C(r) vs distance r."""
     
@@ -127,6 +232,8 @@ def main():
     parser.add_argument('--output-dir', type=str, default='plots', 
                         help='Output directory for plots')
     parser.add_argument('--show', action='store_true', help='Show plots interactively')
+    parser.add_argument('--dimension', action='store_true',
+                        help='Compute and plot local effective dimension')
     
     args = parser.parse_args()
     
@@ -146,6 +253,24 @@ def main():
     # Plot final graph
     save = None if args.show else str(output_dir / f"{stem}_graph.png")
     plot_graph_state(results['final_graph'], "Final Graph State", save)
+    
+    # Dimension analysis (opt-in)
+    if args.dimension:
+        from dimension import dimension_field, dimension_stats, print_dimension_analysis
+
+        G = results['final_graph']
+        print("Computing dimension field...")
+        dim = dimension_field(G)
+        max_radius = dim[next(iter(dim))][2][-1][0] if dim else 0
+
+        stats = dimension_stats(dim, len(G))
+        print_dimension_analysis(stats, max_radius)
+
+        save = None if args.show else str(output_dir / f"{stem}_dimension_map.png")
+        plot_dimension_map(G, dim, save_path=save)
+
+        save = None if args.show else str(output_dir / f"{stem}_dimension_hist.png")
+        plot_dimension_histogram(dim, save_path=save)
     
     print("Done!")
 

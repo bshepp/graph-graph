@@ -184,23 +184,23 @@ def print_analysis(analysis: Dict[str, Any]):
     print("ANALYSIS RESULTS")
     print("="*60)
     
-    print("\n📊 Correlation Function C(r):")
+    print("\nCorrelation Function C(r):")
     corr = analysis['correlation_function']
     for r in sorted(corr.keys()):
-        bar = '█' * int(abs(corr[r]) * 50)
+        bar = '#' * int(abs(corr[r]) * 50)
         sign = '+' if corr[r] >= 0 else '-'
         print(f"  r={r:2d}: {sign}{abs(corr[r]):.4f} {bar}")
     
-    print(f"\n🔗 Agreement Fraction: {analysis['agreement_fraction']:.4f}")
+    print(f"\nAgreement Fraction: {analysis['agreement_fraction']:.4f}")
     print("   (0 = random, >0.1 = interesting correlations)")
     
-    print(f"\n🗺️ Domain Structure:")
+    print(f"\nDomain Structure:")
     d = analysis['domains']
     print(f"   Number of domains: {d['n_domains']}")
     if d['largest_domain']:
         print(f"   Largest domain: {d['largest_domain']['fraction']*100:.1f}% of graph")
     
-    print(f"\n📈 Metrics Summary:")
+    print(f"\nMetrics Summary:")
     m = analysis['metrics_summary']
     print(f"   Final active fraction: {m['final_active_fraction']:.3f}")
     print(f"   Active count variance: {m['active_variance']:.1f}")
@@ -227,11 +227,11 @@ def print_analysis(analysis: Dict[str, Any]):
         reasons.append("Large coherent domains formed")
     
     if interesting:
-        print("🌟 INTERESTING: Potential emergent structure detected!")
+        print("*** INTERESTING: Potential emergent structure detected!")
         for r in reasons:
             print(f"   - {r}")
     else:
-        print("😐 BASELINE: No strong emergent correlations (yet)")
+        print("--- BASELINE: No strong emergent correlations (yet)")
         print("   Try: more steps, different rules, larger scale")
 
 

@@ -41,9 +41,13 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 | `rules.py` | Local update rules (activation, reinforcement, majority, rewire) |
 | `measure.py` | Analysis: correlation functions, agreement fraction, domain detection |
 | `visualize.py` | Metric plots and graph-state visualization |
+| `animate.py` | Animated dashboard: watch rules evolve the graph in real time |
+| `showcase.py` | Generate curated demo animations (one per rule + combos) |
 | `sweep.py` | Parameter sweep with parallel execution and CSV export |
+| `dimension.py` | Local effective dimension estimator (d_eff via geodesic ball growth) |
 | `braket_walks.py` | Quantum walk analysis (optional, experimental) |
 | `SCALING.md` | Roadmap from 1K to 100M+ nodes |
+| `DIMENSIONAL_COHERENCE.md` | Theory and roadmap for dimensional coherence measurements |
 
 ## Rules
 
@@ -63,6 +67,8 @@ All rules are **local** -- each node only sees its immediate neighbors. Rules ca
 - **Domain detection**: coherent regions of same state, largest domain size
 - **Clustering coefficient** over time
 - **Largest connected component** fraction
+- **Local effective dimension** d_eff(v): estimated from geodesic ball growth |B(v,r)| ~ r^d (see `dimension.py`)
+- **Dimensional coherence** R^2: how cleanly each node fits a power-law ball growth
 
 ## Usage
 
@@ -81,6 +87,44 @@ python simulation_fast.py --nodes 50000 --steps 2000 --rules activation reinforc
 ```bash
 python measure.py results/run_TIMESTAMP.pkl
 python visualize.py results/run_TIMESTAMP.pkl
+```
+
+### Animate
+
+```bash
+# Watch activation + majority vote evolve live
+python animate.py --nodes 300 --steps 400 --rules activation majority --seed 42
+
+# Save as GIF
+python animate.py --nodes 500 --steps 600 --rules activation reinforcement --save anim.gif
+
+# All four rules, scale-free topology, 20 fps
+python animate.py --nodes 400 --steps 500 --topology scale_free --rules activation reinforcement majority rewire --fps 20 --save emergence.gif
+```
+
+The animation shows a dark-themed dashboard with the graph on the left (active nodes glow orange, edges thicken between co-active pairs) and metric sparklines on the right.
+
+### Showcase animations
+
+```bash
+python showcase.py             # generate all 7 showcase GIFs → showcase/
+python showcase.py --pick 1 3  # just epidemic + majority-vote
+python showcase.py --list      # describe all available showcases
+```
+
+Seven pre-tuned animations, one for each rule (epidemic spreading, Hebbian reinforcement, majority-vote domains, small-world rewiring), one per notable topology (scale-free hubs, random baseline), and one combining all four rules to show full emergence.
+
+### Dimension analysis
+
+```bash
+# Analyze local effective dimension from a completed run
+python dimension.py results/run_TIMESTAMP.pkl
+
+# Use fast sparse backend with custom radius
+python dimension.py results/run_TIMESTAMP.pkl --fast --max-radius 6 --samples 300
+
+# Visualize dimension map and histogram
+python visualize.py results/run_TIMESTAMP.pkl --dimension
 ```
 
 ### Parameter sweep

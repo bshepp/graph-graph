@@ -106,7 +106,7 @@ clustering = cugraph.clustering_coefficient(G_gpu)
 **Local: Parallel execution**
 
 ```python
-from joblib import Parallel, delayed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 def run_experiment(seed, nodes, rules):
     np.random.seed(seed)
@@ -114,11 +114,16 @@ def run_experiment(seed, nodes, rules):
     return run_simulation(G, rules, n_steps=1000)
 
 # Run 100 experiments in parallel
-results = Parallel(n_jobs=-1)(
-    delayed(run_experiment)(seed, 10000, ['activation', 'majority'])
-    for seed in range(100)
-)
+with ProcessPoolExecutor(max_workers=4) as executor:
+    futures = {
+        executor.submit(run_experiment, seed, 10000, ['activation', 'majority']): seed
+        for seed in range(100)
+    }
+    results = {seed: f.result() for f, seed in
+               ((f, futures[f]) for f in as_completed(futures))}
 ```
+
+**Implementation:** See `sweep.py` (already implemented).
 
 **AWS Batch (recommended for large sweeps)**
 
