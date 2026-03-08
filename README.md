@@ -154,9 +154,4 @@ Four initial topologies are available via `--topology`:
 2. **Medium scale (100K nodes)** -- Look for emergent patterns (use `simulation_fast.py`)
 3. **Large scale (1M+ nodes)** -- GPU acceleration, serious exploration (see `SCALING.md`)
 
-## Relationship to photon_web_reality
-
-This is what `photon_web_reality` *should* have been -- an honest experiment rather than circular verification of hand-coded QM.
-
-If graph-graph produces interesting results, they could inform a V3 of the photon web concept.
 

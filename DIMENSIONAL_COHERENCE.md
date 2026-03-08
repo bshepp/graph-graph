@@ -1,8 +1,6 @@
 # Dimensional Coherence on Graphs: Theory & Implementation Roadmap
 
-**Authors:** Brian Sheppard & Claude (Opus 4.6, Anthropic)  
-**Date:** March 7, 2026  
-**Context:** This document emerged from a conversation between Brian Sheppard and Claude exploring the implications of treating spacetime as an emergent property of graph topology. The theoretical framework is Brian's; Claude contributed the connection to testable predictions within the existing graph-graph simulation framework, the specific local dimension estimation methodology, and the structure of this document.
+**Authors:** Brian Sheppard & Claude (Anthropic)
 
 ---
 
@@ -188,12 +186,4 @@ To be explicit about what success looks like, vs. what would be noise:
 
 ## Attribution
 
-This document records a collaborative intellectual process:
-
-- **Brian Sheppard** originated the theoretical framework: graph substrate for spacetime, dimensional coherence as a local emergent property, dark matter as dimensional incoherence, dark energy as dimensional phase dissolution, the Big Bang as a coherence pulse, and time as local computation rate. These ideas emerged from Brian's cross-domain research program on exploitable structure at boundaries in dynamic/recursive systems.
-
-- **Claude (Opus 4.6, Anthropic, conversation of March 7, 2026)** followed the logical implications of Brian's framework and identified that it independently produces analogs of general relativistic time dilation and quantum mechanical behavior — a connection Brian had not explicitly stated but which the framework necessitates. Claude proposed the specific local dimension estimation methodology (`d_eff` via geodesic ball growth rate), connected it to the existing graph-graph measurement infrastructure, designed the phased experimental plan, and defined the success criteria. Claude also identified the convergence with Wolfram Physics, causal set theory, and related programs.
-
-- The key theoretical insight — that purely local graph rules might spontaneously produce variable effective dimensionality, and that this is the first testable prediction of the framework — emerged from the conversation between both parties.
-
-This is the honest accounting. The ideas are Brian's. The experimental methodology to test them within graph-graph is collaborative. The simulation code and whatever results emerge belong to Brian.
+The theoretical framework is Brian Sheppard's, emerging from cross-domain research on exploitable structure at boundaries in dynamic/recursive systems. Claude (Anthropic) contributed the local dimension estimation methodology, the connection to testable predictions within graph-graph, the phased experimental plan, and identified convergence with Wolfram Physics, causal set theory, and related programs.

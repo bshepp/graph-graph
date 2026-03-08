@@ -225,7 +225,7 @@ def analyze_emergent_structure(G: nx.Graph, sample_nodes: int = 5):
     else:
         test_nodes = nodes
     
-    print("\n📊 Classical Random Walk Analysis:")
+    print("\nClassical Random Walk Analysis:")
     for node in test_nodes:
         dist = classical_random_walk(G, node, steps=10)
         top_3 = sorted(dist.items(), key=lambda x: -x[1])[:3]
@@ -233,7 +233,7 @@ def analyze_emergent_structure(G: nx.Graph, sample_nodes: int = 5):
         print(f"  From node {node}: entropy={entropy:.2f}, top destinations: {top_3}")
     
     if BRAKET_AVAILABLE and len(G) <= 64:  # 6 qubits max for practical sim
-        print("\n🔮 Quantum Walk Comparison:")
+        print("\nQuantum Walk Comparison:")
         analyzer = QuantumWalkAnalyzer()
         for node in test_nodes[:2]:  # Just a couple, quantum is slow
             try:
@@ -243,9 +243,9 @@ def analyze_emergent_structure(G: nx.Graph, sample_nodes: int = 5):
             except Exception as e:
                 print(f"  From node {node}: Error - {e}")
     elif not BRAKET_AVAILABLE:
-        print("\n⚠️  Braket not available. Install with: pip install amazon-braket-sdk")
+        print("\n[!] Braket not available. Install with: pip install amazon-braket-sdk")
     else:
-        print(f"\n⚠️  Graph too large for quantum simulation ({len(G)} nodes > 64)")
+        print(f"\n[!] Graph too large for quantum simulation ({len(G)} nodes > 64)")
         print("    Use subgraph sampling for quantum analysis.")
 
 
