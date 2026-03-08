@@ -128,99 +128,67 @@ class FastGraph:
         self.state = new_states
 
     def random_rewire(self, rewire_prob: float = 0.01):
-        """Rewire edges by rebuilding sparse structure."""
+        """Vectorized edge rewiring via COO manipulation."""
         coo_a = self.A.tocoo()
         coo_w = self.weights.tocoo()
 
-        # Only process upper triangle (undirected graph stores both dirs)
-        upper_mask = coo_a.row < coo_a.col
-        upper_indices = np.where(upper_mask)[0]
-        n_upper = len(upper_indices)
+        upper = coo_a.row < coo_a.col
+        upper_idx = np.where(upper)[0]
+        n_upper = len(upper_idx)
 
         if n_upper == 0:
             return
 
-        # Select edges to rewire
-        rewire_selection = np.random.random(n_upper) < rewire_prob
-        if not rewire_selection.any():
+        rewire_mask = np.random.random(n_upper) < rewire_prob
+        if not rewire_mask.any():
             return
 
-        # Current edge set for duplicate detection
-        edge_set = set(zip(coo_a.row.tolist(), coo_a.col.tolist()))
+        sel = np.where(rewire_mask)[0]
+        coo_sel = upper_idx[sel]
+        us = coo_a.row[coo_sel]
+        old_vs = coo_a.col[coo_sel]
+        old_ws = coo_w.data[coo_sel]
 
-        rows = coo_a.row.tolist()
-        cols = coo_a.col.tolist()
-        data_w = coo_w.data.tolist()
+        new_vs = np.random.randint(0, self.n_nodes, size=len(us))
 
-        to_remove = set()
-        to_add = []  # (u, new_v, weight)
+        valid = new_vs != us
+        if valid.any():
+            existing = np.asarray(
+                self.A[us[valid], new_vs[valid]]
+            ).flatten()
+            sub_valid = existing == 0
+            valid_indices = np.where(valid)[0]
+            valid[valid_indices[~sub_valid]] = False
 
-        for local_idx in np.where(rewire_selection)[0]:
-            global_idx = upper_indices[local_idx]
-            u = rows[global_idx]
-            v = cols[global_idx]
-            old_weight = data_w[global_idx]
-
-            # Pick new endpoint
-            new_v = np.random.randint(self.n_nodes)
-            attempts = 0
-            while attempts < 10 and (
-                new_v == u
-                or (u, new_v) in edge_set
-                or (new_v, u) in edge_set
-            ):
-                new_v = np.random.randint(self.n_nodes)
-                attempts += 1
-
-            if attempts >= 10:
-                continue
-
-            # Mark old edge for removal (both directions)
-            to_remove.add((u, v))
-            to_remove.add((v, u))
-            edge_set.discard((u, v))
-            edge_set.discard((v, u))
-
-            # Mark new edge for addition (both directions)
-            to_add.append((u, new_v, old_weight))
-            to_add.append((new_v, u, old_weight))
-            edge_set.add((u, new_v))
-            edge_set.add((new_v, u))
-
-        if not to_remove:
+        if not valid.any():
             return
 
-        # Rebuild sparse arrays: keep non-removed edges, append new edges
-        new_rows = []
-        new_cols = []
-        new_data_a = []
-        new_data_w = []
+        us_v = us[valid]
+        old_vs_v = old_vs[valid]
+        new_vs_v = new_vs[valid]
+        ws_v = old_ws[valid]
+        n = self.n_nodes
 
-        for i in range(len(rows)):
-            if (rows[i], cols[i]) not in to_remove:
-                new_rows.append(rows[i])
-                new_cols.append(cols[i])
-                new_data_a.append(1.0)
-                new_data_w.append(data_w[i])
+        remove_fwd = us_v.astype(np.int64) * n + old_vs_v.astype(np.int64)
+        remove_rev = old_vs_v.astype(np.int64) * n + us_v.astype(np.int64)
+        remove_ids = np.concatenate([remove_fwd, remove_rev])
 
-        for u, v, w in to_add:
-            new_rows.append(u)
-            new_cols.append(v)
-            new_data_a.append(1.0)
-            new_data_w.append(w)
+        all_ids = coo_a.row.astype(np.int64) * n + coo_a.col.astype(np.int64)
+        keep = ~np.isin(all_ids, remove_ids)
 
-        shape = (self.n_nodes, self.n_nodes)
+        new_row = np.concatenate([coo_a.row[keep], us_v, new_vs_v])
+        new_col = np.concatenate([coo_a.col[keep], new_vs_v, us_v])
+        new_da = np.ones(len(new_row), dtype=np.float32)
+        new_dw = np.concatenate([coo_w.data[keep], ws_v, ws_v])
+
+        shape = (n, n)
         self.A = sp.csr_matrix(
-            (np.array(new_data_a, dtype=np.float32),
-             (np.array(new_rows), np.array(new_cols))),
-            shape=shape,
+            (new_da, (new_row, new_col)), shape=shape,
         )
         self.weights = sp.csr_matrix(
-            (np.array(new_data_w, dtype=np.float32),
-             (np.array(new_rows), np.array(new_cols))),
-            shape=shape,
+            (new_dw, (new_row, new_col)), shape=shape,
         )
-        self.degrees = np.array(self.A.sum(axis=1)).flatten()
+        self.degrees = np.asarray(self.A.sum(axis=1)).flatten()
 
     # ------------------------------------------------------------------
     # Metrics
