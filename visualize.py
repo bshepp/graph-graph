@@ -120,14 +120,16 @@ def plot_dimension_map(G: nx.Graph, dim_field: dict,
 
     fig, ax = plt.subplots(figsize=(12, 12))
 
-    # Build color array: d_eff for sampled nodes, NaN for unsampled
+    # Build color array: finite d_eff for nodes with a defined dimension,
+    # NaN for unsampled nodes AND for sampled-but-undefined nodes (no
+    # power-law regime). Both render gray below.
     node_list = list(G.nodes())
     d_effs = np.array([
         dim_field[n][0] if n in dim_field else np.nan
         for n in node_list
     ])
 
-    # Separate sampled vs unsampled nodes for drawing
+    # Only nodes with a finite (defined) d_eff get the colormap.
     sampled_mask = ~np.isnan(d_effs)
     sampled_nodes = [n for n, m in zip(node_list, sampled_mask) if m]
     unsampled_nodes = [n for n, m in zip(node_list, sampled_mask) if not m]
@@ -170,28 +172,45 @@ def plot_dimension_histogram(dim_field: dict,
     Histogram of local effective dimension values.
 
     Args:
-        dim_field: Output of dimension.dimension_field().
+        dim_field: Output of dimension.dimension_field(). Nodes with an
+                   undefined dimension (d_eff = nan, no power-law regime)
+                   are excluded from the histogram.
         save_path: If set, save to file instead of showing.
     """
-    d_effs = np.array([v[0] for v in dim_field.values()])
+    all_d = np.array([v[0] for v in dim_field.values()], dtype=float)
+    n_total = len(all_d)
+    d_effs = all_d[np.isfinite(all_d)]
+    n_defined = len(d_effs)
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    ax.hist(d_effs, bins=30, color='steelblue', alpha=0.7, edgecolor='white')
+    if n_defined == 0:
+        # Nothing has a defined dimension (e.g. a small-world graph).
+        ax.text(0.5, 0.5,
+                "No nodes have a defined effective dimension\n"
+                "(no polynomial ball-growth regime)",
+                ha='center', va='center', transform=ax.transAxes, fontsize=12)
+        ax.set_xlim(0, 4)
+    else:
+        ax.hist(d_effs, bins=30, color='steelblue', alpha=0.7,
+                edgecolor='white')
 
-    # Reference lines at integer dimensions
-    for d in [1, 2, 3, 4]:
-        ax.axvline(x=d, color='black', linestyle='--', alpha=0.4, linewidth=1)
+        # Reference lines at integer dimensions
+        for d in [1, 2, 3, 4]:
+            ax.axvline(x=d, color='black', linestyle='--', alpha=0.4,
+                       linewidth=1)
 
-    mean_d = float(np.mean(d_effs))
-    std_d = float(np.std(d_effs))
-    ax.axvline(x=mean_d, color='red', linestyle='-', alpha=0.6, linewidth=1.5,
-               label=f'mean = {mean_d:.2f} $\\pm$ {std_d:.2f}')
+        mean_d = float(np.mean(d_effs))
+        std_d = float(np.std(d_effs))
+        ax.axvline(x=mean_d, color='red', linestyle='-', alpha=0.6,
+                   linewidth=1.5,
+                   label=f'mean = {mean_d:.2f} $\\pm$ {std_d:.2f} '
+                         f'({n_defined}/{n_total} defined)')
+        ax.legend()
 
     ax.set_xlabel('Effective Dimension $d_{eff}$')
     ax.set_ylabel('Count')
     ax.set_title('Distribution of Local Effective Dimension')
-    ax.legend()
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()

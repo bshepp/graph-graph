@@ -45,7 +45,7 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 | `showcase.py` | Generate curated demo animations (one per rule + combos) |
 | `sweep.py` | Parameter sweep with parallel execution and CSV export |
 | `dimension.py` | Local effective dimension estimator (d_eff via geodesic ball growth) |
-| `braket_walks.py` | Quantum walk analysis (optional, experimental) |
+| `braket_walks.py` | Quantum walk analysis: matrix-based CTQW vs. classical walks (experimental; runs on core deps) |
 | `SCALING.md` | Roadmap from 1K to 100M+ nodes |
 | `DIMENSIONAL_COHERENCE.md` | Theory and roadmap for dimensional coherence measurements |
 
@@ -117,6 +117,9 @@ Seven pre-tuned animations, one for each rule (epidemic spreading, Hebbian reinf
 ### Dimension analysis
 
 ```bash
+# Validate the estimator against graphs of known dimension (no run needed)
+python dimension.py --validate
+
 # Analyze local effective dimension from a completed run
 python dimension.py results/run_TIMESTAMP.pkl
 
@@ -126,6 +129,31 @@ python dimension.py results/run_TIMESTAMP.pkl --fast --max-radius 6 --samples 30
 # Visualize dimension map and histogram
 python visualize.py results/run_TIMESTAMP.pkl --dimension
 ```
+
+The estimator uses a finite-size-corrected log-log fit and only reports `d_eff`
+where ball growth is genuinely polynomial; small-world / expander graphs have no
+such regime, so their dimension is reported as **undefined** rather than a
+fabricated number. The fraction of dimension-defined nodes (`defined_frac`) is
+itself a signal -- on the small-world default topologies it should be ~0, and any
+rise over time is evidence of emergent geometric structure. The `lattice`
+topology is the one default where dimension is well-defined (`d_eff ≈ 2`).
+
+### Quantum walk analysis
+
+```bash
+# Self-check the matrix walks against known graphs (no results file needed)
+python braket_walks.py --validate
+
+# Compare continuous-time quantum walks to classical walks on sampled subgraphs
+python braket_walks.py results/run_TIMESTAMP.pkl --samples 5 --subgraph-size 32
+
+# Show plots interactively instead of saving to plots/
+python braket_walks.py results/run_TIMESTAMP.pkl --show
+```
+
+Matrix-based CTQW (via `scipy.sparse.linalg.expm_multiply`) compared against classical
+random walks; high total-variation distance flags structure (bottlenecks, symmetries)
+that classical walks miss. Runs on the core dependencies -- no Amazon Braket SDK needed.
 
 ### Parameter sweep
 

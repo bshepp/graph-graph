@@ -95,29 +95,35 @@ The key question is not whether individual nodes have different `d_eff` values (
 ### Phase 1: Local Dimension Estimator -- IMPLEMENTED
 
 > Implemented in `dimension.py`. Both NetworkX and sparse matrix backends are available.
-> Auto-calibration of `max_radius` based on sampled eccentricities replaces the fixed R = 5-10 suggestion.
-> The fast backend uses iterative sparse mat-vec with binarization instead of materializing `(A+I)^r`,
-> which avoids the O(n^2) memory blow-up that matrix powers would cause.
+> Auto-calibration of `max_radius` based on (deterministic) sampled eccentricities replaces the
+> fixed R = 5-10 suggestion. The fast backend uses iterative sparse mat-vec with binarization instead
+> of materializing `(A+I)^r`, which avoids the O(n^2) memory blow-up that matrix powers would cause.
+> A self-check against graphs of known dimension ships as `python dimension.py --validate`.
 
 Create a new module `dimension.py` that computes local effective dimension for each node.
 
 ```
 Input: graph G, node v, max_radius R
-Output: d_eff(v), quality of fit
+Output: d_eff(v) (or "undefined"), quality of fit
 
 Algorithm:
   for r in 1..R:
     count |B(v, r)| via BFS from v
-  fit log|B(v,r)| vs log(r) — linear regression
-  d_eff = slope
-  quality = R² of fit (how "clean" the dimensionality is)
+  keep radii where |B(v,r)| < 10% of the graph (local window)
+  if fewer than ~6 such radii: d_eff = undefined   # no scale separation
+  fit log|B(v,r)| = d·log r + c + a·(1/r)           # finite-size corrected
+  d_eff = coefficient on log r
+  if R² of that fit < 0.95: d_eff = undefined        # not a clean power law
 ```
 
-**Important nuances:**
+**Important nuances (these are not optional refinements — naive versions give wrong numbers):**
 
-- The R² value is itself informative. High R² means the node lives in a region with clean dimensional behavior. Low R² means the region is dimensionally ambiguous — *exactly the incoherent regions the theory predicts should exist.*
-- Choose `R` carefully. Too small and you're measuring local noise. Too large and you're averaging across dimensional boundaries. The implementation auto-calibrates `R` based on sampled graph diameter, with saturation trimming to prevent finite-size effects.
-- The fast backend uses iterative sparse mat-vec: at each step compute `reached = binarize(A @ reached + reached)`, counting cumulative reachable nodes. This is O(nnz) per step vs O(n^2) for the originally proposed `(A + I)^r` matrix power approach.
+- **Finite-size correction.** A plain `log|B|` vs `log r` fit *systematically underestimates* dimension, because `|B(r)| = C·r^d·(1 + a/r + …)` and the `a/r` term flattens the slope at the small radii we can reach (on clean lattices it reads d≈1.6 for a true 2D grid, d≈2.3 for 3D). Adding a `1/r` regressor absorbs that correction and recovers the true dimension to within ~0.05 even at radius 6. This is standard finite-size scaling, not a hack.
+- **Dimension is often *undefined*, and that is the point.** Ball-growth dimension only means something where the ball grows *polynomially* across a usable range of scales. Small-world / expander graphs saturate in 3-5 hops — ball size grows exponentially — so they have no such regime and `d_eff` is genuinely undefined (the estimator returns `nan`, not a fabricated number). The decisive test is scale separation: a low-dimensional ball stays under the 10% cut for many radii; an expander ball blows past it in ~3 hops. R² alone does **not** discriminate (an expander's few points still look linear), which is why the radii-count gate is primary.
+- **The R² value is itself informative.** Among nodes that *do* have a defined dimension, high R² means clean dimensional behaviour; lower R² flags ambiguous regions — *exactly the incoherent regions the theory predicts.*
+- **The fast backend** uses iterative sparse mat-vec: at each step `reached = binarize(A @ reached + reached)`, counting cumulative reachable nodes — O(nnz) per step vs O(n^2) for the originally proposed `(A + I)^r` matrix power. Both backends share `local_dimension`, so they give identical d_eff for the same node (checked by the validator).
+
+**Consequence for the experiment.** The project's default initial topologies (small-world, scale-free, random) are correctly read as *dimensionless* — `defined_frac ≈ 0`. That is the right null baseline, not a bug. The `lattice` topology is the one default where dimension is well-defined (`d_eff ≈ 2`), so "do the rules preserve or destroy the lattice's 2D structure?" is a measurable experiment available today. More generally, the **emergence signal is a rising fraction of dimension-defined nodes over time** (reported as `defined_frac` by `dimension_stats`): local rules producing geometric structure where there was none.
 
 ### Phase 2: Dimensional Phase Detection -- PARTIALLY IMPLEMENTED
 

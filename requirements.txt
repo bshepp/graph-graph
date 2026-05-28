@@ -12,6 +12,8 @@ tqdm>=4.60
 # torch-geometric>=2.0
 # cudf  # RAPIDS for GPU graphs
 
-# Optional: Quantum walk analysis
+# Optional: quantum hardware experiments only.
+# braket_walks.py runs on the core scipy stack above without this; the SDK is needed
+# solely for the deferred circuit-based (DTQW) hardware path documented in that file.
 # amazon-braket-sdk>=1.50
 
