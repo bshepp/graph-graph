@@ -47,6 +47,7 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 | `sweep.py` | Parameter sweep with parallel execution and CSV export |
 | `dimension.py` | Local effective dimension estimator (d_eff via geodesic ball growth) |
 | `track_dimension.py` | Temporal dimension tracking: how dimensional structure evolves under the rules |
+| `ising_sweep.py` | Finite-size-scaling driver: validates the FSS machinery (Binder cumulant, susceptibility, data collapse) on the majority-vote/Ising transition |
 | `FINDINGS.md` | Empirical log of the emergent-dimension experiments |
 | `braket_walks.py` | Quantum walk analysis: matrix-based CTQW vs. classical walks (experimental; runs on core deps) |
 | `SCALING.md` | Roadmap from 1K to 100M+ nodes |
@@ -194,6 +195,26 @@ Measures the dimension field at t=0 and every `--track-interval` steps, plotting
 `defined_frac`, the `d_eff` distribution, and dimension composition over time.
 Use `--max-radius` to set a measurement radius large enough to resolve emergent
 (high-diameter) structure. See [FINDINGS.md](FINDINGS.md) for results.
+
+### Finite-size scaling (phase transitions)
+
+```bash
+# Validate the FSS machinery on the majority-vote/Ising transition (q_c ~ 0.08)
+python ising_sweep.py --sides 16 24 32 --seeds 4 --collapse
+
+# Quick smoke run
+python ising_sweep.py --quick
+
+# The actual (Z2-biased) majority rule, for comparison -- shows no clean transition
+python ising_sweep.py --model project --noise-max 0.6
+```
+
+Sweeps a noise grid across lattice sizes and computes the order parameter,
+susceptibility, and Binder cumulant; the Binder-curve crossing locates the
+critical point and `--collapse` overlays a 2D-Ising data collapse. This is the
+validation step before applying finite-size scaling to hunt for *novel*
+transitions (e.g. shortcut-density → dimensional onset under `prune`). See
+[FINDINGS.md](FINDINGS.md) → "Scaling directions."
 
 ### Quantum walk analysis
 

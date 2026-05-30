@@ -1,5 +1,24 @@
 # Scaling Roadmap for graph-graph
 
+## Why scale? (research payoff before engineering)
+
+Compute is only worth spending where scale actually changes the answer. Our
+results (see `FINDINGS.md`) partition the directions sharply:
+
+| Direction | Does scale help? | Why |
+|-----------|------------------|-----|
+| Nucleate geometry from disorder by **local rewiring** (`triadic`/`geometrize`/`ricci`) | **No -- worsens** | Bootstrapping barrier is *structural*. Target extent `~N^(1/d)` grows polynomially; expander extent `~log N` doesn't. Bigger = further from geometric. |
+| **`cap -> d` finite-size scaling** of the `grown` generator | Yes (cheap) | Does the cap→dimension law sharpen to clean integers as `N` grows, or drift? Prerequisite for trusting anything at 1e8. |
+| **Spectral dimension via walks** on `grown` graphs | Yes | `P(t) ~ t^(-d_s/2)` is noise on 32 nodes, a precise instrument over decades of `t` at 1e7. Does `d_s` match ball-growth `d_eff`? The "including random walks" path. |
+| **Phase-transition / FSS** of a rule parameter | Yes (highest payoff) | A critical point is, by construction, emergence invisible at small `N`. Validate on `majority`/Ising, then `prune`. |
+
+The walk path is **not** a negative-result field to break open: the literature
+(CDT spectral-dimension flow `d_s: ~4→2`, tunable-spectral-dimension networks,
+quantum-walk community/fault detection) already shows walks reveal structure at
+scale. The open, compute-worthy question is whether a *minimal local growth
+rule* reproduces a CDT-like spectral-dimension flow without baked-in geometry.
+Full reasoning and citations: `FINDINGS.md` → "Scaling directions."
+
 ## Current Limits (NetworkX on CPU)
 
 | Scale | Nodes | Edges (~6 per node) | RAM | Time per step |

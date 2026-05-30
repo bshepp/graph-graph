@@ -149,3 +149,120 @@ generator (build it geometrically; the degree cap tunes d).
   seeds, and at the 100K+ scale the theory says emergence may require?
 - **Preservation of emergent structure:** do the dynamic rules preserve or
   erode a `grown` graph's dimension (as they do for the lattice)?
+
+## Scaling directions: what more compute could (and couldn't) unlock
+
+A standing question is whether *scaling up* -- to the largest graphs a private
+budget on cloud compute can reach -- would reveal emergence the small-scale
+runs miss. Our own results already partition the question. The split is sharp,
+so it is worth stating before spending the compute.
+
+### The rewiring-from-disorder direction is a dead end that scale *worsens*
+
+The bootstrapping barrier is **structural, not finite-size**. An expander on
+`N` nodes has diameter `~ log N`; a `d`-dimensional graph on `N` nodes needs
+diameter `~ N^(1/d)`. As `N` grows the target extent grows *polynomially* while
+the disordered graph's extent grows only *logarithmically* -- so a larger
+random graph is *further* from geometric, not closer. No amount of compute
+rescues `triadic` / `geometrize` / `ricci` nucleating geometry from disorder;
+scaling them only buys a more expensive confirmation of the same wall. (That
+confirmation -- "local rewiring provably cannot grow extent, verified to 1e8
+nodes" -- is a legitimate negative, but it is a negative.)
+
+### The growth + walk-probe direction is where scale is the right lever
+
+Three questions only resolve at large `N`:
+
+1. **Spectral dimension via walks** -- measure `d_s` from random-walk
+   return-probability scaling `P(t) ~ t^(-d_s/2)` on `grown` graphs, and ask
+   whether it matches the ball-growth (Hausdorff) `d_eff` or diverges from it
+   (a fractal signature). On a 32-node subgraph the quantum-vs-classical TVD is
+   noise; over decades of `t` on a 1e7-node graph it is a precise instrument.
+   The `traverse.py` walk machinery + `braket_walks.py` CTQW are the seed of
+   this. **This is the "including random walks" path.**
+2. **`cap -> d` finite-size scaling** -- does the `grown` generator's
+   cap→dimension law sharpen to clean integers as `N` climbs, or drift?
+   Cheapest of the three; settles an existing open thread and is the
+   prerequisite for trusting anything at 1e8.
+3. **Hunt a phase transition** -- the canonical "more is different" test. Sweep
+   a rule parameter, and use finite-size scaling (Binder-cumulant crossing,
+   diverging susceptibility, data collapse) to find a critical point where a
+   correlation length diverges and long-range structure appears spontaneously.
+   A critical point is, by construction, emergence invisible at small `N`. The
+   first concrete step is a **`majority`/Ising-on-a-lattice validation** (see
+   `ising_sweep.py` / below) -- recover known critical behavior to prove the
+   FSS machinery works -- then turn it on `prune` (shortcut-density → dimensional
+   onset), the novel case tied to our one positive emergence result.
+
+### Where the literature already stands on the walk path (is a big negative result waiting?)
+
+Short answer: **no -- the random-walk-on-emergent-geometry path is a mature
+*positive*-result literature, not a negative-result one.** The largest published
+work is the opposite of trivial:
+
+- **Causal dynamical triangulations (CDT)** measure the spectral dimension by
+  random-walk return probability on Monte-Carlo-sampled emergent geometries and
+  find a famous *scale-dependent dimensional reduction* -- `d_s` flows toward
+  ~2 at short scales and matches the topological dimension at intermediate
+  scales. This is a flagship quantum-gravity result, run at large simplex
+  counts. (Coumbe & collaborators, *Scaling analyses of the spectral dimension
+  in 3D CDT*, arXiv:1711.02685.)
+- **Tunable-spectral-dimension networks** are built precisely as a
+  "universality playground" for critical phenomena -- a direct cousin of our
+  `grown` cap→d generator. (Millán et al., *Complex networks with tuneable
+  spectral dimension as a universality playground*, Phys. Rev. Research 3,
+  023015, 2021.)
+- **Quantum walks on networks** are established probes of community structure,
+  faults, and clustering-induced localization -- i.e. quantum-vs-classical
+  divergence reliably *does* reveal structure.
+
+**Implication.** "Do walks reveal emergent structure at scale?" is settled
+*yes*; merely scaling that up would re-confirm known physics, so the bar for
+novelty is specific. The compute-worthy, genuinely-open question sits *between*
+the engineered tunable-`d_s` networks and the geometry-baked-in CDT result:
+
+> Does a **minimal local growth rule** (our `grown` generator -- no baked-in
+> causal or geometric structure) spontaneously reproduce a CDT-like spectral-
+> dimension *flow* `d_s(scale)`, and does `d_s` agree with or split from the
+> ball-growth `d_eff`?
+
+That is the thing that takes real compute and would be new -- emergence of
+spectral dimension from a dead-simple rule, rather than from a construction
+designed to have it. The closest thing to a "negative" in the literature is the
+known fact that `d_s != d_H` (Hausdorff) on fractals -- which is a feature to
+measure, not a null result to overturn.
+
+### Recommendation / sequencing
+
+Start with the **`majority`/Ising FSS validation** (proves the scaling
+machinery on known physics, cheap), then the two compute-justified pushes in
+parallel as budget allows: **`prune` phase-transition FSS** and **spectral-
+dimension flow on `grown` graphs**. The `cap -> d` scaling check is a cheap
+prerequisite that can ride along with either.
+
+### FSS machinery: validated on the majority-vote / Ising transition
+
+`ising_sweep.py` implements the full FSS pipeline (order parameter `M = <|m|>`,
+susceptibility `chi = N Var(m)`, Binder cumulant `U`, and a 2D-Ising data
+collapse) and validates it on a 2D lattice. Result (sides 16/24/32, seeds 4):
+
+- the **Binder curves cross at a single point** and the **susceptibility peak
+  grows with `L`**, locating `q_c ~= 0.08` -- consistent with the known
+  square-lattice majority-vote value (~0.075; the small offset is open
+  boundaries + modest `L`);
+- the **data collapse** with 2D-Ising exponents (`beta/nu = 1/8`, `1/nu = 1`)
+  pulls all three `L` onto one master curve.
+
+So the machinery recovers known physics and is trustworthy to point at `prune`.
+
+**A non-obvious finding it surfaced:** the project's actual `majority` rule
+(`rules.py`) is **not** `Z2`-symmetric -- it breaks ties with `argmax`,
+deterministically toward state 0. On an even-degree lattice (grid degree 4)
+2-2 ties are constant, so this acts as a *strong symmetry-breaking field*: under
+the real rule the lattice stays ordered across the whole noise range and shows
+no clean transition. The clean Ising validation therefore uses a textbook
+`Z2`-symmetric majority-vote update (random tie-breaking, checkerboard sweep to
+avoid synchronous period-2 blinking on the bipartite lattice); `ising_sweep.py
+--model project` reproduces the biased, transition-free behavior of the real
+rule for comparison. Worth remembering when interpreting any `majority` result:
+state 0 is weakly favored. See [[majority-rule-tie-break-bias]].
