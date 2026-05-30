@@ -35,7 +35,12 @@ preservation / emergence signal.
 | `rewire` | rewire edges to **random** targets | **destroys** structure (lattice d≈2 → undefined in ~30 steps) | adds long-range shortcuts → collapses diameter |
 | `prune` | remove low-overlap "shortcut" edges | small-world → **d≈1** (`defined_frac` 0→100%) | strips shortcuts → diameter grows → latent ring revealed |
 | `triadic` | rewire edges to friends-of-friends | clustering 0.002 → 0.625 but **dimension stays undefined** | clustering rises, diameter stays short |
-| `grown` (generator) | degree-capped frontier growth | **tunable emergent d**: cap 6→2.1, 7→2.7, 8→2.9 | cap forces outward growth → large diameter |
+| `grown` (generator) | degree-capped frontier growth | **tunable emergent d** (converged at scale): cap 6→~2.2, 7→~3.0, 8→~3.6 | cap forces outward growth → large diameter |
+
+> The cap→d numbers above are the **scale-converged** values (`N` up to 2e5;
+> see "cap→d scaling" below). The earlier single-`N` estimates (6→2.1, 7→2.7,
+> 8→2.9) were biased *low* by ball saturation at small `N` -- a finite-size
+> artifact that the scaling check corrected.
 
 **Unifying insight:** the active ingredient for emergent dimension is
 **extent (large diameter)**, not local density. `prune` and `triadic` succeed
@@ -51,7 +56,9 @@ and dimension falls out, tunable by one local scalar.
 - `grown` is **strong emergence**: dimension that was never latent (grown
   from a triangle), from a simple local rule, tunable by the degree cap.
   Caveat: the cap *selects* d, so it is "emergence with a knob," not a
-  spontaneously preferred dimension.
+  spontaneously preferred dimension -- and the knob is a **continuum**, not an
+  integer quantizer: at scale cap 8 plateaus at ~3.6, not a clean 4 (see
+  cap→d scaling). The dimension is stable and tunable, but not integer-valued.
 
 ## The attractor question: is there a *preferred* dimension?
 
@@ -293,6 +300,38 @@ measure, not a null result to overturn.
 
 The **`majority`/Ising FSS validation** (below) is already done and is the
 prerequisite that licenses the *pipeline* for steps 3-4 (not the exponents).
+
+### cap → d scaling: done (step 1) -- the instrument scales; the law is a continuum
+
+`cap_dimension_scaling.py` sweeps the `grown` generator over cap x N x seeds and
+measures the dimension field at a *fixed* radius (so the regime gate, not a
+varying radius, decides resolvability), then checks for a plateau in `d_eff(N)`.
+Result (caps 6/7/8, `N` to 2e5, 3 seeds, radius 10):
+
+| cap | d_eff at small N (old table) | converged d_eff (this run) | plateau by |
+|-----|------------------------------|----------------------------|------------|
+| 6   | 2.1                          | **~2.2**                   | N ~ 1e4    |
+| 7   | 2.7                          | **~3.0**                   | N ~ 2e4    |
+| 8   | 2.9                          | **~3.6** (not 4)           | N ~ 1e5    |
+
+Three takeaways, all useful:
+
+1. **The instrument and the generator behave at scale.** `d_eff(N)` plateaus
+   cleanly (Δ < 0.03 between the last two `N`), and `defined_frac ~ 1` for all
+   but the smallest `N`. This is the small *positive* that licenses trusting
+   larger runs.
+2. **The small-N cap→d numbers were biased low** -- a fixed radius reads the
+   ball-growth slope low until `N` is large enough that all radii clear the
+   saturation gate. Higher-d caps resolve only at larger `N` (cap 8 needs
+   ~1e5), exactly as the saturation argument predicts -- a nice internal
+   consistency check.
+3. **The cap is a continuum knob, not an integer quantizer.** Converged values
+   are non-integer (cap 8 settles at ~3.6, not 4). The dimension is stable and
+   tunable but not quantized -- which sharpens the "emergence with a knob"
+   caveat rather than softening it.
+
+This also lets us begin to *extrapolate* a crossover: the "resolves only above
+N ~ X" scaling per cap is the first real number to replace the 100K hope.
 
 ### FSS machinery: validated on the majority-vote / Ising transition
 

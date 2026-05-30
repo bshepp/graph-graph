@@ -48,6 +48,7 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 | `dimension.py` | Local effective dimension estimator (d_eff via geodesic ball growth) |
 | `track_dimension.py` | Temporal dimension tracking: how dimensional structure evolves under the rules |
 | `ising_sweep.py` | Finite-size-scaling driver: validates the FSS machinery (Binder cumulant, susceptibility, data collapse) on the majority-vote/Ising transition |
+| `cap_dimension_scaling.py` | cap→dimension finite-size scaling for the `grown` generator: does `d_eff` plateau on a stable value as N grows? (it does — at non-integer values) |
 | `FINDINGS.md` | Empirical log of the emergent-dimension experiments |
 | `braket_walks.py` | Quantum walk analysis: matrix-based CTQW vs. classical walks (experimental; runs on core deps) |
 | `SCALING.md` | Roadmap from 1K to 100M+ nodes |
@@ -195,6 +196,22 @@ Measures the dimension field at t=0 and every `--track-interval` steps, plotting
 `defined_frac`, the `d_eff` distribution, and dimension composition over time.
 Use `--max-radius` to set a measurement radius large enough to resolve emergent
 (high-diameter) structure. See [FINDINGS.md](FINDINGS.md) for results.
+
+### cap → dimension scaling (does the grown law hold at scale?)
+
+```bash
+# Does grown's cap->dimension law plateau as N grows? (caps 6/7/8)
+python cap_dimension_scaling.py --caps 6 7 8 --nodes 2000 5000 10000 20000 50000 --seeds 3
+
+# Push a single cap to large N to test convergence
+python cap_dimension_scaling.py --caps 8 --nodes 50000 100000 200000 --seeds 3
+```
+
+Measures the dimension field at a fixed radius across N and reports whether
+`d_eff(N)` plateaus. Finding: it does, at **non-integer** values (cap 6→~2.2,
+7→~3.0, 8→~3.6), and higher-d caps resolve only at larger N. The small-N
+single-point estimates were biased low by ball saturation. See
+[FINDINGS.md](FINDINGS.md) → "cap → d scaling."
 
 ### Finite-size scaling (phase transitions)
 
