@@ -343,6 +343,64 @@ def geometrize(G: nx.Graph, target_degree: int = 6, rate: float = 0.2,
     return G
 
 
+def ricci_rewire(G: nx.Graph, rewire_prob: float = 0.05,
+                 min_degree: int = 2) -> nx.Graph:
+    """
+    Discrete Forman-Ricci curvature flow by surgery.
+
+    The Forman-Ricci curvature of an edge (u,v) is
+        F = 4 - deg(u) - deg(v) + 3 * (#triangles on the edge),
+    strongly negative for shortcuts/bridges and positive for
+    triangle-embedded edges. Ricci flow moves mass from negative- toward
+    positive-curvature regions; here we do the combinatorial analog:
+
+    For each edge (u,v) selected with probability `rewire_prob`, if it is a
+    negative-curvature shortcut (no shared neighbors), rewire its v-end to a
+    node w that shares a neighbor with u -- closing a triangle and raising
+    curvature. Positive-curvature edges are left alone, so curvature only
+    increases.
+
+    This is the principled "gold-ish standard" candidate for nucleating
+    geometry. It does NOT (see FINDINGS.md): on a random graph it raises
+    clustering and curvature but plateaus at a clumped, short-diameter fixed
+    point -- the eccentricity never grows, so no dimension emerges. Like
+    triadic_closure and geometrize, it confirms the bootstrapping barrier:
+    local rewiring crumples rather than unfolds, and cannot grow extent from
+    an expander.
+
+    Local information only. NetworkX backend only (run with --no-fast).
+    """
+    deg = dict(G.degree())
+
+    for u, v in list(G.edges()):
+        if np.random.random() >= rewire_prob:
+            continue
+        # Triangles on the edge = shared neighbors; >0 means positive-ish
+        # curvature already, so leave it.
+        if len(set(G[u]) & set(G[v])) > 0:
+            continue
+        if deg[v] <= min_degree:
+            continue
+
+        nbrs = list(G[u])
+        if not nbrs:
+            continue
+        x = nbrs[np.random.randint(len(nbrs))]
+        # Candidates two hops from u (share neighbor x) and not yet adjacent.
+        candidates = [w for w in G[x] if w != u and not G.has_edge(u, w)]
+        if not candidates:
+            continue
+        w = candidates[np.random.randint(len(candidates))]
+
+        wt = G[u][v].get('weight', 0.5)
+        G.remove_edge(u, v)
+        G.add_edge(u, w, weight=wt)
+        deg[v] -= 1
+        deg[w] = deg.get(w, 0) + 1
+
+    return G
+
+
 # Registry of available rules
 RULES = {
     'activation': activation_spread,
@@ -352,6 +410,7 @@ RULES = {
     'prune': shortcut_prune,
     'triadic': triadic_closure,
     'geometrize': geometrize,
+    'ricci': ricci_rewire,
 }
 
 

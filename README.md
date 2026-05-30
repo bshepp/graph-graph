@@ -64,6 +64,7 @@ All rules are **local** -- each node only sees its immediate neighbors. Rules ca
 | Shortcut pruning | `prune` | Remove "shortcut" edges (endpoints share no neighbors); grows diameter and can recover latent low-dimensional structure |
 | Triadic closure | `triadic` | Rewire edges toward friends-of-friends; raises clustering (but clustering alone does not create dimension -- see `FINDINGS.md`) |
 | Geometrize | `geometrize` | Homeostatic local rewiring toward a target degree; preserves geometry within its basin but does not nucleate it from disorder |
+| Ricci flow | `ricci` | Forman-Ricci curvature flow (rewire shortcuts toward triangles); confirms the bootstrapping barrier -- raises clustering but cannot grow extent from an expander |
 
 See [FINDINGS.md](FINDINGS.md) for what these rules do to *dimensional* structure (emergence experiments).
 

@@ -91,25 +91,61 @@ worked (built geometrically, never passing through an expander), but
 `geometrize` cannot geometrize a random graph. **The expander/dimensionless
 state is itself a stable phase that local rewiring cannot escape.**
 
+### Curvature flow hits the same barrier
+
+The strongest principled candidate for nucleating geometry is a discrete
+**Forman-Ricci curvature flow** (`ricci`): rewire negative-curvature
+shortcuts toward triangle-closing (positive-curvature) positions, so
+curvature only ever increases. Run on a random graph:
+
+| step | defined | clustering | mean Forman curvature | eccentricity |
+|------|---------|------------|------------------------|--------------|
+| 0    | 0%      | 0.003      | -9.8                   | 6            |
+| 80   | 0%      | 0.42       | -6.7                   | 7            |
+| 480  | 0%      | 0.43       | -6.6                   | 8            |
+
+It raises clustering and curvature but **plateaus at a clumped, negatively
+curved, short-diameter fixed point** -- the eccentricity never grows, so
+dimension never appears. The flat eccentricity is the key: local rewiring
+builds clustering by *crumpling*, not by *unfolding* into extent.
+
 ### Interpretation
 
-Under the local-rewiring rules tested, **dimension is bistable, not
-attracting. Geometry must be *seeded* (grown, or latent) -- it does not
-spontaneously condense from maximal disorder.** This maps onto the
-"dimensionally incoherent" phase in DIMENSIONAL_COHERENCE.md (the
-dark-matter analog): a stable, non-geometric phase.
+Three distinct local rewiring mechanisms -- `triadic` (clustering),
+`geometrize` (degree homeostasis), and `ricci` (curvature flow) -- **all**
+fail to nucleate geometry from a random graph, and all reach the same
+clumped small-world fixed point. The obstruction is mechanism-independent:
 
-**Scope:** this is strong evidence across a family of local *rewiring* rules
-plus a growth generator, not a proof that no local rule can nucleate
-geometry. The strongest untested candidate is a discrete **Ricci-curvature
-flow** (Forman / Ollivier), which is local and is known to drive graphs
-toward constant-curvature states -- the next experiment.
+> **Local rewiring cannot grow *extent* (diameter) from an expander.** It can
+> create local triangles, but those crumple into the existing short-diameter
+> structure instead of unfolding into an extended manifold. Growing the
+> diameter would require removing shortcuts faster than the graph
+> re-localizes, which either fragments it or stalls.
+
+So, under fixed-N local rules: **dimension is bistable, not attracting.
+Geometry must be *seeded* -- grown outward (the `grown` generator, which
+never passes through an expander) or already latent (a small-world ring) --
+it does not spontaneously condense from maximal disorder.** This maps onto
+the "dimensionally incoherent" phase in DIMENSIONAL_COHERENCE.md (the
+dark-matter analog): a stable, non-geometric phase that local dynamics
+cannot escape.
+
+**Scope:** strong, mechanism-independent evidence across four local rewiring
+rules plus a growth generator -- not a formal proof. An Ollivier-Ricci flow
+(optimal-transport curvature) is the one untested variant, but the obstruction
+observed is about *extent*, not the curvature measure, so the same barrier is
+expected. The clean way to *get* a chosen dimension remains the `grown`
+generator (build it geometrically; the degree cap tunes d).
 
 ## Open threads
 
-- **Curvature flow** vs the bootstrapping barrier: can a curvature-based
-  local rule nucleate geometry from a random graph? (in progress)
+- **Curvature flow** vs the bootstrapping barrier: tested (`ricci`) -- hits
+  the same barrier (above). Ollivier-Ricci (optimal-transport) is the one
+  untested variant but is expected to behave the same (the obstruction is
+  extent, not the curvature measure).
 - **Spatial coherence:** Moran's I on the `d_eff` field, to confirm emergent
   structure forms coherent phases rather than scattered noise.
 - **Robustness / scale:** does `grown`'s cap→dimension law hold across N and
   seeds, and at the 100K+ scale the theory says emergence may require?
+- **Preservation of emergent structure:** do the dynamic rules preserve or
+  erode a `grown` graph's dimension (as they do for the lattice)?
