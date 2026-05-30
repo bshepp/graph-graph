@@ -45,6 +45,8 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 | `showcase.py` | Generate curated demo animations (one per rule + combos) |
 | `sweep.py` | Parameter sweep with parallel execution and CSV export |
 | `dimension.py` | Local effective dimension estimator (d_eff via geodesic ball growth) |
+| `track_dimension.py` | Temporal dimension tracking: how dimensional structure evolves under the rules |
+| `FINDINGS.md` | Empirical log of the emergent-dimension experiments |
 | `braket_walks.py` | Quantum walk analysis: matrix-based CTQW vs. classical walks (experimental; runs on core deps) |
 | `SCALING.md` | Roadmap from 1K to 100M+ nodes |
 | `DIMENSIONAL_COHERENCE.md` | Theory and roadmap for dimensional coherence measurements |
@@ -58,7 +60,12 @@ All rules are **local** -- each node only sees its immediate neighbors. Rules ca
 | Activation spreading | `activation` | Active nodes spread activation to neighbors; active nodes may decay (SIS epidemic model) |
 | Edge reinforcement | `reinforcement` | Edges between co-active nodes strengthen; all edges slowly decay (Hebbian learning) |
 | Majority vote | `majority` | Nodes adopt the majority state of their neighbors; small noise prevents freezing |
-| Random rewiring | `rewire` | Small probability of rewiring edges, creating small-world structure over time |
+| Random rewiring | `rewire` | Small probability of rewiring edges to random targets, creating small-world structure (destroys geometric/dimensional structure) |
+| Shortcut pruning | `prune` | Remove "shortcut" edges (endpoints share no neighbors); grows diameter and can recover latent low-dimensional structure |
+| Triadic closure | `triadic` | Rewire edges toward friends-of-friends; raises clustering (but clustering alone does not create dimension -- see `FINDINGS.md`) |
+| Geometrize | `geometrize` | Homeostatic local rewiring toward a target degree; preserves geometry within its basin but does not nucleate it from disorder |
+
+See [FINDINGS.md](FINDINGS.md) for what these rules do to *dimensional* structure (emergence experiments).
 
 ## Measurements
 
@@ -138,6 +145,25 @@ itself a signal -- on the small-world default topologies it should be ~0, and an
 rise over time is evidence of emergent geometric structure. The `lattice`
 topology is the one default where dimension is well-defined (`d_eff ≈ 2`).
 
+### Temporal dimension tracking
+
+```bash
+# Does a 2D lattice keep its dimension under a rule, or lose it?
+python track_dimension.py --topology lattice --rules majority --steps 200   # preserved
+python track_dimension.py --topology lattice --rules rewire   --steps 200   # destroyed
+
+# Emergence: shortcut-pruning recovers the latent ~1D ring of a small-world graph
+python track_dimension.py --topology small_world --rules prune --steps 360 --max-radius 10
+
+# Tunable emergent dimension from a grown graph
+python track_dimension.py --topology grown --rules majority --steps 100 --max-radius 10
+```
+
+Measures the dimension field at t=0 and every `--track-interval` steps, plotting
+`defined_frac`, the `d_eff` distribution, and dimension composition over time.
+Use `--max-radius` to set a measurement radius large enough to resolve emergent
+(high-diameter) structure. See [FINDINGS.md](FINDINGS.md) for results.
+
 ### Quantum walk analysis
 
 ```bash
@@ -175,6 +201,7 @@ Four initial topologies are available via `--topology`:
 - `scale_free` -- Barabasi-Albert preferential attachment
 - `lattice` -- 2D grid
 - `random` -- Erdos-Renyi
+- `grown` -- degree-capped frontier growth (`k` = degree cap); produces tunable *emergent* dimension (cap 6 → ~2D, 8 → ~3D)
 
 ## Goals
 

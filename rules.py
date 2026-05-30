@@ -279,6 +279,70 @@ def triadic_closure(G: nx.Graph, rewire_prob: float = 0.05,
     return G
 
 
+def geometrize(G: nx.Graph, target_degree: int = 6, rate: float = 0.2,
+               min_degree: int = 3) -> nx.Graph:
+    """
+    Homeostatic local rewiring toward a target degree, keeping edges local.
+
+    For each node (with probability `rate`):
+      - over-connected (degree > target_degree): shed its most shortcut-like
+        edge -- the neighbor with the fewest shared neighbors;
+      - under-connected (degree < target_degree): gain a triadic
+        (friend-of-friend) edge.
+
+    Bounded degree + locality are the ingredients that produce dimension
+    (cf. the 'grown' generator). This rule was built to test whether they
+    yield an ATTRACTOR -- a dimension reached from any initial topology.
+
+    They do NOT (see FINDINGS.md). The dynamics are bistable:
+      - a 2D lattice is a stable fixed point (d stays ~2, stays connected);
+      - random / scale-free graphs are stuck at d "undefined" and cannot be
+        pulled into geometry -- a bootstrapping barrier, because
+        friend-of-friend is meaningless without pre-existing locality.
+    So this rule PRESERVES geometry within its basin but does not nucleate
+    it from disorder, and target_degree does not cleanly tune the result.
+
+    Local information only (a node's neighbors and their neighbors).
+
+    NetworkX backend only (not vectorized in simulation_fast.py); run the
+    driver with --no-fast to use it.
+    """
+    deg = dict(G.degree())
+
+    for u in list(G.nodes()):
+        if np.random.random() >= rate:
+            continue
+        du = deg[u]
+
+        if du > target_degree and du > min_degree:
+            # Shed the most shortcut-like edge (neighbor with least overlap).
+            uset = set(G[u])
+            cand = [(len(uset & set(G[v])), v) for v in G[u]
+                    if deg[v] > min_degree]
+            if cand:
+                _, v = min(cand, key=lambda t: t[0])
+                G.remove_edge(u, v)
+                deg[u] -= 1
+                deg[v] -= 1
+
+        elif du < target_degree:
+            # Gain a triadic (friend-of-friend) edge.
+            nbrs = list(G[u])
+            if not nbrs:
+                continue
+            x = nbrs[np.random.randint(len(nbrs))]
+            xn = list(G[x])
+            if not xn:
+                continue
+            w = xn[np.random.randint(len(xn))]
+            if w != u and not G.has_edge(u, w):
+                G.add_edge(u, w, weight=0.5)
+                deg[u] += 1
+                deg[w] += 1
+
+    return G
+
+
 # Registry of available rules
 RULES = {
     'activation': activation_spread,
@@ -287,6 +351,7 @@ RULES = {
     'rewire': random_rewire,
     'prune': shortcut_prune,
     'triadic': triadic_closure,
+    'geometrize': geometrize,
 }
 
 

@@ -92,6 +92,16 @@ The key question is not whether individual nodes have different `d_eff` values (
 
 ## Implementation Plan
 
+> **Empirical status (see [FINDINGS.md](FINDINGS.md) for the full log).** The
+> dimension estimator is built and validated. Experiments so far show: the
+> active ingredient for emergent dimension is *extent* (large diameter), not
+> local density; a degree-capped growth rule produces tunable emergent
+> dimension (cap 6 → ~2D); but there is **no global attractor** -- dimension
+> is *bistable*. Geometry is preserved within its basin yet cannot nucleate
+> from a disordered (expander) graph via local rewiring (a "bootstrapping
+> barrier"). The stable non-geometric phase is a candidate for the
+> dimensionally-incoherent / dark-matter regime described below.
+
 ### Phase 1: Local Dimension Estimator -- IMPLEMENTED
 
 > Implemented in `dimension.py`. Both NetworkX and sparse matrix backends are available.
