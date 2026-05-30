@@ -114,12 +114,12 @@ builds clustering by *crumpling*, not by *unfolding* into extent.
 Three distinct local rewiring mechanisms -- `triadic` (clustering),
 `geometrize` (degree homeostasis), and `ricci` (curvature flow) -- **all**
 fail to nucleate geometry from a random graph, and all reach the same
-clumped small-world fixed point. The obstruction is mechanism-independent:
+clumped small-world fixed point:
 
-> **Local rewiring cannot grow *extent* (diameter) from an expander.** It can
-> create local triangles, but those crumple into the existing short-diameter
-> structure instead of unfolding into an extended manifold. Growing the
-> diameter would require removing shortcuts faster than the graph
+> **Fixed-N local rewiring cannot grow *extent* (diameter) from an expander.**
+> It can create local triangles, but those crumple into the existing
+> short-diameter structure instead of unfolding into an extended manifold.
+> Growing the diameter would require removing shortcuts faster than the graph
 > re-localizes, which either fragments it or stalls.
 
 So, under fixed-N local rules: **dimension is bistable, not attracting.
@@ -130,25 +130,53 @@ the "dimensionally incoherent" phase in DIMENSIONAL_COHERENCE.md (the
 dark-matter analog): a stable, non-geometric phase that local dynamics
 cannot escape.
 
-**Scope:** strong, mechanism-independent evidence across four local rewiring
-rules plus a growth generator -- not a formal proof. An Ollivier-Ricci flow
-(optimal-transport curvature) is the one untested variant, but the obstruction
-observed is about *extent*, not the curvature measure, so the same barrier is
-expected. The clean way to *get* a chosen dimension remains the `grown`
-generator (build it geometrically; the degree cap tunes d).
+**Scope -- what is and isn't claimed.** The defensible statement is narrower
+and therefore stronger than "mechanism-independent": **fixed-N local rewiring
+cannot nucleate extent.** All three rules tested share more than locality --
+they conserve node count and operate by local edge moves, which is *exactly*
+the regime where the diameter argument bites. The obstruction is pinned to a
+conserved quantity (roughly, extent): on a fixed node set, local moves can
+redistribute edges but cannot manufacture the long geodesics a manifold needs.
+This is why `grown` -- which is *not* fixed-N; it adds nodes at a frontier --
+escapes. Two honesty notes:
+
+1. The three-rule agreement is suggestive induction; the **structural
+   diameter-growth argument is what actually carries the result** (see Scaling
+   directions: expander diameter `~log N` vs manifold `~N^(1/d)`). The next
+   move that adds real weight is therefore *not* a fourth rule (Ollivier-Ricci
+   is correctly predicted to hit the same wall and would add little) but
+   **measuring the obstruction**: extent-growth-rate vs N across the three
+   rules, showing the gap sharpens with N as the argument predicts. The flat
+   eccentricity column in the `ricci` table (6→7→8) is the best single piece
+   of evidence and is currently one N -- that is the thing to scale.
+2. Not a formal proof. The clean way to *get* a chosen dimension remains the
+   `grown` generator (build it geometrically; the degree cap tunes d).
 
 ## Open threads
 
+- **Quantify the bootstrapping barrier (flagship negative):** measure achieved
+  extent (diameter / eccentricity) vs rewiring steps and vs N for `triadic`,
+  `geometrize`, `ricci`, and show the growth is sub-polynomial -- that the flat
+  eccentricity plateau sharpens with N as the diameter argument predicts. A
+  negative result with a *measured* obstruction rate is far more citable than
+  one with an asserted one. This is where "verified to large N" earns its keep.
 - **Curvature flow** vs the bootstrapping barrier: tested (`ricci`) -- hits
   the same barrier (above). Ollivier-Ricci (optimal-transport) is the one
-  untested variant but is expected to behave the same (the obstruction is
-  extent, not the curvature measure).
+  untested variant but is expected to behave the same and would add little.
 - **Spatial coherence:** Moran's I on the `d_eff` field, to confirm emergent
   structure forms coherent phases rather than scattered noise.
 - **Robustness / scale:** does `grown`'s cap→dimension law hold across N and
-  seeds, and at the 100K+ scale the theory says emergence may require?
+  seeds, and converge to clean integers? (Cheapest win; prerequisite for
+  trusting anything at large N -- see Scaling directions.)
 - **Preservation of emergent structure:** do the dynamic rules preserve or
   erode a `grown` graph's dimension (as they do for the lattice)?
+
+> **On "emergence may require 100K+ nodes"** (DIMENSIONAL_COHERENCE.md, Phase
+> 5): that is a *hope by analogy to thermodynamics, not a derived crossover
+> scale.* No calculation predicts where (or whether) any of these transitions
+> sharpens. The cap→d and Ising-pipeline runs on local hardware are exactly
+> what would let us *extrapolate* a real crossover estimate -- and that
+> extrapolation is the gate to clear before reserving any large compute.
 
 ## Scaling directions: what more compute could (and couldn't) unlock
 
@@ -179,7 +207,14 @@ Three questions only resolve at large `N`:
    (a fractal signature). On a 32-node subgraph the quantum-vs-classical TVD is
    noise; over decades of `t` on a 1e7-node graph it is a precise instrument.
    The `traverse.py` walk machinery + `braket_walks.py` CTQW are the seed of
-   this. **This is the "including random walks" path.**
+   this. **This is the "including random walks" path.** *Pre-committed null:*
+   the most likely outcome is `d_s = d_H` (no flow) -- CDT's reduction comes
+   from causal/geometric content that `grown` deliberately lacks, so a flat
+   `d_s` is the *expected* result and is itself clean ("minimal local growth
+   gives a manifold-like graph with no anomalous spectral flow, isolating what
+   extra ingredient CDT's reduction requires"). It is a negative dressed as a
+   positive -- worth doing only if that outcome is acceptable upfront. Highest
+   cost, highest risk; gate it behind the cheap `cap -> d` check.
 2. **`cap -> d` finite-size scaling** -- does the `grown` generator's
    cap→dimension law sharpen to clean integers as `N` climbs, or drift?
    Cheapest of the three; settles an existing open thread and is the
@@ -193,6 +228,14 @@ Three questions only resolve at large `N`:
    `ising_sweep.py` / below) -- recover known critical behavior to prove the
    FSS machinery works -- then turn it on `prune` (shortcut-density → dimensional
    onset), the novel case tied to our one positive emergence result.
+   **Universality-class caveat:** `prune`'s transition has no reason to be in
+   the Ising class -- it may be percolation-like / a connectivity transition
+   with different exponents and possibly no `M = <|m|>`-style order parameter.
+   The Ising run validates the *pipeline*; it does **not** license importing
+   Ising exponents (`β/ν=1/8`, `1/ν=1`) as `prune` defaults. For `prune` the
+   exponents must be **extracted, not assumed**, and the order parameter argued
+   from the actual symmetry/structure of the transition -- otherwise the data
+   collapse becomes a fit-anything trap.
 
 ### Where the literature already stands on the walk path (is a big negative result waiting?)
 
@@ -232,13 +275,24 @@ designed to have it. The closest thing to a "negative" in the literature is the
 known fact that `d_s != d_H` (Hausdorff) on fractals -- which is a feature to
 measure, not a null result to overturn.
 
-### Recommendation / sequencing
+### Recommendation / sequencing (budget-honest)
 
-Start with the **`majority`/Ising FSS validation** (proves the scaling
-machinery on known physics, cheap), then the two compute-justified pushes in
-parallel as budget allows: **`prune` phase-transition FSS** and **spectral-
-dimension flow on `grown` graphs**. The `cap -> d` scaling check is a cheap
-prerequisite that can ride along with either.
+1. **`cap -> d` finite-size scaling on `grown`** -- cheapest, highest-certainty
+   win; a small *positive* that proves the instrument scales and lets us
+   extrapolate a crossover estimate. Do it first regardless.
+2. **Quantified bootstrapping barrier** -- extent-growth-rate vs N for the three
+   rewiring rules. This is the *flagship negative* and the one place where
+   "verified to large N" genuinely adds evidence (the gap is supposed to widen
+   with N). Local hardware reaches the N where the trend is clear.
+3. **`prune` phase-transition FSS** -- genuinely open, but carries the
+   universality-class trap; do it only after the Ising pipeline is locked, and
+   **extract** exponents rather than assume them.
+4. **Spectral-dimension flow on `grown`** -- the only potential positive
+   flagship, but most expensive and most likely a (still-publishable) null;
+   gate it behind step 1 confirming `grown` behaves at scale.
+
+The **`majority`/Ising FSS validation** (below) is already done and is the
+prerequisite that licenses the *pipeline* for steps 3-4 (not the exponents).
 
 ### FSS machinery: validated on the majority-vote / Ising transition
 
@@ -253,7 +307,13 @@ collapse) and validates it on a 2D lattice. Result (sides 16/24/32, seeds 4):
 - the **data collapse** with 2D-Ising exponents (`beta/nu = 1/8`, `1/nu = 1`)
   pulls all three `L` onto one master curve.
 
-So the machinery recovers known physics and is trustworthy to point at `prune`.
+So the machinery (Binder crossing, susceptibility scaling, collapse optimizer)
+is correctly implemented and recovers known physics. **What this licenses is
+the pipeline, not the exponents:** the 2D-Ising values were *recovered* here on
+a system known to be in that class -- they must not be carried over as defaults
+to `prune`, whose transition may be in a different class entirely (see the
+universality-class caveat above). Assuming them on `prune` would be the
+fit-anything trap.
 
 **A non-obvious finding it surfaced:** the project's actual `majority` rule
 (`rules.py`) is **not** `Z2`-symmetric -- it breaks ties with `argmax`,
