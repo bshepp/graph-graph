@@ -161,12 +161,8 @@ escapes. Two honesty notes:
 
 ## Open threads
 
-- **Quantify the bootstrapping barrier (flagship negative):** measure achieved
-  extent (diameter / eccentricity) vs rewiring steps and vs N for `triadic`,
-  `geometrize`, `ricci`, and show the growth is sub-polynomial -- that the flat
-  eccentricity plateau sharpens with N as the diameter argument predicts. A
-  negative result with a *measured* obstruction rate is far more citable than
-  one with an asserted one. This is where "verified to large N" earns its keep.
+- **Quantify the bootstrapping barrier (flagship negative):** *done (step 2)* --
+  the obstruction now has a measured exponent. See "Quantified barrier" below.
 - **Curvature flow** vs the bootstrapping barrier: tested (`ricci`) -- hits
   the same barrier (above). Ollivier-Ricci (optimal-transport) is the one
   untested variant but is expected to behave the same and would add little.
@@ -332,6 +328,52 @@ Three takeaways, all useful:
 
 This also lets us begin to *extrapolate* a crossover: the "resolves only above
 N ~ X" scaling per cap is the first real number to replace the 100K hope.
+
+### Quantified barrier: done (step 2) -- a measured obstruction exponent
+
+`barrier_scaling.py` measures achieved extent (double-sweep diameter on the
+largest component) vs rewiring steps and vs N, starting each rewiring rule from
+a random (expander) graph, with a 2D `lattice` as positive control and the
+unrewired random graph as baseline. Result (N to 1.6e4, 3 seeds, 200 steps,
+mean degree 6), fitting extent ~ N^alpha:
+
+| series | alpha (extent~N^α) | reading |
+|--------|--------------------|---------|
+| `lattice` (positive control) | **0.515** (R²=1.00) | true 2D: α = 1/2, as it must |
+| `none` (expander baseline) | **0.083** | diameter ~ log N |
+| `triadic` | 0.127 | barrier (noisy fit, R²=0.53) |
+| `geometrize` | 0.136 (R²=0.95) | barrier |
+| `ricci` | 0.147 (R²=0.99) | barrier |
+| `grown` (growth, for contrast) | 0.194 | polynomial but globally compressed |
+
+**The barrier is now a number.** All three fixed-N rewiring rules sit at
+**alpha ~ 0.13**, right next to the expander baseline (0.08) and nowhere near
+the 2D control (0.51). Two supporting observations:
+
+- **vs steps:** at N=1.6e4 the rewiring rules move the diameter only from ~10 to
+  ~16 over 200 steps while the lattice reference sits at 250 -- they *crumple*,
+  they do not *unfold*. The one-time **growth factor is ~1.3-1.5x** (a constant
+  stretch), and it does not scale: alpha stays ~0.13 as N grows.
+- **honest caveat:** the rewiring alpha (~0.13) sits slightly *above* the pure
+  expander baseline (0.08), but this is partly a *thinning* artifact --
+  `geometrize` sheds edges, and lowering mean degree alone raises diameter. So
+  even the small excess is not geometry-building. The conclusion stands and
+  *strengthens*: none of the modest stretch is manifold formation.
+
+So "fixed-N local rewiring cannot grow extent" is no longer an assertion over
+three samples -- it is a measured exponent (alpha ~ 0.13 vs the required 0.5),
+and the gap to a true manifold widens with N exactly as the log-N-vs-N^(1/d)
+argument predicts. This is the flagship negative, with the obstruction rate
+measured rather than asserted.
+
+> **Aside (a real surprise worth chasing):** `grown` is locally ~2D by
+> ball-growth (`d_eff` ≈ 2.2) yet its *global* diameter scales only as
+> ~N^0.19, far below the N^0.5 a flat 2D sheet would give. So `grown` is
+> locally low-dimensional but globally compressed (small-world-like) -- its
+> ball-growth (Hausdorff) dimension and its diameter (extent) dimension
+> disagree. That split is itself a clean, unplanned finding and is exactly the
+> kind of local-vs-global dimension mismatch the spectral-dimension study (step
+> 4) is built to probe.
 
 ### FSS machinery: validated on the majority-vote / Ising transition
 

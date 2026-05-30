@@ -49,6 +49,7 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 | `track_dimension.py` | Temporal dimension tracking: how dimensional structure evolves under the rules |
 | `ising_sweep.py` | Finite-size-scaling driver: validates the FSS machinery (Binder cumulant, susceptibility, data collapse) on the majority-vote/Ising transition |
 | `cap_dimension_scaling.py` | cap→dimension finite-size scaling for the `grown` generator: does `d_eff` plateau on a stable value as N grows? (it does — at non-integer values) |
+| `barrier_scaling.py` | Quantifies the bootstrapping barrier: measures extent (diameter) vs rewiring steps and vs N, fitting extent ~ N^α — rewiring rules stay at α≈0.13 (log N) vs a 2D lattice's α=0.5 |
 | `FINDINGS.md` | Empirical log of the emergent-dimension experiments |
 | `braket_walks.py` | Quantum walk analysis: matrix-based CTQW vs. classical walks (experimental; runs on core deps) |
 | `SCALING.md` | Roadmap from 1K to 100M+ nodes |
@@ -212,6 +213,21 @@ Measures the dimension field at a fixed radius across N and reports whether
 7→~3.0, 8→~3.6), and higher-d caps resolve only at larger N. The small-N
 single-point estimates were biased low by ball saturation. See
 [FINDINGS.md](FINDINGS.md) → "cap → d scaling."
+
+### Quantified bootstrapping barrier
+
+```bash
+# Measure extent (diameter) vs rewiring steps and vs N; fit extent ~ N^alpha
+python barrier_scaling.py --nodes 1000 2000 4000 8000 16000 --seeds 3 --steps 200
+```
+
+Starts each rewiring rule (`triadic`, `geometrize`, `ricci`) from a random
+expander, with a 2D `lattice` positive control and the unrewired random graph
+as baseline. Finding: the rewiring rules stay at **α ≈ 0.13** (extent ~ log N,
+like the expander) while the lattice control gives **α = 0.5** (true 2D) — local
+rewiring crumples rather than unfolds, and the gap widens with N. This turns the
+bootstrapping barrier from an asserted claim into a measured obstruction
+exponent. See [FINDINGS.md](FINDINGS.md) → "Quantified barrier."
 
 ### Finite-size scaling (phase transitions)
 
