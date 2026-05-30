@@ -42,7 +42,8 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 | `measure.py` | Analysis: correlation functions, agreement fraction, domain detection |
 | `visualize.py` | Metric plots and graph-state visualization |
 | `animate.py` | Animated dashboard: watch rules evolve the graph in real time |
-| `showcase.py` | Generate curated demo animations (one per rule + combos) |
+| `traverse.py` | Animated graph *traversals*: walk diffusion (quantum vs classical) and geodesic ball growth (the dimension estimator's BFS) |
+| `showcase.py` | Generate curated demo animations (one per rule + combos + traversals) |
 | `sweep.py` | Parameter sweep with parallel execution and CSV export |
 | `dimension.py` | Local effective dimension estimator (d_eff via geodesic ball growth) |
 | `track_dimension.py` | Temporal dimension tracking: how dimensional structure evolves under the rules |
@@ -120,7 +121,36 @@ python showcase.py --pick 1 3  # just epidemic + majority-vote
 python showcase.py --list      # describe all available showcases
 ```
 
-Seven pre-tuned animations, one for each rule (epidemic spreading, Hebbian reinforcement, majority-vote domains, small-world rewiring), one per notable topology (scale-free hubs, random baseline), and one combining all four rules to show full emergence.
+Seven pre-tuned animations, one for each rule (epidemic spreading, Hebbian reinforcement, majority-vote domains, small-world rewiring), one per notable topology (scale-free hubs, random baseline), and one combining all four rules to show full emergence. Three more (#8-10) are *traversal* showcases driven by `traverse.py` (see below).
+
+### Graph traversals
+
+Where `animate.py` shows the *rules* evolving a graph's state, `traverse.py`
+animates a *traversal* of a fixed graph -- either a walk spreading from a seed
+node, or the geodesic ball the dimension estimator grows. It takes a
+`results/*.pkl` (traverse a real run's final graph) or builds one from
+`--topology`.
+
+```bash
+# Walk diffusion: classical (diffusive) vs quantum (ballistic) side-by-side
+python traverse.py --mode walk --topology grown --nodes 600 --seed 0 --save walk.gif
+
+# Ball growth: the estimator's BFS, with a live log|B| vs log r panel that
+# calls the real local_dimension() -- watch d_eff lock in at ~2 on a lattice
+python traverse.py --mode ball --topology lattice --nodes 2500 --seed 0 --max-radius 12 --save ball.gif
+
+# ...or never define on an expander (ball engulfs the graph in a few hops)
+python traverse.py --mode ball --topology random --nodes 2000 --seed 0 --max-radius 8
+
+# Traverse a completed simulation instead of a fresh topology
+python traverse.py results/run_TIMESTAMP.pkl --mode walk
+```
+
+The spring layout is for display only -- no node coordinates feed any rule, so
+the no-baked-in-geometry invariant holds. The ball-growth panel reports
+**undefined** wherever there is no genuine power-law regime (too small a graph,
+or an expander), so what you watch is the honest estimator verdict, not a
+forced number.
 
 ### Dimension analysis
 
