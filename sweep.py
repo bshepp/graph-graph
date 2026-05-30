@@ -274,7 +274,7 @@ def main():
     )
     parser.add_argument(
         '--topologies', type=str, nargs='+', default=['small_world'],
-        choices=['small_world', 'scale_free', 'lattice', 'random'],
+        choices=['small_world', 'scale_free', 'lattice', 'random', 'grown'],
         help='Graph topologies (default: small_world)',
     )
     parser.add_argument(

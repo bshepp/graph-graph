@@ -17,11 +17,50 @@ from tqdm import tqdm
 from rules import get_rule, RULES
 
 
+def _grow_dimensional(n_nodes: int, degree_cap: int = 6,
+                      seed: int | None = None) -> nx.Graph:
+    """
+    Grow a graph by degree-capped frontier attachment.
+
+    Start from a seed triangle; repeatedly add a node joined to *both*
+    endpoints of a randomly chosen frontier edge -- an edge whose endpoints
+    are both still below `degree_cap`. Each attachment closes a triangle, so
+    the graph tiles outward like a triangulated sheet.
+
+    The degree cap is the whole trick: it forces growth to the boundary
+    instead of collapsing into hubs, producing extended, low-dimensional
+    structure. Effective dimension rises with the cap (cap 6 -> ~2D, the
+    degree of a triangular lattice; cap 8 -> ~3D). Coordinate-free -- only
+    adjacency and degree are used, so any emergent dimension is a genuine
+    consequence of the local rule, not baked-in geometry.
+    """
+    rng = np.random.default_rng(seed)
+    G = nx.cycle_graph(3)  # seed triangle (nodes 0,1,2)
+
+    # Frontier: edges that can still accept an attachment. Pruned lazily.
+    frontier = list(G.edges())
+    while len(G) < n_nodes and frontier:
+        i = int(rng.integers(len(frontier)))
+        u, v = frontier[i]
+        if G.degree(u) >= degree_cap or G.degree(v) >= degree_cap:
+            frontier[i] = frontier[-1]  # swap-remove stale entry
+            frontier.pop()
+            continue
+        w = G.number_of_nodes()
+        G.add_node(w)
+        G.add_edge(w, u)
+        G.add_edge(w, v)
+        frontier.append((w, u))
+        frontier.append((w, v))
+
+    return G
+
+
 def create_initial_graph(n_nodes: int, topology: str = 'small_world',
                          k: int = 6, p: float = 0.1,
                          seed: int | None = None) -> nx.Graph:
     """Create initial graph topology."""
-    
+
     if topology == 'small_world':
         G = nx.watts_strogatz_graph(n_nodes, k, p, seed=seed)
     elif topology == 'scale_free':
@@ -32,6 +71,9 @@ def create_initial_graph(n_nodes: int, topology: str = 'small_world',
         G = nx.convert_node_labels_to_integers(G)
     elif topology == 'random':
         G = nx.erdos_renyi_graph(n_nodes, k / n_nodes, seed=seed)
+    elif topology == 'grown':
+        # Emergent-geometry generator: k is the degree cap (6 -> ~2D).
+        G = _grow_dimensional(n_nodes, degree_cap=k, seed=seed)
     else:
         raise ValueError(f"Unknown topology: {topology}")
     
@@ -119,7 +161,7 @@ def main():
     parser.add_argument('--nodes', type=int, default=1000, help='Number of nodes')
     parser.add_argument('--steps', type=int, default=1000, help='Simulation steps')
     parser.add_argument('--topology', type=str, default='small_world',
-                        choices=['small_world', 'scale_free', 'lattice', 'random'])
+                        choices=['small_world', 'scale_free', 'lattice', 'random', 'grown'])
     parser.add_argument('--rules', type=str, nargs='+', default=['activation'],
                         choices=list(RULES.keys()))
     parser.add_argument('--seed', type=int, default=None, help='Random seed')

@@ -190,12 +190,103 @@ def random_rewire(G: nx.Graph, rewire_prob: float = 0.01,
     return G
 
 
+def shortcut_prune(G: nx.Graph, prune_prob: float = 0.05,
+                   min_overlap: int = 1, min_degree: int = 2) -> nx.Graph:
+    """
+    Remove "shortcut" edges -- those whose endpoints share fewer than
+    `min_overlap` common neighbors (i.e. the edge is not embedded in any
+    local triangle).
+
+    Local information only: each edge is judged from its two endpoints'
+    neighbor sets. This is the inverse of random rewiring -- instead of
+    adding long-range shortcuts it strips them.
+
+    On a Watts-Strogatz small-world graph (a ring lattice + random
+    shortcuts) the shortcuts connect ring-distant nodes that share no
+    neighbors, while the local ring edges sit in triangles. Pruning the
+    zero-overlap edges should therefore peel the graph back toward its
+    underlying ~1D ring. The rule self-terminates: once every surviving
+    edge sits in a local cluster, nothing is removable.
+
+    Connectivity is protected loosely by a minimum-degree floor: an edge is
+    not removed if either endpoint would drop to/below `min_degree`. The
+    degree bookkeeping is updated as we go so the floor accounts for earlier
+    removals in the same step.
+    """
+    deg = dict(G.degree())
+    to_remove = []
+
+    for u, v in list(G.edges()):
+        if np.random.random() >= prune_prob:
+            continue
+        if deg[u] <= min_degree or deg[v] <= min_degree:
+            continue
+        # Common neighbors (excludes u, v themselves -- no self loops).
+        overlap = len(set(G[u]) & set(G[v]))
+        if overlap < min_overlap:
+            to_remove.append((u, v))
+            deg[u] -= 1
+            deg[v] -= 1
+
+    G.remove_edges_from(to_remove)
+    return G
+
+
+def triadic_closure(G: nx.Graph, rewire_prob: float = 0.05,
+                    min_degree: int = 2) -> nx.Graph:
+    """
+    Rewire edges toward friends-of-friends (triadic closure).
+
+    For each edge (u, v) selected with probability `rewire_prob`, detach the
+    v-end and reattach u to a 2-hop neighbor w (a neighbor of one of u's
+    neighbors) that u is not already adjacent to. This closes a triangle
+    u-x-w and biases connectivity toward local, clustered structure -- the
+    exact opposite of random rewiring's long-range shortcuts. Edge count is
+    conserved and the rewired edge keeps its weight.
+
+    Local information only (u's neighbors and their neighbors). Open
+    question this tests: can repeated local triadic closure *build* extended
+    low-dimensional structure from a dimensionless start, or does it just
+    collapse into dense clumps?
+    """
+    deg = dict(G.degree())
+
+    for u, v in list(G.edges()):
+        if np.random.random() >= rewire_prob:
+            continue
+        if deg[v] <= min_degree:
+            continue
+
+        u_neighbors = list(G[u])
+        if not u_neighbors:
+            continue
+        x = u_neighbors[np.random.randint(len(u_neighbors))]
+        x_neighbors = list(G[x])
+        if not x_neighbors:
+            continue
+        w = x_neighbors[np.random.randint(len(x_neighbors))]
+
+        if w == u or G.has_edge(u, w):
+            continue
+
+        # Rewire (u, v) -> (u, w): u's degree is unchanged, v loses one, w gains one.
+        wt = G[u][v].get('weight', 0.5)
+        G.remove_edge(u, v)
+        G.add_edge(u, w, weight=wt)
+        deg[v] -= 1
+        deg[w] = deg.get(w, 0) + 1
+
+    return G
+
+
 # Registry of available rules
 RULES = {
     'activation': activation_spread,
     'reinforcement': edge_reinforcement,
     'majority': majority_vote,
     'rewire': random_rewire,
+    'prune': shortcut_prune,
+    'triadic': triadic_closure,
 }
 
 

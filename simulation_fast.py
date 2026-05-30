@@ -190,6 +190,128 @@ class FastGraph:
         )
         self.degrees = np.asarray(self.A.sum(axis=1)).flatten()
 
+    def _random_neighbors(self, nodes: np.ndarray) -> np.ndarray:
+        """For each node, return a uniformly random neighbor index, or -1 if
+        the node is isolated. Used for friend-of-friend sampling."""
+        indptr = self.A.indptr
+        indices = self.A.indices
+        starts = indptr[nodes]
+        degs = indptr[nodes + 1] - starts
+        out = np.full(len(nodes), -1, dtype=np.int64)
+        nz = degs > 0
+        if nz.any():
+            offs = (np.random.random(int(nz.sum())) * degs[nz]).astype(np.int64)
+            out[nz] = indices[starts[nz] + offs]
+        return out
+
+    def triadic_closure(self, rewire_prob: float = 0.05,
+                        min_degree: int = 2):
+        """Vectorized triadic closure: rewire selected edges' v-end to a
+        2-hop neighbor (friend-of-friend) of u. Statistically equivalent to
+        rules.triadic_closure (not bit-identical -- different RNG path)."""
+        coo_a = self.A.tocoo()
+        coo_w = self.weights.tocoo()
+        upper = coo_a.row < coo_a.col
+        if not upper.any():
+            return
+        ui = np.where(upper)[0]
+        us = coo_a.row[ui].astype(np.int64)
+        vs = coo_a.col[ui].astype(np.int64)
+
+        sel = (np.random.random(len(us)) < rewire_prob) & \
+              (self.degrees[vs] > min_degree)
+        if not sel.any():
+            return
+
+        su = us[sel]
+        sv = vs[sel]
+        # Friend-of-friend of u: one random step then another.
+        x = self._random_neighbors(su)
+        w = self._random_neighbors(np.where(x >= 0, x, su))
+
+        valid = (x >= 0) & (w >= 0) & (w != su)
+        if valid.any():
+            adj = np.asarray(self.A[su[valid], w[valid]]).ravel()
+            vi = np.where(valid)[0]
+            valid[vi[adj != 0]] = False  # skip already-adjacent targets
+        if not valid.any():
+            return
+
+        rem_u = su[valid]
+        rem_v = sv[valid]
+        add_w = w[valid]
+        n = self.n_nodes
+
+        # Remove (rem_u, rem_v) both directions, add (rem_u, add_w); mirror
+        # the rebuild pattern used by random_rewire.
+        remove_ids = np.concatenate([
+            rem_u * n + rem_v, rem_v * n + rem_u,
+        ])
+        all_ids = coo_a.row.astype(np.int64) * n + coo_a.col.astype(np.int64)
+        keep = ~np.isin(all_ids, remove_ids)
+
+        new_row = np.concatenate([coo_a.row[keep], rem_u, add_w])
+        new_col = np.concatenate([coo_a.col[keep], add_w, rem_u])
+        new_da = np.ones(len(new_row), dtype=np.float32)
+        # New edges inherit a default weight; kept edges keep theirs.
+        kept_w = coo_w.data[keep]
+        add_wt = np.full(len(rem_u), 0.5, dtype=np.float32)
+        new_dw = np.concatenate([kept_w, add_wt, add_wt])
+
+        shape = (n, n)
+        self.A = sp.csr_matrix((new_da, (new_row, new_col)), shape=shape)
+        self.weights = sp.csr_matrix((new_dw, (new_row, new_col)), shape=shape)
+        self.degrees = np.asarray(self.A.sum(axis=1)).flatten()
+
+    def shortcut_prune(self, prune_prob: float = 0.05,
+                       min_overlap: int = 1, min_degree: int = 2):
+        """Vectorized shortcut pruning (inverse of random rewiring).
+
+        Removes edges whose endpoints share fewer than `min_overlap`
+        common neighbors -- the non-triangle "shortcut" edges -- subject to
+        a minimum-degree floor. Common-neighbor counts come from the
+        diagonal trick: for edge (i, j), (A @ A)[i, j] is the number of
+        length-2 paths between i and j, i.e. their shared neighbors.
+        """
+        coo_a = self.A.tocoo()
+        coo_w = self.weights.tocoo()
+
+        upper = coo_a.row < coo_a.col
+        if not upper.any():
+            return
+        u_idx = np.where(upper)[0]
+        us = coo_a.row[u_idx]
+        vs = coo_a.col[u_idx]
+
+        # Common-neighbor count per (undirected) edge via A^2 at edge slots.
+        A2 = self.A @ self.A
+        overlap = np.asarray(A2[us, vs]).ravel()
+
+        # Candidate shortcuts: low overlap, randomly selected, degree floor.
+        rand = np.random.random(len(us)) < prune_prob
+        low = overlap < min_overlap
+        deg = self.degrees
+        floor_ok = (deg[us] > min_degree) & (deg[vs] > min_degree)
+        remove = rand & low & floor_ok
+        if not remove.any():
+            return
+
+        # Rebuild A / weights without the removed (mirrored) edges.
+        keep = ~remove
+        keep_us = us[keep]
+        keep_vs = vs[keep]
+        keep_ws = coo_w.data[u_idx][keep]
+
+        new_row = np.concatenate([keep_us, keep_vs])
+        new_col = np.concatenate([keep_vs, keep_us])
+        new_da = np.ones(len(new_row), dtype=np.float32)
+        new_dw = np.concatenate([keep_ws, keep_ws])
+
+        shape = (self.n_nodes, self.n_nodes)
+        self.A = sp.csr_matrix((new_da, (new_row, new_col)), shape=shape)
+        self.weights = sp.csr_matrix((new_dw, (new_row, new_col)), shape=shape)
+        self.degrees = np.asarray(self.A.sum(axis=1)).flatten()
+
     # ------------------------------------------------------------------
     # Metrics
     # ------------------------------------------------------------------
@@ -261,6 +383,8 @@ FAST_RULES = {
     'reinforcement': 'edge_reinforcement',
     'majority': 'majority_vote',
     'rewire': 'random_rewire',
+    'prune': 'shortcut_prune',
+    'triadic': 'triadic_closure',
 }
 
 
@@ -338,7 +462,7 @@ def main():
     parser.add_argument('--steps', type=int, default=1000,
                         help='Simulation steps')
     parser.add_argument('--topology', type=str, default='small_world',
-                        choices=['small_world', 'scale_free', 'lattice', 'random'])
+                        choices=['small_world', 'scale_free', 'lattice', 'random', 'grown'])
     parser.add_argument('--rules', type=str, nargs='+', default=['activation'],
                         choices=list(FAST_RULES.keys()))
     parser.add_argument('--seed', type=int, default=None,

@@ -222,6 +222,75 @@ def plot_dimension_histogram(dim_field: dict,
         plt.show()
 
 
+def plot_dimension_trajectory(traj: dict, save_path: str | None = None,
+                              title: str | None = None):
+    """
+    Plot how dimensional structure evolves over a run.
+
+    Args:
+        traj: Output of track_dimension.run_dimension_trajectory(), with
+              keys 'steps', 'defined_frac', 'd_eff_median', 'd_eff_std',
+              'hist_bins', 'hist_counts'.
+        save_path: If set, save to file instead of showing.
+        title:     Optional suptitle (e.g. "lattice | rules: rewire").
+    """
+    steps = np.array(traj['steps'], dtype=float)
+    defined = np.array(traj['defined_frac'], dtype=float)
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+    # (a) Defined fraction over time -- the headline signal.
+    ax = axes[0]
+    ax.plot(steps, defined * 100, 'o-', color='C0')
+    ax.set_xlabel('simulation step')
+    ax.set_ylabel('% of nodes with a defined dimension')
+    ax.set_ylim(-2, 102)
+    ax.set_title('Dimensional structure (defined fraction)')
+    ax.grid(True, alpha=0.3)
+
+    # (b) d_eff of the defined nodes (median +/- std). Mask points where
+    #     nothing is defined, so we don't draw a misleading zero.
+    ax = axes[1]
+    med = np.array(traj['d_eff_median'], dtype=float)
+    std = np.array(traj['d_eff_std'], dtype=float)
+    mask = defined > 0
+    med_m = np.where(mask, med, np.nan)
+    ax.plot(steps, med_m, 'o-', color='C1', label='median $d_{eff}$')
+    ax.fill_between(steps, med_m - std, med_m + std, alpha=0.2, color='C1',
+                    label='$\\pm$1 std')
+    for d in (1, 2, 3):
+        ax.axhline(d, ls='--', color='gray', alpha=0.4)
+    ax.set_xlabel('simulation step')
+    ax.set_ylabel('$d_{eff}$ (defined nodes only)')
+    ax.set_title('Effective dimension of defined nodes')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    # (c) Composition of the defined nodes across dimension bins over time.
+    ax = axes[2]
+    counts = np.array(traj['hist_counts'], dtype=float)  # (T, n_bins)
+    totals = counts.sum(axis=1, keepdims=True)
+    frac = np.divide(counts, totals, out=np.zeros_like(counts),
+                     where=totals > 0)
+    labels = traj.get('hist_bins') or [f'bin{i}' for i in range(frac.shape[1])]
+    ax.stackplot(steps, *(frac.T * 100), labels=labels, alpha=0.8)
+    ax.set_xlabel('simulation step')
+    ax.set_ylabel('% of defined nodes in each dimension band')
+    ax.set_ylim(0, 100)
+    ax.set_title('Dimension composition (of defined nodes)')
+    ax.legend(loc='upper right', fontsize=8)
+
+    if title:
+        fig.suptitle(title, fontsize=13, y=1.03)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        print(f"Saved dimension trajectory to {save_path}")
+    else:
+        plt.show()
+
+
 def plot_correlation_function(corr: dict, save_path: str | None = None):
     """Plot correlation function C(r) vs distance r."""
     
