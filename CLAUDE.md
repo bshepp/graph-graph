@@ -40,8 +40,11 @@ python braket_walks.py --validate
 | > 500K     | Not supported yet — see `SCALING.md`                                    |
 
 Both write a pickle to `results/run_*.pkl`. Rules combine freely; available keys:
-`activation`, `reinforcement`, `majority`, `rewire`. Topologies (`--topology`):
-`small_world` (default), `scale_free`, `lattice`, `random`.
+`activation`, `reinforcement`, `majority`, `rewire`, `prune`, `triadic`
+(all vectorized in both backends), plus `geometrize`, `ricci` (NetworkX reference
+backend only — run with `--no-fast`). Topologies (`--topology`):
+`small_world` (default), `scale_free`, `lattice`, `random`, `grown` (the
+emergent-dimension generator; `k` is its degree cap).
 
 ### Analysis / visualization (all take a `results/*.pkl` path as first positional arg)
 

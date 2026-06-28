@@ -135,15 +135,18 @@ Algorithm:
 
 **Consequence for the experiment.** The project's default initial topologies (small-world, scale-free, random) are correctly read as *dimensionless* — `defined_frac ≈ 0`. That is the right null baseline, not a bug. The `lattice` topology is the one default where dimension is well-defined (`d_eff ≈ 2`), so "do the rules preserve or destroy the lattice's 2D structure?" is a measurable experiment available today. More generally, the **emergence signal is a rising fraction of dimension-defined nodes over time** (reported as `defined_frac` by `dimension_stats`): local rules producing geometric structure where there was none.
 
-### Phase 2: Dimensional Phase Detection -- PARTIALLY IMPLEMENTED
+### Phase 2: Dimensional Phase Detection -- IMPLEMENTED
 
 > **Dimensional phase map:** Implemented in `visualize.py` (`--dimension` flag). Generates both a
 > graph visualization color-coded by d_eff and a histogram of the d_eff distribution.
 >
-> **Spatial autocorrelation (Moran's I):** Planned replacement for arbitrary-threshold phase boundary
-> detection. Measures whether similar d_eff values cluster spatially on the graph.
+> **Spatial autocorrelation (Moran's I):** Implemented in `coherence.py` (permutation-tested, with a
+> `--validate` self-check). Result: on `grown` the d_eff field is strongly coherent (I≈0.88, z≈87)
+> where the field is whole — emergent dimension forms contiguous phases, not noise. See
+> FINDINGS.md → "Spatial coherence."
 >
-> **Temporal tracking:** Deferred until spatial structure is confirmed to be interesting.
+> **Temporal tracking:** Implemented in `track_dimension.py` — preservation/emergence trajectories of
+> `defined_frac` and the d_eff field over a simulation run. See FINDINGS.md → "Preservation."
 
 Once you can compute `d_eff(v)` for all nodes:
 
@@ -173,6 +176,8 @@ To test: measure the **local update rate** (state changes per node per timestep)
 ### Phase 5: Scale
 
 Per `SCALING.md`, push to large graphs. The dimensional coherence framework predicts that interesting behavior requires sufficient scale — just as real physics requires many particles for thermodynamic behavior to emerge. Dimensional phase transitions may not be visible at 1K nodes; they may require 100K+ to develop stable phases.
+
+> **Tested so far (be honest about it):** the one phase-transition bet that was run — `prune`'s shortcut-density → dimensional onset (step 3) — turned out to be a **crossover, not a transition**: dimension tunes continuously and N-independently, with no sharpening for finite-size scaling to find (see FINDINGS.md → "prune dimensional onset"). And the "100K+" figure is a *hope by analogy to thermodynamics, not a derived crossover scale* — no calculation predicts where (or whether) any transition sharpens. The phase-transition route remains open only for rules/observables not yet tried.
 
 ---
 

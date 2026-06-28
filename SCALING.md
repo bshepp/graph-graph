@@ -10,7 +10,7 @@ results (see `FINDINGS.md`) partition the directions sharply:
 | Nucleate geometry from disorder by **local rewiring** (`triadic`/`geometrize`/`ricci`) | **No -- worsens** | Bootstrapping barrier is *structural*. Target extent `~N^(1/d)` grows polynomially; expander extent `~log N` doesn't. Bigger = further from geometric. |
 | **`cap -> d` finite-size scaling** of the `grown` generator | Yes (cheap) | Does the cap→dimension law sharpen to clean integers as `N` grows, or drift? Prerequisite for trusting anything at 1e8. |
 | **Spectral dimension via walks** on `grown` graphs | Yes | `P(t) ~ t^(-d_s/2)` is noise on 32 nodes, a precise instrument over decades of `t` at 1e7. Does `d_s` match ball-growth `d_eff`? The "including random walks" path. |
-| **Phase-transition / FSS** of a rule parameter | Yes (highest payoff) | A critical point is, by construction, emergence invisible at small `N`. Validate on `majority`/Ising, then `prune`. |
+| **Phase-transition / FSS** of a rule parameter | Validated; `prune` tested → **no transition** | A critical point would be emergence invisible at small `N`. The FSS pipeline is validated on `majority`/Ising; turned on `prune` (step 3) it found a **crossover, not a critical point** — `p` tunes dimension continuously (1→2), N-independently, peak slope flat in `N`. No exponents; scale doesn't sharpen it. Route still open for untried rules/observables. |
 
 The walk path is **not** a negative-result field to break open: the literature
 (CDT spectral-dimension flow `d_s: ~4→2`, tunable-spectral-dimension networks,
