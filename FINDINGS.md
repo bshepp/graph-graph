@@ -392,9 +392,11 @@ measure, not a null result to overturn.
    rewiring rules. This is the *flagship negative* and the one place where
    "verified to large N" genuinely adds evidence (the gap is supposed to widen
    with N). Local hardware reaches the N where the trend is clear.
-3. **`prune` phase-transition FSS** -- genuinely open, but carries the
-   universality-class trap; do it only after the Ising pipeline is locked, and
-   **extract** exponents rather than assume them.
+3. **`prune` phase-transition FSS** -- *done (step 3): there is no transition.*
+   The dimensional onset is a **crossover, not a critical point** -- `p` tunes
+   the pruned dimension continuously (1→2), N-independently, with a peak slope
+   that does not grow with N. So no exponents to extract; the honesty was in
+   *not* forcing a collapse. See "prune dimensional onset" below.
 4. **Spectral-dimension flow on `grown`** -- the only potential positive
    flagship, but most expensive and most likely a (still-publishable) null;
    gate it behind step 1 confirming `grown` behaves at scale.
@@ -512,3 +514,71 @@ avoid synchronous period-2 blinking on the bipartite lattice); `ising_sweep.py
 --model project` reproduces the biased, transition-free behavior of the real
 rule for comparison. Worth remembering when interpreting any `majority` result:
 state 0 is weakly favored. See [[majority-rule-tie-break-bias]].
+
+### prune dimensional onset: done (step 3) -- a continuum knob, not a transition
+
+Step 3 was meant to turn the validated FSS pipeline on `prune` (shortcut-density
+→ dimensional onset) and extract the critical exponents. A scout overturned the
+premise before any collapse was attempted, and *that is the result*.
+`prune_dimension.py` prunes a Watts-Strogatz ring (k=6) to convergence across
+rewire probability `p` × N × seeds and measures the pruned graph's emergent
+dimension.
+
+**There is no sharp dimensional onset.** `defined_frac` stays ~1 for every `p`
+and N -- pruning always yields a *defined* dimension, so the "switches on at a
+`p_c`" picture is simply wrong. What `p` does instead is tune the dimension
+*continuously* (N = 3.2e4, seed-averaged):
+
+| p | 0.05 | 0.10 | 0.20 | 0.30 | 0.40 | 0.50 | 0.60 | 0.70 | 0.80 |
+|---|------|------|------|------|------|------|------|------|------|
+| median `d_eff` | 1.00 | 0.98 | 1.04 | 1.52 | 1.91 | 2.22 | 2.26 | 2.16 | 2.07 |
+| clustering     | 0.58 | 0.57 | 0.57 | 0.55 | 0.47 | 0.34 | 0.21 | 0.10 | 0.03 |
+
+The pruned graph slides from a near-pure **1D ring** (`d≈1`) toward a **2D mesh**
+(`d≈2`, saturating ~2.1) as `p` rises. Mechanism: `prune` strips zero-triangle
+shortcuts to convergence, peeling the graph back to the high-overlap backbone
+that survived rewiring; at low `p` that backbone is a clean ring, and as `p`
+rises the rewired-in edges that happen to land in triangles cross-link it into a
+more 2D fabric. So `prune` + shortcut-density is a **third continuum dimension
+knob**, alongside the `grown` degree cap -- and like that one it is a continuum,
+not an integer quantizer, and it tops out near 2.
+
+**It is a crossover, not a critical point -- quantified, not asserted.** Two
+numbers kill the transition reading (`prune_dimension.py` reports both):
+
+- **N-independence.** The d(p) curve is essentially identical at N = 2e3, 8e3,
+  3.2e4 (max over `p` of the across-N spread = **0.063**). A genuine transition
+  would keep shifting/sharpening with N; this one has already converged.
+- **Non-sharpening.** The peak slope `max_p |dd/dp|` is **flat across 16× in N**
+  (4.80, 4.97, 4.79 at N = 2e3 / 8e3 / 3.2e4). This is the dual of a diverging
+  susceptibility: at a real critical point the steepest response grows without
+  bound as N → ∞; here it does not move. Nothing for finite-size scaling to
+  latch onto -- a forced data collapse would have been exactly the fit-anything
+  trap the universality caveat warned about.
+
+**The dimension is real geometry, not a low-degree artifact** (`--validate-real`).
+At high `p` the pruned graph is sparse (mean degree → ~2.5), so the `d≈2` reading
+needs a control: an Erdős–Rényi graph at the *same* mean degree.
+
+| p | pruned-WS | ER at matched degree |
+|---|-----------|----------------------|
+| 0.1 | deg 5.3, clustering **0.56**, defined **1.00**, d≈1.0 | clustering 0.001, defined **0.00** (expander) |
+| 0.5 | deg 2.8, clustering **0.35**, defined **0.97**, d≈2.1 | clustering 0.000, defined 0.53, d≈5.6 (garbage) |
+
+At identical degree the pruned graph has high clustering and clean power-law ball
+growth while the ER control is an undefined expander -- so the dimension is a
+property of the *pruned structure* (which `p` controls), not of the degree.
+
+**Honesty caveat on the high-`p` end.** The clean tunable regime is `p ≲ 0.5`,
+where clustering stays ≥ 0.34. Beyond `p ≈ 0.6` clustering collapses toward
+ER-like (0.03 at p=0.8) even as `d_eff` plateaus at ~2; that plateau sits on
+thinning, weakly-clustered structure and should be read as "saturates near 2,"
+not as clean 2D geometry. The knob is sharpest and most clearly geometric in the
+ring→mesh band.
+
+So step 3 is a paired result: a **positive** (prune is a tunable-dimension
+generator, the third in the program) and an honest **negative** on the original
+question (the dimensional onset is a crossover, not a phase transition -- no
+critical exponents to extract, established by a *measured* non-divergence rather
+than a failed fit). Reproduce: `python prune_dimension.py --validate-real` then
+`python prune_dimension.py`.

@@ -51,6 +51,7 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 | `cap_dimension_scaling.py` | cap→dimension finite-size scaling for the `grown` generator: does `d_eff` plateau on a stable value as N grows? (it does — at non-integer values) |
 | `barrier_scaling.py` | Quantifies the bootstrapping barrier: measures extent (diameter) vs rewiring steps and vs N, fitting extent ~ N^α — rewiring rules stay at α≈0.13 (log N) vs a 2D lattice's α=0.5 |
 | `coherence.py` | Spatial coherence of the `d_eff` field via Moran's I (permutation-tested): is emergent dimension contiguous phases or per-node noise? (`grown` is coherent, I≈0.88) |
+| `prune_dimension.py` | `prune` + shortcut-density as a tunable-dimension knob: sweeps rewire prob `p` × N, showing d slides 1→2 as a **crossover, not a phase transition** (N-independent; peak slope flat in N) |
 | `FINDINGS.md` | Empirical log of the emergent-dimension experiments |
 | `braket_walks.py` | Quantum walk analysis: matrix-based CTQW vs. classical walks (experimental; runs on core deps) |
 | `SCALING.md` | Roadmap from 1K to 100M+ nodes |
@@ -249,6 +250,25 @@ critical point and `--collapse` overlays a 2D-Ising data collapse. This is the
 validation step before applying finite-size scaling to hunt for *novel*
 transitions (e.g. shortcut-density → dimensional onset under `prune`). See
 [FINDINGS.md](FINDINGS.md) → "Scaling directions."
+
+### prune as a tunable-dimension knob
+
+```bash
+# Sweep shortcut density p x N; map d(p) and test crossover-vs-transition
+python prune_dimension.py --nodes 2000 8000 32000 --seeds 3
+python prune_dimension.py --validate-real        # ER-control reality check
+```
+
+The `prune` phase-transition hunt (step 3) came back negative — and that *is*
+the finding. Pruning a Watts-Strogatz ring to convergence does not switch
+dimension on at a critical `p`; instead `p` tunes the pruned dimension
+**continuously** from ~1 (ring) to ~2 (mesh), N-independently. It is a
+**crossover, not a critical point**: the peak slope `max|dd/dp|` stays flat
+across 16× in N (no diverging response for finite-size scaling to latch onto),
+so there are no exponents to extract. An Erdős–Rényi control at matched mean
+degree confirms the dimension is real geometry, not a low-degree artifact. So
+`prune` is a third continuum dimension knob alongside the `grown` cap. See
+[FINDINGS.md](FINDINGS.md) → "prune dimensional onset."
 
 ### Spatial coherence of the dimension field
 
