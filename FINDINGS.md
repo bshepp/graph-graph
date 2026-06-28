@@ -159,6 +159,59 @@ escapes. Two honesty notes:
 2. Not a formal proof. The clean way to *get* a chosen dimension remains the
    `grown` generator (build it geometrically; the degree cap tunes d).
 
+## Preservation: is emergent geometry stable under the local rules?
+
+The barrier says local rewiring cannot *build* extent from disorder. The dual
+question is whether the extent we *do* build (the `grown` generator) *survives*
+the same local dynamics, or erodes. Tested with `track_dimension.py` on a
+pristine cap-6 `grown` graph (`N = 1e4`, `d_eff ≈ 2.2`, `defined_frac ≈ 1.0`
+at `t=0`), self-controlled against that `t=0` baseline, 200 steps, seeds 0/1/2:
+
+| rule (200 steps) | defined_frac t=0 → end | diameter 42 → | lcc_frac → | verdict |
+|------------------|------------------------|---------------|-----------|---------|
+| `prune`               | 99.6% → **99.3%** | **42** (unchanged) | 1.00 | **preserved** |
+| `majority` (state-only) | 99.6% → **99.4%** | 42 (unchanged)   | 1.00 | preserved (trivial) |
+| `triadic`             | 99.6% → **~46%**  | **22**             | **0.48** | **eroded** (crumple + fragment) |
+| `rewire`              | 99.6% → **~2%**   | **14**             | 0.95 | **eroded** (diameter collapse) |
+
+(End `defined_frac` are seed means; ranges over seeds 0/1/2: prune 99.2-99.4,
+triadic 41-55, rewire 1.6-2.2. Diameter / `lcc_frac` are a double-sweep estimate
+at seed 0, same estimator as `barrier_scaling.py`.)
+
+The dimension verdict tracks **extent**, exactly as the barrier predicts on the
+build side:
+
+- **`rewire` destroys it fast.** Random shortcuts collapse the diameter (42 →
+  14) while the graph stays ~95% connected -- so this is *diameter collapse, not
+  fragmentation*. Balls saturate and `d_eff` goes undefined (the few survivors
+  read a spurious `d_eff` 6-8, the saturation artifact). Same failure mode as
+  lattice-under-`rewire`.
+- **`triadic` erodes it slowly by *crumpling*:** it halves the diameter (42 →
+  22) and sheds nodes (lcc 1.0 → 0.48), and the surviving component's median
+  `d_eff` drifts toward 0. This is the **same crumpling signature** `triadic`
+  shows when it *fails to build* geometry from a random graph -- the rule
+  crumples whether it starts from disorder or from geometry.
+- **`prune` preserves it exactly** (diameter 42 → 42, fully connected). `prune`
+  removes low-overlap *shortcut* edges, and `grown` -- built entirely from
+  triangle closures -- has essentially none, so the rule is a near-no-op. A
+  satisfying consistency check: the same rule that *reveals* latent geometry in
+  small-world (by stripping shortcuts) is inert on a graph with no shortcuts to
+  strip.
+- **State-only rules** (`majority`; `activation` / `reinforcement` by
+  construction) leave the topology untouched, so dimension is invariant. The
+  flat `majority` trajectory also confirms the estimator itself does not drift.
+
+**Reading.** Emergent geometry is **not** trivially fragile: it is a stable
+fixed point under the structure-respecting rules (`prune`, all state rules).
+What destroys it is precisely what the extent argument flags -- injecting
+long-range shortcuts (`rewire`) or over-densifying locally until the structure
+crumples (`triadic`). The picture is consistent from both sides: **extent is the
+load-bearing quantity** -- hard to build (the barrier), and erodable only by the
+moves that attack extent directly. This is the `grown` analog of the lattice
+being a stable fixed point under `geometrize` (bistability table above), and of
+`geometrize` *fragmenting* `grown` there. Reproduce: `python track_dimension.py
+--topology grown --nodes 10000 --rules <rule> --steps 200 --seed 0`.
+
 ## Open threads
 
 - **Quantify the bootstrapping barrier (flagship negative):** *done (step 2)* --
@@ -171,8 +224,10 @@ escapes. Two honesty notes:
 - **Robustness / scale:** does `grown`'s cap→dimension law hold across N and
   seeds, and converge to clean integers? (Cheapest win; prerequisite for
   trusting anything at large N -- see Scaling directions.)
-- **Preservation of emergent structure:** do the dynamic rules preserve or
-  erode a `grown` graph's dimension (as they do for the lattice)?
+- **Preservation of emergent structure:** *done* -- `grown`'s dimension is a
+  stable fixed point under the structure-respecting rules (`prune`, state-only)
+  and eroded only by extent-attacking moves (`rewire`, `triadic`). See
+  "Preservation" above.
 
 > **On "emergence may require 100K+ nodes"** (DIMENSIONAL_COHERENCE.md, Phase
 > 5): that is a *hope by analogy to thermodynamics, not a derived crossover
