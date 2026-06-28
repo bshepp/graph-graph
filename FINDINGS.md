@@ -212,6 +212,55 @@ being a stable fixed point under `geometrize` (bistability table above), and of
 `geometrize` *fragmenting* `grown` there. Reproduce: `python track_dimension.py
 --topology grown --nodes 10000 --rules <rule> --steps 200 --seed 0`.
 
+## Spatial coherence: the dimension field forms contiguous phases, not noise
+
+A per-node `d_eff` could be spatially *coherent* (graph-neighbouring nodes share
+a dimension, so the field forms contiguous phases) or just per-node estimation
+*noise*. `coherence.py` settles it with **Moran's I** of the `d_eff` field under
+graph-adjacency weights (I > 0 = neighbours similar; I ≈ E[I] = -1/(n-1) = no
+structure; I < 0 = checkerboard), significance from a permutation null. The
+statistic is validated on known fields (`coherence.py --validate`: smooth
+gradient → I = +0.97, checkerboard → -1.00, random field → ≈0, z ≈ 0).
+
+Result (`N = 5000`, 3 seeds, 999 permutations):
+
+| topology | defined_frac | edge_frac | d_eff | Moran's I | z | verdict |
+|----------|--------------|-----------|-------|-----------|---|---------|
+| `grown` (cap 6)     | 0.99 | 0.99 | 2.21 ± 0.53 | **0.881** | 86.6 | **coherent** |
+| `lattice` (control) | 1.00 | 1.00 | 1.88 ± 0.13 | **0.958** | 93.3 | coherent |
+| `small_world`       | 0.12 | 0.07 | 4.69 ± 0.38 | (0.910)   | 29.9 | field fragmented -- N/A |
+
+On `grown` the field is defined almost everywhere (`defined_frac ≈ 1`) and the
+defined nodes form **one connected fabric** (`edge_frac ≈ 1`: a single component
+of ~4919/4963 nodes), so Moran's I ≈ 0.88 (z ≈ 87, p = 0.001) is a genuine
+*whole-field* measurement: **emergent dimension is spatially smooth -- it forms
+contiguous geometric phases, not scattered per-node noise.** The `lattice`
+positive control reads the same (I ≈ 0.96).
+
+**Honesty caveat on `small_world`.** Its raw I (0.91) *looks* coherent but is
+**not** a whole-field statement: only 12% of nodes have a defined `d_eff`, and
+those scatter into ~120 disconnected fragments (`edge_frac` 0.07) with an
+artifactual `d_eff ≈ 4.6` (ball saturation at the regime gate's minimum radius).
+Moran's I over a sparse, fragmented subset measures coherence *within tiny
+patches*, not of the field -- so `coherence.py` refuses the "coherent" verdict
+whenever `defined_frac` or `edge_frac` is low. Coherence is only meaningful where
+the field is whole.
+
+**Cross-check against preservation (an independent confirmation).** Coherence is
+a different instrument from `defined_frac` (spatial autocorrelation vs ball-growth
+resolvability), yet it tells the *same* story under the rules -- coherence tracks
+extent:
+
+| `grown` after 200 steps | defined_frac | Moran's I | reading |
+|-------------------------|--------------|-----------|---------|
+| `prune`   | 0.99 → 0.99 | 0.867 → 0.867 | coherence preserved |
+| `triadic` | 0.99 → 0.59 | 0.867 → 0.593 | coherence degraded |
+| `rewire`  | 0.99 → 0.00 | 0.867 → (gone) | coherence destroyed |
+
+So two independent statistics agree: the rules that preserve extent preserve the
+coherent dimension field, and the rules that erode extent erode its coherence.
+Reproduce: `python coherence.py --validate` then `python coherence.py`.
+
 ## Open threads
 
 - **Quantify the bootstrapping barrier (flagship negative):** *done (step 2)* --
@@ -219,8 +268,9 @@ being a stable fixed point under `geometrize` (bistability table above), and of
 - **Curvature flow** vs the bootstrapping barrier: tested (`ricci`) -- hits
   the same barrier (above). Ollivier-Ricci (optimal-transport) is the one
   untested variant but is expected to behave the same and would add little.
-- **Spatial coherence:** Moran's I on the `d_eff` field, to confirm emergent
-  structure forms coherent phases rather than scattered noise.
+- **Spatial coherence:** *done* -- Moran's I confirms `grown`'s `d_eff` field is
+  spatially coherent (I ≈ 0.88, z ≈ 87) where the field is whole, and the
+  coherence tracks extent under the rules. See "Spatial coherence" above.
 - **Robustness / scale:** does `grown`'s cap→dimension law hold across N and
   seeds, and converge to clean integers? (Cheapest win; prerequisite for
   trusting anything at large N -- see Scaling directions.)

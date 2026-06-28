@@ -50,6 +50,7 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 | `ising_sweep.py` | Finite-size-scaling driver: validates the FSS machinery (Binder cumulant, susceptibility, data collapse) on the majority-vote/Ising transition |
 | `cap_dimension_scaling.py` | cap→dimension finite-size scaling for the `grown` generator: does `d_eff` plateau on a stable value as N grows? (it does — at non-integer values) |
 | `barrier_scaling.py` | Quantifies the bootstrapping barrier: measures extent (diameter) vs rewiring steps and vs N, fitting extent ~ N^α — rewiring rules stay at α≈0.13 (log N) vs a 2D lattice's α=0.5 |
+| `coherence.py` | Spatial coherence of the `d_eff` field via Moran's I (permutation-tested): is emergent dimension contiguous phases or per-node noise? (`grown` is coherent, I≈0.88) |
 | `FINDINGS.md` | Empirical log of the emergent-dimension experiments |
 | `braket_walks.py` | Quantum walk analysis: matrix-based CTQW vs. classical walks (experimental; runs on core deps) |
 | `SCALING.md` | Roadmap from 1K to 100M+ nodes |
@@ -248,6 +249,22 @@ critical point and `--collapse` overlays a 2D-Ising data collapse. This is the
 validation step before applying finite-size scaling to hunt for *novel*
 transitions (e.g. shortcut-density → dimensional onset under `prune`). See
 [FINDINGS.md](FINDINGS.md) → "Scaling directions."
+
+### Spatial coherence of the dimension field
+
+```bash
+# Validate Moran's I on known fields, then measure field coherence
+python coherence.py --validate
+python coherence.py --nodes 5000 --cap 6 --seeds 3
+```
+
+Moran's I (permutation-tested) asks whether the per-node `d_eff` field is
+spatially smooth or just noise. Finding: on `grown` the field is defined almost
+everywhere and **strongly coherent** (I≈0.88, z≈87) — emergent dimension forms
+contiguous phases, not scattered noise — and the coherence tracks extent under
+the rules (preserved by `prune`, destroyed by `rewire`). On an expander the
+field is mostly undefined, so coherence is reported N/A rather than over-claimed.
+See [FINDINGS.md](FINDINGS.md) → "Spatial coherence."
 
 ### Quantum walk analysis
 
