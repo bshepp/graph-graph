@@ -61,6 +61,10 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 | `barrier_scaling.py` | Quantifies the bootstrapping barrier: measures extent (diameter) vs rewiring steps and vs N, fitting extent ~ N^α — rewiring rules stay at α≈0.13 (log N) vs a 2D lattice's α=0.5 |
 | `coherence.py` | Spatial coherence of the `d_eff` field via Moran's I (permutation-tested): is emergent dimension contiguous phases or per-node noise? (`grown` is coherent, I≈0.88) |
 | `prune_dimension.py` | `prune` + shortcut-density as a tunable-dimension knob: sweeps rewire prob `p` × N, showing d slides 1→2 as a **crossover, not a phase transition** (N-independent; peak slope flat in N) |
+| `shortcuts.py` | Shared helpers for the portal experiments: inject long-range edges with recorded transport advantage (distance at injection) |
+| `shortcut_tolerance.py` | How many injected long-range shortcuts ("portals") can a coherent geometry host before the dimension field degrades? Survival curve of `defined_frac` / Moran's I vs. portal count, at fixed measurement radius |
+| `shortcut_censorship.py` | Do the geometry-maintaining rules (`prune`, `ricci`) censor portals by transport advantage? Tests the a-priori threshold prediction (detour-2 immune, detour ≥ 3 uniformly eligible) and whether `triadic` can weave a portal into the fabric before `prune` kills it |
+| `shortcut_walkers.py` | Who can use the portal? Exact classical absorbing-walk hitting time vs. CTQW peak transfer probability, with/without a single portal between far regions |
 | `FINDINGS.md` | Empirical log of the emergent-dimension experiments |
 | `braket_walks.py` | Quantum walk analysis: matrix-based CTQW vs. classical walks (experimental; runs on core deps) |
 | `SCALING.md` | Roadmap from 1K to 100M+ nodes |
@@ -294,6 +298,24 @@ contiguous phases, not scattered noise — and the coherence tracks extent under
 the rules (preserved by `prune`, destroyed by `rewire`). On an expander the
 field is mostly undefined, so coherence is reported N/A rather than over-claimed.
 See [FINDINGS.md](FINDINGS.md) → "Spatial coherence."
+
+### Portal experiments (shortcuts vs. geometry)
+
+```bash
+# Survival curve: coherence of the d_eff field vs. number of injected portals
+python shortcut_tolerance.py --nodes 2000 5000 10000 --seeds 3
+
+# Censorship: prune/ricci/triadic+prune vs. portals of graded advantage
+python shortcut_censorship.py --nodes 2000 --shortcuts 40 --steps 120 --seeds 3
+
+# Walkers: classical hitting time vs. CTQW peak transfer, portal vs. none
+python shortcut_walkers.py --nodes 1500 --seeds 5
+```
+
+Every script takes `--quick` for a smoke run and `--seed`; max_radius for the
+tolerance measurement is calibrated on the portal-free base graph and held
+fixed (see the module docstring for why). Results: [FINDINGS.md](FINDINGS.md)
+→ "Portal experiments."
 
 ### Quantum walk analysis
 

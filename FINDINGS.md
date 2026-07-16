@@ -582,3 +582,109 @@ question (the dimensional onset is a crossover, not a phase transition -- no
 critical exponents to extract, established by a *measured* non-divergence rather
 than a failed fit). Reproduce: `python prune_dimension.py --validate-real` then
 `python prune_dimension.py`.
+
+## Portal experiments: shortcuts vs. geometry
+
+*Run 2026-07-16 for the exotic-transport program (umbrella: `../exotic-transport/00-fence/`, lattice row Q3), but standing alone as graph-graph findings. A "portal" is an injected long-range edge -- the graph skeleton of a wormhole. Program grading: internally A (seeded, controlled, N-swept), externally C (toy model class).*
+
+### 1. Tolerance: geometry doesn't shatter under portals -- it inflates
+
+Inject k random shortcuts (endpoints >= 2*r0+1 apart at injection) into a coherent
+`grown` base (cap 6, d ~ 2.2); measure the d_eff field at the **fixed** radius r0
+calibrated on the k=0 base (auto-recalibrating would shrink the radius as the
+diameter collapses and confound the measurement). N = 2000/5000/10000, 3 seeds,
+k = 0..400. (`shortcut_tolerance.py`)
+
+The a-priori damage model -- each portal endpoint corrupts the balls within r0 of
+it, so `defined_frac` should fall like 1 - c*(2k*B_r0/N) -- is **refuted**:
+`defined_frac` stays 0.97-1.00 across the entire sweep, at every N, even at k=400.
+What actually happens (N=5000, 3-seed means):
+
+| k | d_eff | Moran I | z | mean pair dist |
+|---|-------|---------|---|----------------|
+| 0 | 2.21±0.53 | 0.881 | 89 | 20.3 |
+| 20 | 2.30±0.52 | 0.872 | 89 | 19.1 |
+| 100 | 2.65±0.45 | 0.809 | 80 | 16.5 |
+| 400 | 3.19±0.32 | 0.668 | 66 | 12.9 |
+
+- **Dimension inflation.** Ball growth through portals reads as *extra
+  dimensions*, not as noise: d_eff drifts 2.21 -> 3.19 while the field stays
+  defined nearly everywhere and stays whole-field COHERENT by the coherence.py
+  criteria even at k=400. A wormhole-riddled geometry measures as a
+  higher-dimensional coherent geometry -- up until (at `rewire`-regime densities)
+  growth saturates and d goes undefined. This closes the gap between two earlier
+  findings: `rewire` destroys dimension not by locally breaking the power law at
+  low densities, but by inflating d until the regime gate fails.
+- **Ordering of damage.** The metric collapses first (pair distance 20.3 -> 12.9,
+  the small-world effect), dimension inflates second, coherence erodes third
+  (I 0.881 -> 0.668), definedness essentially never at these densities. The
+  portal damage is *anisotropy* of the field (portal neighborhoods read high-d
+  against a low-d background), not undefinedness.
+- **Portal capacity.** At N=2000 placement itself saturates near k ~ 200: every
+  portal shrinks the metric, until NO pair of nodes is far enough apart to host
+  another far portal (see `k_placed` in the CSV). A small geometry has a bounded
+  budget of genuinely-far portals.
+
+### 2. Censorship: threshold and advantage-blind -- and weak self-stabilization is real
+
+40 long portals (advantage = distance at injection, >= 6) + 20 detour-2 controls
+into grown N=2000; run `prune` / `ricci` / `triadic`+`prune` for 120 steps at
+prob 0.05; track per-portal removal step. 3 seeds. (`shortcut_censorship.py`)
+Two a-priori predictions were recorded in the module docstring before running:
+
+**P1 (threshold, not graded) -- CONFIRMED.** Any portal between nodes at distance
+>= 3 has zero common neighbors *by definition*, so `prune` cannot see how much
+advantage an edge carries, only that it is unembedded:
+
+| condition | long survival | detour-2 survival | mean removal step | rank corr(adv, t) | collateral |
+|-----------|---------------|-------------------|-------------------|--------------------|------------|
+| prune | 0.03 | 1.00 | 18.1 (geom. ~20) | -0.07 | 0.000 |
+| ricci | 0.03 | 1.00 | 23.4 | +0.11 | 0.000 |
+| triadic+prune | 0.12 | 0.22 | 19.4 | -0.08 | 0.584 |
+
+Detour-2 portals are immune, long portals die at the base geometric rate
+*uncorrelated with advantage*, and the censorship is surgical (zero collateral on
+the grown fabric, whose edges all sit in triangles).
+
+**P2 (self-stabilization) -- WEAKLY CONFIRMED, with a twist.** With `triadic`
+running alongside `prune`, long-portal survival rises 3% -> 12% and ~2 of 40
+portals per run end *woven in* (triangles formed ON the portal edge -> permanently
+prune-immune): triadic closure operating *through* the portal lays parallel edges
+and legitimizes it, exactly as predicted. The twist: triadic is a double agent --
+it also displaces portals wholesale (detour-2 survival collapses 100% -> 22%) and
+churns 58% of the base fabric. A portal CAN be stabilized against the censor by
+local dynamics, but the stabilizer is a worse threat to any individual edge than
+the censor is.
+
+### 3. Walkers: the quantum walker is the portal's best customer
+
+grown N=1500, source-target distance 24.4±2.6; conditions: none / offset portal
+(ends ~2 hops from source and target) / direct source-target edge. Classical:
+exact absorbing-walk median hitting time. Quantum: CTQW (H = adjacency) peak
+transfer probability and its time. 5 seeds. (`shortcut_walkers.py`)
+
+The a-priori expectation -- a lone portal is a weak link whose quantum benefit is
+interference-limited -- is **refuted in the interesting direction**:
+
+| condition | classical median t | quantum peak P | quantum peak t |
+|-----------|--------------------|----------------|----------------|
+| none | 21,199 | 1.03e-05 | 61.8 |
+| offset | 3,226 (x6.6) | 2.61e-02 (x2,534) | 26.9 |
+| direct | 78 (x272) | 1.84e-01 | 0.8 |
+
+The offset portal buys the classical walker x6.6 in transit time but buys the
+quantum walker **x2,534 in peak transfer probability** (and x2.3 in arrival
+time). Baseline coherent transfer to one specific far node of an irregular graph
+is essentially nil (amplitude dilutes over the whole graph); the portal creates a
+channel that the ballistic walker exploits far better than diffusion does. In
+this model class, if you build a wormhole, the thing that most wants to go
+through it is a quantum excitation.
+
+Caveats: absolute quantum transfer stays small (2.6% peak through the offset
+portal); the direct-edge condition is a degenerate control (adjacency, not
+transport); adjacency-generated CTQW on irregular graphs conflates degree effects
+with interference -- a Laplacian-generator cross-check is the open follow-up.
+
+Reproduce: `python shortcut_tolerance.py --nodes 2000 5000 10000 --seeds 3`,
+`python shortcut_censorship.py --nodes 2000 --seeds 3`,
+`python shortcut_walkers.py --nodes 1500 --seeds 5`.
