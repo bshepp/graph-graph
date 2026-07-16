@@ -20,6 +20,15 @@ The goal is emergence first, physics (maybe) later.
 
 > Can simple local rules on a graph produce long-range correlations or structure that wasn't explicitly programmed?
 
+## Program context
+
+Since Jul 2026 this project also serves as the **emergent-locality branch** of the owner's
+exotic-transport research program (umbrella: `../exotic-transport/00-fence/`, a local sister
+repo — not on GitHub). In that program's terms it attacks lattice row Q3 ("are light cones
+fundamental or emergent?"), and its measurements are graded **internally A, externally C**:
+rigorous within this toy model class, speculative in their bearing on actual spacetime.
+Nothing about the project's own emergence-first question changes.
+
 ## Status
 
 **Core simulation working.** Rules, measurement, visualization, and a sparse fast path are all implemented. Ready for experiments.
