@@ -278,6 +278,11 @@ Reproduce: `python coherence.py --validate` then `python coherence.py`.
   stable fixed point under the structure-respecting rules (`prune`, state-only)
   and eroded only by extent-attacking moves (`rewire`, `triadic`). See
   "Preservation" above.
+- **Portal experiments:** *done (2026-07)* -- tolerance / censorship / walkers;
+  see "Portal experiments" below. Open follow-up: **Laplacian-generator CTQW
+  cross-check** -- the x2,534 quantum portal gain was measured with H = adjacency,
+  which conflates degree effects with interference on irregular graphs; rerun
+  `shortcut_walkers.py` with H = graph Laplacian and check the gain survives.
 
 > **On "emergence may require 100K+ nodes"** (DIMENSIONAL_COHERENCE.md, Phase
 > 5): that is a *hope by analogy to thermodynamics, not a derived crossover
@@ -285,6 +290,49 @@ Reproduce: `python coherence.py --validate` then `python coherence.py`.
 > sharpens. The cap→d and Ising-pipeline runs on local hardware are exactly
 > what would let us *extrapolate* a real crossover estimate -- and that
 > extrapolation is the gate to clear before reserving any large compute.
+
+## De-toying ladder: upgrade paths out of the toy model class (action items)
+
+The project's measurements are internally rigorous but externally capped as a
+*toy*: time is a global synchronous for-loop, the geometry is undirected
+(Riemannian-flavored, no causal structure), the rules are chosen rather than
+derived, and edges are classical. Each gap has a concrete upgrade, ordered by
+cost. None of them makes the model "about nature" -- they connect its
+measurements to established quantum-gravity programs (causal sets, quantum
+graphity, tensor networks) whose model-to-nature arguments the literature
+already carries. Decided with the owner 2026-07-16; unscheduled.
+
+1. **Lorentzian upgrade (causal event DAG)** -- cheapest, highest leverage.
+   Replace synchronous sweeps with asynchronous event-based updates and measure
+   the **causal DAG of update events** instead of the state graph: that object
+   has light cones by construction, and causal-set dimension estimators
+   (Myrheim-Meyer) exist for it. Nearly all instrumentation here ports over.
+   **Checkpoint experiment: do the bootstrapping barrier and the shortcut
+   censorship survive when time is emergent?** If yes, those results become
+   statements about a model class the QG literature owns -- the point where the
+   toy stops being only a toy.
+2. **Causal-set calibration anchor.** Implement Poisson sprinkling into flat
+   (and one curved) spacetime + the Myrheim-Meyer estimator, as the known-answer
+   validation for step 1's instruments -- the same role `lattice` plays for
+   `dimension.py` today.
+3. **Change the nature of connection: entanglement edges.** Nodes carry qubits;
+   geometry is read from mutual information (it-from-qubit / quantum graphity).
+   The tractable route is **stabilizer/graph states under local Clifford
+   dynamics** -- efficiently simulable at thousands of qubits, with the
+   entanglement structure literally being the graph. The portal experiments
+   restate as ER=EPR toys: a Bell pair between far regions *is* the portal;
+   rerun tolerance / censorship / walkers in that representation.
+4. **Action principle + universality.** Replace hand-chosen rules with a graph
+   action (Forman or Ollivier curvature functional; `ricci` is already a crude
+   gradient step of one) evolved by Metropolis at temperature T, then test
+   **universality across microrules** with the validated FSS machinery --
+   sameness across rules is what converts "this rule does X" into "this class
+   does X".
+
+Standing requirement across all rungs: a **continuum-limit / universality
+story** (does anything converge as N grows, and is it rule-independent?) --
+without it the model stays a toy regardless of ingredients. The cap→d plateau
+work is the existing foothold.
 
 ## Scaling directions: what more compute could (and couldn't) unlock
 
