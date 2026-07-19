@@ -279,10 +279,14 @@ Reproduce: `python coherence.py --validate` then `python coherence.py`.
   and eroded only by extent-attacking moves (`rewire`, `triadic`). See
   "Preservation" above.
 - **Portal experiments:** *done (2026-07)* -- tolerance / censorship / walkers;
-  see "Portal experiments" below. Open follow-up: **Laplacian-generator CTQW
-  cross-check** -- the x2,534 quantum portal gain was measured with H = adjacency,
-  which conflates degree effects with interference on irregular graphs; rerun
-  `shortcut_walkers.py` with H = graph Laplacian and check the gain survives.
+  see "Portal experiments" below.
+- **Laplacian-generator CTQW cross-check:** *done (2026-07-18)* -- the quantum
+  portal gain is **not** a degree artifact of H = adjacency; it survives (and
+  grows) under H = Laplacian. But the headline magnitude was retracted: the gain
+  depends on the arbitrary CTQW time horizon, and the original run's portal
+  placement was RNG-coupled to the solver. See "3b. Laplacian cross-check".
+  Open follow-up: replace the max-over-window observable with a horizon-free one
+  (transfer at fixed t, or time-to-threshold).
 
 > **On "emergence may require 100K+ nodes"** (DIMENSIONAL_COHERENCE.md, Phase
 > 5): that is a *hope by analogy to thermodynamics, not a derived crossover
@@ -721,18 +725,66 @@ interference-limited -- is **refuted in the interesting direction**:
 | direct | 78 (x272) | 1.84e-01 | 0.8 |
 
 The offset portal buys the classical walker x6.6 in transit time but buys the
-quantum walker **x2,534 in peak transfer probability** (and x2.3 in arrival
-time). Baseline coherent transfer to one specific far node of an irregular graph
-is essentially nil (amplitude dilutes over the whole graph); the portal creates a
-channel that the ballistic walker exploits far better than diffusion does. In
-this model class, if you build a wormhole, the thing that most wants to go
-through it is a quantum excitation.
+quantum walker **two to three orders of magnitude** in peak transfer probability
+(and x2.3 in arrival time). Baseline coherent transfer to one specific far node
+of an irregular graph is essentially nil (amplitude dilutes over the whole
+graph); the portal creates a channel that the ballistic walker exploits far
+better than diffusion does. In this model class, if you build a wormhole, the
+thing that most wants to go through it is a quantum excitation.
 
-Caveats: absolute quantum transfer stays small (2.6% peak through the offset
+Caveats: absolute quantum transfer stays small (~1% peak through the offset
 portal); the direct-edge condition is a degenerate control (adjacency, not
-transport); adjacency-generated CTQW on irregular graphs conflates degree effects
-with interference -- a Laplacian-generator cross-check is the open follow-up.
+transport).
+
+### 3b. Laplacian cross-check: the gain is real, the number was not (2026-07-18)
+
+The open follow-up was that an adjacency-generated CTQW on an irregular graph
+conflates degree with interference. Done: `shortcut_walkers.py` now takes
+`--generators adjacency laplacian` (H = A or H = D - A) and runs both on the
+**same** graphs and source/target pairs. On a regular graph the two are the same
+experiment -- L = kI - A differ by a global phase and a time reversal, both of
+which drop out of |<target|psi(t)>|^2 -- so on irregular `grown` any difference
+between them is exactly the degree effect in question. N=1500, 20 seeds:
+
+| t_max | generator | none | offset | offset gain | direct gain |
+|-------|-----------|------|--------|-------------|-------------|
+| 3d | adjacency | 1.78e-05 | 1.06e-02 | x596 | x7,153 |
+| 3d | laplacian | 2.48e-06 | 6.29e-03 | **x2,534** | x41,950 |
+| 8d | adjacency | 5.47e-05 | 9.57e-03 | x175 | x1,530 |
+| 8d | laplacian | 9.47e-06 | 6.01e-03 | x635 | x9,560 |
+
+(Classical is generator- and t_max-independent: offset x6.9, direct x294.)
+
+**The cross-check passes.** The quantum portal advantage is not a degree
+artifact: switching to the Laplacian generator makes it *larger*, not smaller,
+at every horizon. The finding -- quantum gain exceeds classical gain (x6.9) by
+two to three orders of magnitude -- survives.
+
+**But the specific number x2,534 is retracted as a quantity.** Two problems, both
+found by instrumenting rather than by re-deriving:
+
+1. **The gain is t_max-dependent, because the baseline is.** The no-portal peak
+   is a running *maximum* of a diffuse, wandering amplitude over the window
+   (0, t_max], so it grows as the window grows (adjacency 1.78e-05 -> 5.47e-05
+   when t_max goes 3d -> 8d) while the offset peak stays flat. The ratio
+   therefore shrinks ~3x for a 2.7x longer window, and the baseline still has not
+   converged (3/20 and 7/20 seeds peak at the grid edge even at 8d, now flagged
+   by the driver). Any single gain figure is a statement about an arbitrary
+   horizon. *The x2,534 reappearing in the 3d-Laplacian row is a coincidence,
+   not a reproduction.*
+2. **The original run's offset placement was RNG-coupled to the solver.**
+   scipy's `expm_multiply` estimates operator norms with `onenormest`, which
+   draws from the global numpy RNG -- so a quantum solve in the `none` condition
+   shifted which offset portal got placed later in the same seed. Placement is
+   now decided before any solver call; verified by `--generators adjacency`
+   alone reproducing the paired run bit-for-bit. Across placements the offset
+   peak moves by ~2x, which at 5 seeds is most of the original headline.
+
+The durable statement is the *ordering and separation* -- classical O(1), quantum
+O(10^2-10^3), robust across both generators and both horizons -- not any single
+ratio. A better-defined observable (transfer at fixed t, or time-to-threshold,
+rather than a max over an arbitrary window) is the honest follow-up.
 
 Reproduce: `python shortcut_tolerance.py --nodes 2000 5000 10000 --seeds 3`,
 `python shortcut_censorship.py --nodes 2000 --seeds 3`,
-`python shortcut_walkers.py --nodes 1500 --seeds 5`.
+`python shortcut_walkers.py --nodes 1500 --seeds 20 --t-max-factor 3` (and `8`).
