@@ -64,7 +64,7 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 | `shortcuts.py` | Shared helpers for the portal experiments: inject long-range edges with recorded transport advantage (distance at injection) |
 | `shortcut_tolerance.py` | How many injected long-range shortcuts ("portals") can a coherent geometry host before the dimension field degrades? Survival curve of `defined_frac` / Moran's I vs. portal count, at fixed measurement radius |
 | `shortcut_censorship.py` | Do the geometry-maintaining rules (`prune`, `ricci`) censor portals by transport advantage? Tests the a-priori threshold prediction (detour-2 immune, detour ≥ 3 uniformly eligible) and whether `triadic` can weave a portal into the fabric before `prune` kills it |
-| `shortcut_walkers.py` | Who can use the portal? Exact classical absorbing-walk hitting time vs. CTQW peak transfer probability, with/without a single portal between far regions. `--generators adjacency laplacian` runs both Hamiltonians on the same graphs (the Laplacian run is the degree-artifact cross-check) |
+| `shortcut_walkers.py` | Who can use the portal? Classical hitting time + stationary occupancy vs. the exact CTQW infinite-time average, with/without a portal between far regions — a portal turns out to be *kinetic* classically (speed only) and *structural* quantum-mechanically (~50–130× long-run transfer). `--validate` self-checks the observable; `--generators adjacency laplacian` cross-checks for degree artifacts |
 | `FINDINGS.md` | Empirical log of the emergent-dimension experiments |
 | `braket_walks.py` | Quantum walk analysis: matrix-based CTQW vs. classical walks (experimental; runs on core deps) |
 | `SCALING.md` | Roadmap from 1K to 100M+ nodes |
@@ -308,18 +308,24 @@ python shortcut_tolerance.py --nodes 2000 5000 10000 --seeds 3
 # Censorship: prune/ricci/triadic+prune vs. portals of graded advantage
 python shortcut_censorship.py --nodes 2000 --shortcuts 40 --steps 120 --seeds 3
 
-# Walkers: classical hitting time vs. CTQW peak transfer, portal vs. none
-# (runs H = adjacency and H = Laplacian on the same graphs, paired)
-python shortcut_walkers.py --nodes 1500 --seeds 20 --t-max-factor 3
+# Walkers: who actually benefits from a portal?
+python shortcut_walkers.py --validate          # check the horizon-free observable
+python shortcut_walkers.py --nodes 1500 --seeds 20
 ```
 
 Every script takes `--quick` for a smoke run and `--seed`; max_radius for the
 tolerance measurement is calibrated on the portal-free base graph and held
-fixed (see the module docstring for why). For the walkers, sweep
-`--t-max-factor`: the no-portal baseline is a max over the CTQW time window, so
-gain ratios are only comparable at matched horizon (the driver flags peaks that
-land at the end of the grid). Results: [FINDINGS.md](FINDINGS.md)
-→ "Portal experiments."
+fixed (see the module docstring for why).
+
+The walkers driver reports two *horizon-free* quantities in matched units — the
+classical stationary occupancy `π(target) = deg(target)/2|E|` and the exact CTQW
+infinite-time average `P̄` — plus, as a labelled transient diagnostic only, the
+peak transfer over `(0, --t-max-factor × d]`. Prefer `P̄`: peak gains shrink as
+the window grows, so they are not a well-defined quantity (the driver flags
+peaks that land at the end of the grid). `--generators adjacency laplacian` runs
+both Hamiltonians on the same graphs as a degree-artifact cross-check. `P̄` costs
+a dense eigendecomposition, so keep N to a few thousand. Results:
+[FINDINGS.md](FINDINGS.md) → "Portal experiments."
 
 ### Quantum walk analysis
 

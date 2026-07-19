@@ -285,8 +285,14 @@ Reproduce: `python coherence.py --validate` then `python coherence.py`.
   grows) under H = Laplacian. But the headline magnitude was retracted: the gain
   depends on the arbitrary CTQW time horizon, and the original run's portal
   placement was RNG-coupled to the solver. See "3b. Laplacian cross-check".
-  Open follow-up: replace the max-over-window observable with a horizon-free one
-  (transfer at fixed t, or time-to-threshold).
+- **Horizon-free transport observable:** *done (2026-07-18)* -- infinite-time
+  average `Pbar` (exact, degeneracy-grouped, `--validate`d against Krylov
+  propagation) vs the matched classical stationary occupancy. The portal gain
+  survives at 48x (adjacency) / 131x (Laplacian) and sharpens into a qualitative
+  result: a portal is a **kinetic** device classically (changes arrival speed,
+  provably not long-run occupancy) and a **structural** one quantum-mechanically.
+  See "3c. Horizon-free observable". Open: a horizon-free quantum analogue of
+  hitting time (needs a measurement model).
 
 > **On "emergence may require 100K+ nodes"** (DIMENSIONAL_COHERENCE.md, Phase
 > 5): that is a *hope by analogy to thermodynamics, not a derived crossover
@@ -782,9 +788,73 @@ found by instrumenting rather than by re-deriving:
 
 The durable statement is the *ordering and separation* -- classical O(1), quantum
 O(10^2-10^3), robust across both generators and both horizons -- not any single
-ratio. A better-defined observable (transfer at fixed t, or time-to-threshold,
-rather than a max over an arbitrary window) is the honest follow-up.
+ratio. A better-defined observable is the honest follow-up; done below.
+
+### 3c. Horizon-free observable: a portal is kinetic classically, structural quantum-mechanically (2026-07-18)
+
+Replaced the max-over-a-window with the **infinite-time average**, the standard
+CTQW observable with no free time parameter:
+
+    Pbar = lim_{T->inf} (1/T) \int_0^T |<target|exp(-iHt)|source>|^2 dt
+         = sum over DISTINCT eigenvalues l of ( sum_{k: l_k = l} <t|phi_k><phi_k|s> )^2
+
+Computed exactly from the eigendecomposition -- no cutoff, no integration.
+Degenerate eigenvalues must be grouped (states sharing an eigenvalue never
+dephase relative to each other), which is the easy thing to get wrong, so
+`shortcut_walkers.py --validate` checks it against independent Krylov
+propagation with a **degeneracy-blind control**: on the star K_1,5 the blind sum
+gives 0.180 against the true 0.060, and on the Laplacian C_6 it gives 0.194
+against 0.278, so the grouping is genuinely under test rather than merely
+tolerated. K_2 reproduces the analytic 1/2 to 2e-16.
+
+The matched classical counterpart is the stationary occupancy
+`pi(target) = deg(target)/2|E|` -- same units, same question (what fraction of
+the long run is spent at the target), also horizon-free. N=1500, 20 seeds:
+
+| condition | pi(target) | pi gain | median t_hit | t_hit gain | Pbar (adj) | Pbar*N | gain | Pbar (lap) | gain |
+|-----------|-----------|---------|--------------|------------|------------|--------|------|------------|------|
+| none | 3.337e-04 | 1.00x | 21,482 | 1.0x | 4.39e-05 | 0.07 | 1.0x | 1.06e-05 | 1.0x |
+| offset | 3.336e-04 | **1.00x** | 3,124 | 6.9x | 2.10e-03 | 3.15 | **47.9x** | 1.39e-03 | **131.2x** |
+| direct | 5.003e-04 | 1.50x | 73 | 294.3x | 1.22e-02 | 18.29 | 277.8x | 1.83e-02 | 1731.6x |
+
+**The finding survives the better observable, and sharpens into a qualitative
+statement.** A portal is two different kinds of object depending on who uses it:
+
+- **Classically it is a *kinetic* device.** It changes how fast you arrive
+  (hitting time x6.9) and *nothing* about where you end up: long-run occupancy
+  is unchanged to four digits. Be explicit that this is analytic, not empirical
+  -- `pi` is degree-determined, so any edge not incident to the target leaves
+  `pi(target)` fixed by construction (the offset row's 1.00x is really 0.9997,
+  the |E| -> |E|+1 dilution). The direct row's 1.50x is deg(target) 2 -> 3,
+  bookkeeping rather than transport.
+- **Quantum-mechanically it is a *structural* device.** It changes long-run
+  transfer by ~50x (adjacency) to ~130x (Laplacian), because the time average is
+  set by eigenvector overlaps rather than by degree. Read in equipartition units
+  (`Pbar*N`, where 1.0 = amplitude spread uniformly), the portal moves the far
+  target from **15x below equipartition (0.07) to 3x above it (3.15)**.
+
+That asymmetry *is* the physics: classical diffusion equilibrates to a purely
+local statistic and therefore cannot see a distant shortcut in its long-run
+distribution, while unitary evolution never equilibrates to a local statistic at
+all and retains the portal in its spectral structure forever.
+
+Two corrections to the record that this observable forces:
+
+- **The peak-based gains were inflated ~10x.** Offset gain is 47.9x horizon-free
+  vs 596x by peak-at-t_max=3d (adjacency); 131x vs 2,534x (Laplacian). The
+  earlier retraction was right, and the direction of the error is now measured.
+- **The original headline compared different quantities.** "x6.6 classical vs
+  x2,534 quantum" set a ratio of *times* against a ratio of *probabilities*.
+  Matched now: on occupancy it is x1.00 vs x48-131; on speed it is x6.9
+  classical (the quantum side has no horizon-free analogue of hitting time
+  without a measurement model -- left open).
+
+The Laplacian cross-check verdict is unchanged and now rests on a well-defined
+quantity: the gain is larger under H = L (131x vs 48x), so it is not a degree
+artifact of H = A.
 
 Reproduce: `python shortcut_tolerance.py --nodes 2000 5000 10000 --seeds 3`,
 `python shortcut_censorship.py --nodes 2000 --seeds 3`,
-`python shortcut_walkers.py --nodes 1500 --seeds 20 --t-max-factor 3` (and `8`).
+`python shortcut_walkers.py --validate` then
+`python shortcut_walkers.py --nodes 1500 --seeds 20`.
+(Pbar costs a dense eigendecomposition, O(N^3) -- N is capped at a few thousand.)
