@@ -95,11 +95,18 @@ counts causally related pairs and `N = |I|`. For Poisson sprinklings into
 *d*-dimensional Minkowski space, `r` is a known decreasing function of `d`;
 inverting it gives the dimension.
 
-**I am deliberately not writing that function here.** I do not trust my
-recollection of the constant, and a scoping doc that states a wrong formula is
-worse than one that names the gap. Lift it from Meyer's thesis / the causal-set
-literature and validate numerically before use. Two anchors I *am* confident in,
-both derivable directly and both usable as unit tests:
+> **Resolved 2026-07-19 (step 1).** This section originally declined to state
+> the constant, on the grounds that a scoping doc with a wrong formula is worse
+> than one naming the gap. It has since been reconstructed from the 2-chain
+> abundance, pinned against both anchors below, and confirmed numerically to
+> ~1% at d = 2, 3, 4:
+>
+>     r(d) = Γ(d+1) Γ(d/2) / ( 2 Γ(3d/2) )
+>
+> Measured against predicted: 0.4993/0.5000 (d=2), 0.2261/0.2286 (d=3),
+> 0.1012/0.1000 (d=4). Implemented in `causal_sets.py`.
+
+Two anchors, both derivable directly and both used as unit tests:
 
 - **d = 1** → `r = 1`. A 1D causal set is a total order; every pair is related.
 - **d = 2** → `r = 1/2`. In light-cone coordinates `(u,v)` an Alexandrov interval
@@ -109,13 +116,59 @@ both derivable directly and both usable as unit tests:
   at n=800, `0.4999 ± 0.0047` at n=3000. This is step 1 of §6 in miniature, and
   it already works.
 
-### Recommendation
+### Recommendation — and how step 1 revised it
 
-Implement **both**, and require them to agree. Two independent estimators
-cross-validating is this project's established style (`dimension.py` against the
-`lattice` control, `coherence.py` against a permutation null, `ctqw_time_average`
-against Krylov propagation with a degeneracy-blind control). Agreement between
-(a) and (b) on a known-answer sprinkling is the acceptance test.
+The plan was: implement both, require agreement, in this project's established
+cross-validation style (`dimension.py` against the `lattice` control,
+`coherence.py` against a permutation null, `ctqw_time_average` against Krylov
+propagation with a degeneracy-blind control).
+
+> **Step 1 outcome (2026-07-19): estimator (a) failed and was replaced.**
+> Interval scaling is systematically biased low — **1.92 / 2.79 / 3.53** against
+> a true 2 / 3 / 4 — while reporting **R² > 0.99**. Fixing a regression-dilution
+> error (the longest chain is the noisy variable, so cardinality belongs on the
+> x-axis) improved it from 1.75/2.21/1.86 but did not rescue it. The residual
+> bias is *not* finite-size: it is flat in N (3.70, 3.71, 3.59 at
+> N = 1500/3000/4500). A large-`|I|` regime gate converges at d=2 but is
+> non-monotonic and never reaches 3.0 at d=3, so it would need tuning per
+> dimension — and an estimator whose gate must be tuned against the known answer
+> is not an instrument, because on an event DAG there is no known answer to tune
+> against.
+>
+> **This retracts the spike's claim that `dimension.py`'s scaffolding ports.**
+> The machinery ports; the estimator built from it does not work. The log-log-fit
+> port produces a confident wrong number, which is worse than no port at all.
+>
+> Replaced by **midpoint scaling** (Bombelli): find the element maximising
+> `min(|I(p,r)|, |I(r,q)|)`; it halves proper time, so `N_half ≈ N/2^d`. This is
+> genuinely independent of MM — a one-point volume extremum against a two-point
+> pair count — which is what makes agreement evidence rather than tautology.
+> Both now recover the truth and each other, so the gate passes:
+
+| d | MM (primary) | midpoint (cross-check) | interval (demoted to diagnostic) |
+|---|--------------|------------------------|----------------------------------|
+| 2 | 2.000 | 2.010 ± 0.105 | 1.907 |
+| 3 | 2.988 | 3.078 ± 0.242 | 2.745 |
+| 4 | 3.976 | 4.151 ± 0.400 | 3.626 |
+
+`N = 4000`, 3 reps; run with `python causal_sets.py --validate`.
+
+**The two estimators get different gates, because they have different jobs.** MM
+is the primary and is gated on recovering the truth (it does, to ~1%). Midpoint
+is the cross-check — its job is to catch a gross error in MM — so it is gated on
+*agreeing with MM*, and its own deviation is characterised rather than gated. It
+carries a **documented +4% bias at d=4** (4.151 at N=4000, 4.160 at N=2500 —
+stable in N, mechanism understood as the discreteness of an extremum taken over
+few elements). Gating it at MM's tolerance would fail a working instrument over
+a known systematic; loosening MM's tolerance to cover it would hide a real bias.
+
+One tuning trap avoided along the way: raising the minimum interval size for the
+midpoint estimator *looks* like it should buy accuracy and does the opposite —
+at `|I| ≥ 200`, d=4, N=2500 so few intervals qualified that the estimate went to
+4.47 on sampling noise, against 3.94 at `|I| ≥ 64` with a full sample. The gate
+that matters is therefore the **sample count**, which is diagnosable without
+knowing the true dimension; a cardinality threshold would have had to be tuned
+per-dimension against the answer.
 
 **This is why rung 1 cannot ship alone.** Rung 2 — Poisson sprinkling into flat
 and one curved spacetime — *is* the known-answer calibration for both estimators.
@@ -237,11 +290,14 @@ artifact of the global clock. That is the real risk this rung is buying down.
 
 ## 6. Staging and kill criteria
 
-1. **Sprinkling + estimators (rung 2 work, no model).** Poisson sprinkle into 2D
-   and 3D Minkowski; implement estimators (a) and (b); check against `d=1 → r=1`,
-   `d=2 → r=1/2`, and recovered sprinkling dimensions. *Kill criterion: if the two
-   estimators disagree on known-answer sprinklings, stop — there is no instrument
-   and nothing downstream can be trusted.*
+1. ~~**Sprinkling + estimators (rung 2 work, no model).**~~ **DONE 2026-07-19 —
+   `causal_sets.py`, gate PASSES.** Poisson sprinkling into d=2,3,4 Alexandrov
+   intervals; Myrheim-Meyer and midpoint scaling both recover the truth to
+   within ~0.1 and agree with each other (table in §2). Anchors `r(1)=1` and
+   `r(2)=1/2` hold exactly. Cost the plan did not anticipate: the originally
+   proposed estimator failed calibration and had to be replaced, which is
+   precisely what this stage exists to find out — and it means the first
+   instrument now in hand is *not* the one the spike designed.
 2. **Async engine + batching.** Poisson clocks, independent-set batching,
    equivalence test against strictly sequential at small `N`. *Kill criterion:
    batched and sequential disagree statistically.*

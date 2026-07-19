@@ -331,10 +331,21 @@ already carries. Decided with the owner 2026-07-16; unscheduled.
    censorship survive when time is emergent?** If yes, those results become
    statements about a model class the QG literature owns -- the point where the
    toy stops being only a toy.
-2. **Causal-set calibration anchor.** Implement Poisson sprinkling into flat
-   (and one curved) spacetime + the Myrheim-Meyer estimator, as the known-answer
-   validation for step 1's instruments -- the same role `lattice` plays for
-   `dimension.py` today.
+2. **Causal-set calibration anchor.** -- **flat-space stage DONE 2026-07-19
+   (`causal_sets.py --validate`, gate passes).** Poisson sprinkling into d=2,3,4
+   Alexandrov intervals; two independent estimators recover the truth and agree:
+   Myrheim-Meyer (2.000 / 2.988 / 3.976) and midpoint scaling (2.010 / 3.078 /
+   4.151, carrying a documented +4% bias at d=4 that is stable in N).
+   The ordering-fraction constant `r(d) = G(d+1)G(d/2) / (2 G(3d/2))`,
+   which LORENTZIAN_SPIKE.md had declined to state from memory, is reconstructed
+   and confirmed to ~1%. **Negative result worth keeping:** the spike's proposed
+   primary estimator -- interval scaling `|I| ~ l^d`, the direct port of
+   `dimension.py`'s ball growth -- *failed* calibration, reading 1.92 / 2.79 /
+   3.53 at R^2 > 0.99, with a bias that is flat in N and a regime gate that
+   would have to be tuned per-dimension. It is demoted to a diagnostic. So the
+   claim that `dimension.py`'s scaffolding ports is retracted: the machinery
+   ports, the estimator built from it returns a confident wrong number. Still
+   open on this rung: the curved-spacetime sprinkling.
 3. **Change the nature of connection: entanglement edges.** Nodes carry qubits;
    geometry is read from mutual information (it-from-qubit / quantum graphity).
    The tractable route is **stabilizer/graph states under local Clifford
