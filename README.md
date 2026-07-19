@@ -69,6 +69,7 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 | `braket_walks.py` | Quantum walk analysis: matrix-based CTQW vs. classical walks (experimental; runs on core deps) |
 | `SCALING.md` | Roadmap from 1K to 100M+ nodes |
 | `DIMENSIONAL_COHERENCE.md` | Theory and roadmap for dimensional coherence measurements |
+| `LORENTZIAN_SPIKE.md` | Scoping spike for the causal-event-DAG upgrade (de-toying rung 1): what ports, what doesn't, and the staged plan with kill criteria. A decision document — nothing is committed |
 
 ## Rules
 

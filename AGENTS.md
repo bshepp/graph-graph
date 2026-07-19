@@ -88,3 +88,14 @@ Analysis scripts (`measure.py`, `visualize.py`, `dimension.py`) all take a
   Amazon Braket SDK is *not* required; it appears only in deferred comments for a future
   hardware path. Still treat the module as experimental and don't import it from core
   modules.
+- **Always pass `weight=None` to `nx.to_scipy_sparse_array`** when you want the
+  *structural* adjacency. Edges carry `weight` (0.5 initially, mutated by
+  `reinforcement`), and the default uses it — so omitting the flag silently gives a
+  weighted matrix. This fails quietly rather than loudly: it scales results by a
+  plausible-looking constant instead of raising. All seven existing call-sites pass it.
+- **`scipy.sparse.linalg` routines consume the global numpy RNG** (`expm_multiply` calls
+  `onenormest`, which samples). Any driver that interleaves such a call with
+  RNG-dependent graph construction is silently non-reproducible, and its results will
+  depend on how many conditions you happen to be running. Decide all random structure
+  *before* the first solver call, then verify by re-running a subset and checking the
+  shared rows are bit-identical. This bit `shortcut_walkers.py` (see FINDINGS.md "3b").

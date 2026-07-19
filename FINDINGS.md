@@ -312,7 +312,17 @@ measurements to established quantum-gravity programs (causal sets, quantum
 graphity, tensor networks) whose model-to-nature arguments the literature
 already carries. Decided with the owner 2026-07-16; unscheduled.
 
-1. **Lorentzian upgrade (causal event DAG)** -- cheapest, highest leverage.
+1. **Lorentzian upgrade (causal event DAG)** -- **scoped 2026-07-19, see
+   [LORENTZIAN_SPIKE.md](LORENTZIAN_SPIKE.md).** The spike's verdict: "nearly all
+   instrumentation ports over" is half right. The fast backend *survives*
+   (asynchronous != sequential; causally independent events batch into vectorised
+   independent sets -- verified, ~4-5 rounds per sweep) and `dimension.py`'s
+   fitting/gating scaffolding ports to causal-future growth. But the dimension
+   *estimator* does not port, and its replacement is only trustworthy with rung 2's
+   calibration built alongside -- so **the honest unit of work is rungs 1+2
+   together**, with the first physics result arriving only after three stages of
+   instrument work. Causal measurement is capped near 1e4 nodes by DAG size; the
+   dynamics (and so the barrier checkpoint) still run at full scale.
    Replace synchronous sweeps with asynchronous event-based updates and measure
    the **causal DAG of update events** instead of the state graph: that object
    has light cones by construction, and causal-set dimension estimators
