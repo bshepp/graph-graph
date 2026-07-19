@@ -313,7 +313,15 @@ graphity, tensor networks) whose model-to-nature arguments the literature
 already carries. Decided with the owner 2026-07-16; unscheduled.
 
 1. **Lorentzian upgrade (causal event DAG)** -- **scoped 2026-07-19, see
-   [LORENTZIAN_SPIKE.md](LORENTZIAN_SPIKE.md).** The spike's verdict: "nearly all
+   [LORENTZIAN_SPIKE.md](LORENTZIAN_SPIKE.md); steps 1-2 built and passing
+   (`causal_sets.py --validate`, `async_engine.py --validate`).** Step 2 revised
+   the cost model: the conflict radius is *rule-dependent* (state rules 1,
+   `prune` 2, `triadic`/`ricci`/`geometrize` 3, because triadic closure writes
+   at distance 2), and naive independent-set batching silently under-samples
+   high-degree nodes -- a node wins its priority contest with probability
+   1/(c+1) -- which shifted steady-state activation 11% (z=5.9) until corrected
+   by degree thinning. Cost is still a constant factor flat in N, but 7/24/58
+   rounds per sweep by radius rather than the ~4-5 originally claimed. The spike's verdict: "nearly all
    instrumentation ports over" is half right. The fast backend *survives*
    (asynchronous != sequential; causally independent events batch into vectorised
    independent sets -- verified, ~4-5 rounds per sweep) and `dimension.py`'s

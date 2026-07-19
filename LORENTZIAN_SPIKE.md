@@ -238,6 +238,50 @@ So a full sweep costs ~4–5 rounds — a **constant factor in degree, not an
 asymptotic loss**. (Note that `grown` holds mean degree ≈ 4 regardless of cap;
 the cap bounds the tail, not the mean.)
 
+> ### Step 2 correction (2026-07-19): the direction is right, the constant is ~12× worse
+>
+> Building the engine (`async_engine.py --validate`) invalidated two assumptions
+> in the paragraph above, though not its conclusion.
+>
+> **(i) Radius 1 is only correct for state rules.** Two events commute when
+> neither writes what the other reads. Working the footprints out per rule:
+>
+> | rule | reads | writes | needs |
+> |------|-------|--------|-------|
+> | activation, majority | `N(v)` state | `v` state | radius 1 |
+> | prune | `{v} ∪ N(v)` adjacency | `{v} ∪ N(v)` adjacency | **radius 2** |
+> | triadic, ricci, geometrize | `{v} ∪ N(v)` adjacency | `{v} ∪ N(v) ∪ {w}`, and `w` is a **friend-of-friend** | **radius 3** |
+>
+> `triadic` is the expensive case for a specific reason: it is the only family
+> that *writes at distance 2*, since triadic closure attaches `v` to a node two
+> hops away. Both claims are enforced by constructed negative controls — a
+> radius one below the derived value must produce order-dependent results, or
+> the test proves nothing. For `prune` that required a **hand-built
+> counterexample**: its only distance-2 coupling runs through the degree floor,
+> which random search does not hit reliably. Rare is not safe.
+>
+> **(ii) Naive batching silently corrupts the dynamics.** A node wins the
+> priority contest with probability exactly `1/(c(v)+1)`, so batching
+> *under-samples high-degree nodes* — replacing uniform Poisson clocks with
+> degree-dependent ones. On `grown` this shifted steady-state activation by 11%
+> against the sequential reference (z = 5.9). The fix is to accept a winner with
+> probability `(c(v)+1)/(c_max+1)`, making the net rate uniform; independence
+> survives because thinning only removes nodes. Uniformity is paid for in
+> throughput.
+>
+> Corrected cost, thinning included (N-independent, as claimed):
+>
+> | conflict radius | batch fraction | rounds/sweep | rules |
+> |---|---|---|---|
+> | 1 | 0.143 | **7** | activation, majority |
+> | 2 | 0.041 | **24** | prune |
+> | 3 | 0.017 | **58** | triadic, ricci, geometrize |
+>
+> The asymptotic claim stands — it is still a constant factor, flat in N from
+> 2×10³ to 10⁴. But "~4–5 rounds" was optimistic by roughly an order of
+> magnitude for the geometry rules, and the censorship checkpoint (`prune`) pays
+> 24×, not 4×.
+
 > **Implementation footgun, found while verifying this.** Build the adjacency with
 > `nx.to_scipy_sparse_array(G, weight=None, ...)`. This project sets edge
 > `weight=0.5`, and the *default* uses that attribute — silently yielding a
@@ -298,9 +342,17 @@ artifact of the global clock. That is the real risk this rung is buying down.
    proposed estimator failed calibration and had to be replaced, which is
    precisely what this stage exists to find out — and it means the first
    instrument now in hand is *not* the one the spike designed.
-2. **Async engine + batching.** Poisson clocks, independent-set batching,
-   equivalence test against strictly sequential at small `N`. *Kill criterion:
-   batched and sequential disagree statistically.*
+2. ~~**Async engine + batching.**~~ **DONE 2026-07-19 — `async_engine.py`,
+   gate PASSES.** Poisson-clock sequential reference plus conflict-free batching
+   for `activation` / `majority` / `prune` / `triadic`; batched and sequential
+   agree on all observables across 12 seeds. Two corrections to §4 above: the
+   conflict radius is rule-dependent (1/2/3, not 1 throughout), and degree
+   thinning is mandatory or the dynamics are wrong. `rewire` is unsupported —
+   its target is uniform over the whole graph, so no graph-distance criterion
+   can make it conflict-free; it would need collision detection and deferral.
+   *Not yet done: batch application is still a Python loop. This validates the
+   scheduling claim (large conflict-free batches exist), not yet the vectorised
+   application that the speed argument ultimately rests on.*
 3. **Static-graph calibration.** Async on a fixed `grown` graph; require
    `d_causal = d_H + 1`.
 4. **Censorship checkpoint.**

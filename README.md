@@ -69,6 +69,7 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 | `braket_walks.py` | Quantum walk analysis: matrix-based CTQW vs. classical walks (experimental; runs on core deps) |
 | `SCALING.md` | Roadmap from 1K to 100M+ nodes |
 | `DIMENSIONAL_COHERENCE.md` | Theory and roadmap for dimensional coherence measurements |
+| `async_engine.py` | Asynchronous event-driven update engine (de-toying step 2): Poisson-clock sequential reference plus conflict-free batched execution. `--validate` proves batches are order-independent, with constructed negative controls, and checks batched-vs-sequential distributions |
 | `causal_sets.py` | Causal-set dimension estimators (Myrheim–Meyer ordering fraction, midpoint scaling) calibrated against Poisson sprinklings into flat Minkowski space. `--validate` is the step-1 gate for the causal-DAG upgrade — no model dynamics, instruments only |
 | `LORENTZIAN_SPIKE.md` | Scoping spike for the causal-event-DAG upgrade (de-toying rung 1): what ports, what doesn't, and the staged plan with kill criteria. A decision document — nothing is committed |
 
