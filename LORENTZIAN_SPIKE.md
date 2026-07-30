@@ -353,14 +353,36 @@ artifact of the global clock. That is the real risk this rung is buying down.
    *Not yet done: batch application is still a Python loop. This validates the
    scheduling claim (large conflict-free batches exist), not yet the vectorised
    application that the speed argument ultimately rests on.*
-3. **Static-graph calibration.** Async on a fixed `grown` graph; require
-   `d_causal = d_H + 1`.
-4. **Censorship checkpoint.**
+3. ~~**Static-graph calibration.** Async on a fixed `grown` graph; require
+   `d_causal = d_H + 1`.~~ **DONE 2026-07-29 — `causal_dag.py`, gate PASSES, but
+   the CALIBRATION NULL IS REJECTED.** The async event DAG is *not manifold-like*:
+   `d_causal` is systematically below `d_H + 1`, with the deficit growing with
+   dimension (MM reads 1.9 / 2.5 / 3.15 for true 2 / 3 / 4) until the "+1"
+   vanishes by `grown` cap8. This is the FPP-light-cone-shape negative pre-committed
+   in §5 (#4) and the "scientific risk" this rung existed to surface. It was
+   proven a property, not a bug, three ways — transitive closure matches
+   brute-force reachability, the DAG is rule-independent, and a **positive
+   control** (an artificial fixed-speed cone on the *same* substrate) recovers
+   `d_H + 1` while only the async relation reads low — plus an independent
+   adversarial code audit. Mechanism: the async model has no fixed light-cone
+   speed (last-passage percolation), so the longest chain runs ~6–7× the
+   worldline separation, over-ordering the diamond relative to Minkowski. **The
+   causal-set dimension is retired as an *absolute* observable; the state-graph
+   checkpoints below do not depend on it.** Detail in FINDINGS.md "Causal
+   calibration (step 3)".
+4. **Censorship checkpoint.** Now the first physics stage — and, importantly, it
+   acts on the **state graph** (`prune`'s locality), so the step-3 negative does
+   not block it. Run shortcut censorship under async updates against the
+   synchronous result.
 5. **Barrier checkpoint** (state-graph extent) **and causal future growth.**
+   State-graph extent survives the step-3 negative; the causal-future-growth
+   restatement inherits the same non-manifold caveat as step 3 and is at best a
+   *relative* comparator (async vs sync), never an absolute dimension.
 
-Steps 1–3 are all instrument work and produce no physics. That is the correct
-shape for this project, and it is what the cost estimate should reflect: the
-first physics result arrives at step 4.
+Steps 1–3 were all instrument work and produced no physics — and step 3 delivered
+the payoff that shape is meant to deliver: a cheap, decisive negative that stops
+the causal-dimension observable from being trusted before any physics budget is
+spent. The first physics result now arrives at step 4, on state-graph observables.
 
 ## 7. What this rung does not buy
 

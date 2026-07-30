@@ -313,8 +313,13 @@ graphity, tensor networks) whose model-to-nature arguments the literature
 already carries. Decided with the owner 2026-07-16; unscheduled.
 
 1. **Lorentzian upgrade (causal event DAG)** -- **scoped 2026-07-19, see
-   [LORENTZIAN_SPIKE.md](LORENTZIAN_SPIKE.md); steps 1-2 built and passing
-   (`causal_sets.py --validate`, `async_engine.py --validate`).** Step 2 revised
+   [LORENTZIAN_SPIKE.md](LORENTZIAN_SPIKE.md); steps 1-3 built and passing
+   (`causal_sets.py`, `async_engine.py`, `causal_dag.py` -- all `--validate`).
+   Step 3 (2026-07-29) is a KEY NEGATIVE: the static-graph causal calibration
+   fails -- the async event DAG is not manifold-like and `d_causal != d_H+1`
+   (see "Causal calibration (step 3)" below). This retires the causal-set
+   dimension as an absolute observable but leaves the state-graph checkpoints
+   (censorship, barrier) intact.** Step 2 revised
    the cost model: the conflict radius is *rule-dependent* (state rules 1,
    `prune` 2, `triadic`/`ricci`/`geometrize` 3, because triadic closure writes
    at distance 2), and naive independent-set batching silently under-samples
@@ -372,6 +377,75 @@ Standing requirement across all rungs: a **continuum-limit / universality
 story** (does anything converge as N grows, and is it rule-independent?) --
 without it the model stays a toy regardless of ingredients. The cap→d plateau
 work is the existing foothold.
+
+### Causal calibration (step 3, 2026-07-29): the event DAG is NOT manifold-like -- d_causal != d_H+1
+
+**Result: the pre-committed null `d_causal = d_H + 1` is REJECTED.** `causal_dag.py`
+(new; `--validate` passes) records the causal DAG of async update events on a
+*static* graph and estimates its causal-set dimension. On a static graph the DAG
+is the product `G x Poisson-time`, so the free calibration says its dimension
+must be the spatial Hausdorff dimension plus one. It is not: the emergent time
+dimension is systematically **under-counted**, and the shortfall grows with
+dimension until the "+1" vanishes entirely.
+
+Known-answer lattices (integer targets), Myrheim-Meyer under the flat-space
+calibration:
+
+| true d = d_H+1 | graph        | MM   | midpoint | deficit |
+|----------------|--------------|------|----------|---------|
+| 2              | 1D path      | 1.9  | 1.6      | 0.1     |
+| 3              | 2D lattice   | 2.5  | 2.0      | 0.5     |
+| 4              | 3D lattice   | 3.15 | 2.37     | 0.85    |
+
+And on the graph the physics actually uses (n=4000): `grown` cap6 reads
+d_mm=2.32 vs target 2.85 (offset over d_H = +0.48); `grown` cap8 reads d_mm=2.65
+vs target 3.67 (**offset +0.0 -- time contributes nothing**). Identical deficit
+on an isotropic 2D random-geometric graph as on the cubic lattice, so it is
+**not lattice anisotropy** -- it is fundamental to graph x Poisson-time.
+
+**Why it is a genuine negative, not a bug** (verified three ways, and by an
+independent adversarial audit):
+
+- *Machinery is correct.* The transitive-closure relation matrix matches a
+  brute-force full-DAG reachability computation exactly (0 mismatches); the DAG
+  is bit-identical across rules (it depends only on the schedule and topology,
+  the read set being the closed neighbourhood by construction); parent recording
+  is complete.
+- *Positive control isolates the cause.* On the **same** lattice, **same** Poisson
+  event times, **same** sampler and estimators, swapping the async causal
+  relation for an artificial fixed-speed light cone `dist <= c*(t)` recovers
+  d ~ 3 (midpoint robustly ~2.8 across cone speeds). Only the async causal
+  structure reads low. Both live in `causal_dag.py --validate`.
+- *The estimators disagree.* On true Minkowski sprinklings MM and midpoint agree
+  to within 0.09; on the event DAG they diverge (0.5 at 2D, 0.78 at 3D). That
+  growing disagreement is the operational definition of a **non-manifold-like**
+  causal set -- there is no single dimension the estimators concur on.
+
+**Mechanism.** The async model has **no fixed light-cone speed**: a quick
+succession of neighbour firings lets influence propagate many hops in near-zero
+time (a last-passage-percolation effect), so the longest chain between two
+events runs ~6-7x their worldline separation. The diamond is a genuine 3D
+*volume* (`|I| ~ height^2.8`) but its causal *ordering* is denser than a 3D
+Minkowski interval (ordering fraction 0.34 vs 0.229), which reads low and
+distorts the volume bisection midpoint measures. This is exactly the
+FPP-light-cone-shape sensitivity the spike pre-committed to as a legitimate
+negative (spec §"scientific risk", pre-commitment #4).
+
+**What it blocks and what it does not.** It BLOCKS using the event DAG to measure
+*absolute* emergent spacetime dimension via Myrheim-Meyer -- the instrument does
+not calibrate, so a causal-dimension number off it cannot be trusted. It does
+**not** block the physics checkpoints: the spike's primary step-4 experiment
+(shortcut censorship under async, LORENTZIAN_SPIKE.md §5) acts on the **state
+graph** and needs no causal-set dimension, and the barrier checkpoint likewise
+uses state-graph extent. So step 4 remains viable; only the causal-dimension
+sub-observable is retired unless recalibrated. A graph-specific recalibration is
+*mathematically* available -- the ordering fraction r_graph(D) is a clean
+monotonic family (0.54 / 0.31 / 0.20 at true D = 2 / 3 / 4) -- but it cannot
+rescue an absolute dimension while the estimators still disagree among
+themselves, and calibrating against a known answer to apply where there is none
+is the same anti-pattern that retired interval-scaling in step 1. **Methodology
+lesson (reused): a clean monotonic calibration certifies invertibility, not
+manifold-likeness.**
 
 ## Scaling directions: what more compute could (and couldn't) unlock
 
