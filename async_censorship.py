@@ -80,7 +80,8 @@ def summarize_portals(removal: Dict[Tuple[int, int], Optional[float]],
     def alive(u: int, v: int) -> bool:
         return removal[(u, v)] is None
 
-    long_survival = float(np.mean([alive(u, v) for u, v, _ in long_portals]))
+    long_survival = (float(np.mean([alive(u, v) for u, v, _ in long_portals]))
+                     if long_portals else float('nan'))
     detour2_survival = (float(np.mean([alive(u, v) for u, v, _ in detour2]))
                         if detour2 else float('nan'))
 
@@ -95,7 +96,7 @@ def summarize_portals(removal: Dict[Tuple[int, int], Optional[float]],
         ra = np.argsort(np.argsort(advs)).astype(float)
         rt = np.argsort(np.argsort(ts)).astype(float)
         adv_corr = float(np.corrcoef(ra, rt)[0, 1]) \
-            if ra.std() > 0 and rt.std() > 0 else float('nan')
+            if advs.std() > 0 and ts.std() > 0 else float('nan')
     else:
         adv_corr = float('nan')
 
