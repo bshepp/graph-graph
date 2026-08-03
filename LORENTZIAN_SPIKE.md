@@ -370,10 +370,20 @@ artifact of the global clock. That is the real risk this rung is buying down.
    causal-set dimension is retired as an *absolute* observable; the state-graph
    checkpoints below do not depend on it.** Detail in FINDINGS.md "Causal
    calibration (step 3)".
-4. **Censorship checkpoint.** Now the first physics stage — and, importantly, it
-   acts on the **state graph** (`prune`'s locality), so the step-3 negative does
-   not block it. Run shortcut censorship under async updates against the
-   synchronous result.
+4. ~~**Censorship checkpoint.** Run shortcut censorship under async updates
+   against the synchronous result.~~ **DONE 2026-08-03 — `async_censorship.py`,
+   gate PASSES. The first physics result, and it is a POSITIVE.** It acts on the
+   **state graph** (`prune`'s locality), so the step-3 negative does not block it.
+   P1 (threshold + advantage-blind) is **schedule-invariant** — async prune
+   reproduces the synchronous result within noise (long-survival z=0.34, detour-2
+   immune, removal geometric and advantage-blind, zero collateral), which also
+   serves as the control isolating Gate 2. P2 (triadic-through-a-portal
+   self-stabilization) **survives** emergent time — weaving persists (2.6/40
+   woven), long-survival (0.135) well above the prune-only baseline (0.03) — so it
+   is genuine dynamics, *not* an artifact of the synchronous triadic-then-prune
+   lockstep. But async weaves ~2× less than sync, so the lockstep inflated its
+   magnitude without being its cause. Detail in FINDINGS.md "censorship under async
+   (step 4)".
 5. **Barrier checkpoint** (state-graph extent) **and causal future growth.**
    State-graph extent survives the step-3 negative; the causal-future-growth
    restatement inherits the same non-manifold caveat as step 3 and is at best a
@@ -382,7 +392,10 @@ artifact of the global clock. That is the real risk this rung is buying down.
 Steps 1–3 were all instrument work and produced no physics — and step 3 delivered
 the payoff that shape is meant to deliver: a cheap, decisive negative that stops
 the causal-dimension observable from being trusted before any physics budget is
-spent. The first physics result now arrives at step 4, on state-graph observables.
+spent. Step 4 (2026-08-03) is the first physics result, on state-graph observables,
+and it is a **positive**: the banked censorship result survives emergent time (P1
+schedule-invariant, P2 self-stabilization real but ~2× attenuated). Step 5 (barrier
++ causal-future-growth) is the remaining rung-1 work.
 
 ## 7. What this rung does not buy
 
