@@ -111,3 +111,52 @@ def summarize_portals(removal: Dict[Tuple[int, int], Optional[float]],
             'detour2_survival': detour2_survival,
             'mean_removal': mean_removal, 'adv_corr': adv_corr,
             'woven': float(woven), 'collateral': collateral}
+
+
+def async_condition(base: nx.Graph, long_portals: List[Portal],
+                    detour2: List[Portal], rules: Sequence[str],
+                    rates: Sequence[float],
+                    params: Sequence[Optional[Dict]], sweeps: float,
+                    seed: int) -> Tuple[Dict, nx.Graph, Dict[str, float]]:
+    """
+    Run one async condition on a fresh copy of `base`, tracking per-portal
+    removal time in absolute Poisson time (= sweep-equivalents, clocks at
+    rate 1). A portal is stamped removed the first time an event at one of its
+    endpoints leaves the edge absent. `run_sequential_multi` copies `base`, so
+    the caller's graph is untouched and reusable across conditions.
+    """
+    portals = long_portals + detour2
+    removal: Dict[Tuple[int, int], Optional[float]] = {
+        (u, v): None for u, v, _ in portals}
+    by_node: Dict[int, List[Tuple[int, int]]] = {}
+    for u, v, _ in portals:
+        by_node.setdefault(u, []).append((u, v))
+        by_node.setdefault(v, []).append((u, v))
+
+    def on_event(event_id: int, node: int, rule_idx: int, t: float,
+                 G: nx.Graph) -> None:
+        for (u, v) in by_node.get(node, ()):
+            if removal[(u, v)] is None and not G.has_edge(u, v):
+                removal[(u, v)] = t
+
+    final, times, rule_ids = run_sequential_multi(
+        base, list(rules), list(rates), max_time=float(sweeps), seed=seed,
+        params=list(params), on_event=on_event)
+
+    n = base.number_of_nodes()
+    events_per_node = {rules[i]: float(np.sum(rule_ids == i)) / max(n, 1)
+                       for i in range(len(rules))}
+    return removal, final, events_per_node
+
+
+def sync_condition(base: nx.Graph, long_portals: List[Portal],
+                   detour2: List[Portal], condition: str, steps: int,
+                   prune_prob: float) -> Tuple[Dict, nx.Graph]:
+    """
+    The banked synchronous reference, via `shortcut_censorship.run_condition`
+    verbatim. Returns (removal_step, final_graph); `run_condition` copies
+    `base` internally. NOTE it hardcodes triadic `rewire_prob=0.05`.
+    """
+    res = run_condition(base, long_portals + detour2, condition, steps,
+                        prune_prob)
+    return res['removal_step'], res['final_graph']
