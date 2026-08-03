@@ -160,3 +160,156 @@ def sync_condition(base: nx.Graph, long_portals: List[Portal],
     res = run_condition(base, long_portals + detour2, condition, steps,
                         prune_prob)
     return res['removal_step'], res['final_graph']
+
+
+def _z(a: Sequence[float], b: Sequence[float]) -> float:
+    """Two-sample z on seed-means (NaNs dropped); the async_engine Test-B bar."""
+    a = np.asarray(a, float); a = a[~np.isnan(a)]
+    b = np.asarray(b, float); b = b[~np.isnan(b)]
+    if len(a) < 2 or len(b) < 2:
+        return float('nan')
+    se = np.sqrt(a.var(ddof=1) / len(a) + b.var(ddof=1) / len(b))
+    return 0.0 if se == 0 else abs(a.mean() - b.mean()) / se
+
+
+# rewire_prob is FIXED at 0.05 to match shortcut_censorship.run_condition's
+# hardcoded triadic rate -- any other value silently breaks sync/async parity.
+_REWIRE_PROB = 0.05
+
+
+def _validate(n_nodes: int = 1200, cap: int = 6, n_long: int = 40,
+              n_detour2: int = 20, sweeps: int = 120, seeds: int = 5,
+              prune_prob: float = 0.05) -> bool:
+    ok = True
+    prune_params = [{'prune_prob': prune_prob}]
+    tp_rules = ['triadic', 'prune']
+    tp_params = [{'rewire_prob': _REWIRE_PROB}, {'prune_prob': prune_prob}]
+
+    # ---- Gate 1: async prune vs sync prune (P1) ----
+    keys = ['long_survival', 'detour2_survival', 'mean_removal', 'collateral']
+    sync_g1 = {k: [] for k in keys}
+    async_g1 = {k: [] for k in keys}
+    async_corr: List[float] = []
+    prune_pn: List[float] = []
+
+    print(f"Gate 1 -- async prune vs sync prune (P1): N={n_nodes}, "
+          f"{n_long} long + {n_detour2} detour-2, {sweeps} sweeps, "
+          f"{seeds} seeds")
+    for s in tqdm(range(seeds), desc='gate1'):
+        base, longp, d2 = build_base_and_portals(n_nodes, cap, n_long,
+                                                 n_detour2, s)
+        fabric = fabric_edges(base, longp, d2)
+        sr, sg = sync_condition(base, longp, d2, 'prune', sweeps, prune_prob)
+        ar, ag, ac = async_condition(base, longp, d2, ['prune'], [1.0],
+                                     prune_params, float(sweeps), seed=1000 + s)
+        ssum = summarize_portals(sr, longp, d2, sg, fabric)
+        asum = summarize_portals(ar, longp, d2, ag, fabric)
+        for k in keys:
+            sync_g1[k].append(ssum[k])
+            async_g1[k].append(asum[k])
+        async_corr.append(asum['adv_corr'])
+        prune_pn.append(ac['prune'])
+
+    print(f"  {'observable':>17s} {'sync':>8s} {'async':>8s} {'z':>6s}")
+    for k in keys:
+        z = _z(sync_g1[k], async_g1[k])
+        passed = np.isnan(z) or z < 3.0
+        ok &= passed
+        print(f"  {k:>17s} {np.nanmean(sync_g1[k]):8.3f} "
+              f"{np.nanmean(async_g1[k]):8.3f} {z:6.2f}  "
+              f"{'' if passed else 'FAIL'}")
+    corr = float(np.nanmean(async_corr))
+    blind = abs(corr) < 0.2
+    ok &= blind
+    print(f"  async rank(adv, t) = {corr:+.3f}  "
+          f"{'advantage-blind OK' if blind else 'CORRELATED -- FAIL'}")
+    print(f"  async prune events/node = {np.mean(prune_pn):.1f} "
+          f"(target ~{sweeps})")
+
+    # ---- Gate 2: triadic+prune race (P2), descriptive ----
+    print("\nGate 2 -- triadic+prune race (P2): DESCRIPTIVE, "
+          "pre-registered both ways")
+    g2k = ['long_survival', 'detour2_survival', 'woven', 'collateral']
+    g2 = {'sync': {k: [] for k in g2k}, 'async': {k: [] for k in g2k}}
+    tri_pn: List[float] = []
+    prune_pn2: List[float] = []
+    for s in tqdm(range(seeds), desc='gate2'):
+        base, longp, d2 = build_base_and_portals(n_nodes, cap, n_long,
+                                                 n_detour2, s)
+        fabric = fabric_edges(base, longp, d2)
+        sr, sg = sync_condition(base, longp, d2, 'triadic+prune', sweeps,
+                                prune_prob)
+        ar, ag, ac = async_condition(base, longp, d2, tp_rules, [1.0, 1.0],
+                                     tp_params, float(sweeps), seed=2000 + s)
+        ssum = summarize_portals(sr, longp, d2, sg, fabric)
+        asum = summarize_portals(ar, longp, d2, ag, fabric)
+        for k in g2k:
+            g2['sync'][k].append(ssum[k])
+            g2['async'][k].append(asum[k])
+        tri_pn.append(ac['triadic'])
+        prune_pn2.append(ac['prune'])
+
+    print(f"  {'observable':>17s} {'sync':>8s} {'async':>8s}")
+    for k in g2k:
+        print(f"  {k:>17s} {np.nanmean(g2['sync'][k]):8.3f} "
+              f"{np.nanmean(g2['async'][k]):8.3f}")
+
+    tri, prn = float(np.mean(tri_pn)), float(np.mean(prune_pn2))
+    matched = abs(tri - prn) / max(prn, 1e-9) < 0.1
+    ok &= matched
+    print(f"  async events/node: triadic {tri:.1f}, prune {prn:.1f}  "
+          f"{'matched OK' if matched else 'MISMATCH -- confound, FAIL'}")
+
+    a_long = float(np.nanmean(g2['async']['long_survival']))
+    a_woven = float(np.nanmean(g2['async']['woven']))
+    base_long = float(np.nanmean(async_g1['long_survival']))
+    if a_woven > 0.0 and a_long > base_long + 0.02:
+        verdict = ("P2 SURVIVES async -- weaving persists (woven "
+                   f"{a_woven:.2f}, long survival {a_long:.2f} vs prune-only "
+                   f"{base_long:.2f}); self-stabilization is genuine dynamics")
+    else:
+        verdict = ("P2 COLLAPSES under async -- woven ~0 / long survival "
+                   f"{a_long:.2f} ~ prune-only {base_long:.2f}; the synchronous "
+                   "self-stabilization was a triadic-then-prune lockstep "
+                   "artifact")
+    print(f"  VERDICT: {verdict}")
+
+    print(f"\n{'PASS' if ok else 'FAIL'}: async censorship checkpoint "
+          f"(Gate 1 instrument + confounds gate the exit; Gate 2 descriptive)")
+    return ok
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(
+        description="Shortcut censorship under asynchronous updates.")
+    ap.add_argument('--validate', action='store_true')
+    ap.add_argument('--quick', action='store_true')
+    ap.add_argument('--nodes', type=int, default=2000)
+    ap.add_argument('--cap', type=int, default=6)
+    ap.add_argument('--long', type=int, default=40)
+    ap.add_argument('--detour2', type=int, default=20)
+    ap.add_argument('--sweeps', type=int, default=120)
+    ap.add_argument('--seeds', type=int, default=3)
+    ap.add_argument('--prune-prob', type=float, default=0.05)
+    ap.add_argument('--seed', type=int, default=0)
+    args = ap.parse_args()
+
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+
+    if args.validate:
+        kw = dict(n_nodes=1200, cap=6, n_long=40, n_detour2=20, sweeps=120,
+                  seeds=5, prune_prob=args.prune_prob)
+        if args.quick:
+            kw.update(n_nodes=400, n_long=10, n_detour2=5, sweeps=40, seeds=2)
+        raise SystemExit(0 if _validate(**kw) else 1)
+
+    # A production-scale run IS the checkpoint at the requested scale.
+    raise SystemExit(0 if _validate(
+        n_nodes=args.nodes, cap=args.cap, n_long=args.long,
+        n_detour2=args.detour2, sweeps=args.sweeps, seeds=args.seeds,
+        prune_prob=args.prune_prob) else 1)
+
+
+if __name__ == '__main__':
+    main()
