@@ -323,10 +323,10 @@ already carries. Decided with the owner 2026-07-16; unscheduled.
    (censorship, barrier) intact. Step 4 (2026-08-03) is the first physics
    checkpoint and it **passes**: shortcut censorship re-run under async updates
    reproduces P1 (threshold, advantage-blind) as a schedule-invariant, and P2
-   (self-stabilization) survives emergent time -- attenuated ~2x vs synchronous,
-   so the lockstep inflated its strength but was not its cause
-   (`async_censorship.py`; see "censorship under async (step 4)" below).** Step 2
-   revised
+   (self-stabilization) survives emergent time essentially unchanged (12-seed
+   paired: no significant attenuation -- the preliminary "~2x" was small-sample
+   noise) (`async_censorship.py`; see "censorship under async (step 4)"
+   below).** Step 2 revised
    the cost model: the conflict radius is *rule-dependent* (state rules 1,
    `prune` 2, `triadic`/`ricci`/`geometrize` 3, because triadic closure writes
    at distance 2), and naive independent-set batching silently under-samples
@@ -824,7 +824,7 @@ churns 58% of the base fabric. A portal CAN be stabilized against the censor by
 local dynamics, but the stabilizer is a worse threat to any individual edge than
 the censor is.
 
-### 2b. The same censorship under async updates (step 4, 2026-08-03): P1 schedule-invariant, P2 survives but ~2x attenuated
+### 2b. The same censorship under async updates (step 4, 2026-08-03): P1 schedule-invariant, P2 survives essentially unchanged
 
 The first *physics* checkpoint of the Lorentzian ladder (LORENTZIAN_SPIKE.md §5-6):
 re-run §2 with **event-driven Poisson-clock** updates instead of synchronous sweeps and
@@ -853,33 +853,40 @@ the degree-floor coupling that made async ≠ sync *trajectory-by-trajectory* in
 does not move the P1 observables, so any Gate-2 difference is attributable specifically to
 the triadic/prune interleaving, not to asynchrony itself.
 
-**P2 (self-stabilization) -- SURVIVES async, at ~half the magnitude.** Pre-registered both
-ways before the run: weaving persists (genuine dynamics) vs weaving collapses (a synchronous
-lockstep artifact). It **persists** (N=1200/5-seed):
+**P2 (self-stabilization) -- SURVIVES async, and is schedule-invariant in magnitude.**
+Pre-registered both ways before the run: weaving persists (genuine dynamics) vs weaving
+collapses (a synchronous lockstep artifact). It **persists**. A **12-seed paired** estimate
+(N=1200, triadic+prune, an independent seed set via `async_censorship_paired.py`) is the
+authoritative comparison -- the 3-5 seed `--validate` gate is too noisy to quantify the
+difference:
 
-| observable | sync | async |
-|---|---|---|
-| long survival | 0.160 | 0.135 |
-| woven-in (of 40) | 4.4 | 2.6 |
-| detour-2 survival | 0.140 | 0.250 |
-| collateral | 0.594 | 0.588 |
+| observable | sync | async | paired diff (sync-async), t |
+|---|---|---|---|
+| long survival | 0.133 ± 0.014 | 0.131 ± 0.016 | +0.002 ± 0.015, t=0.14 |
+| woven-in (of 40) | 3.50 ± 0.40 | 2.83 ± 0.30 | +0.67 ± 0.38, t=1.77 |
 
-Async long-portal survival (0.135) sits well above the async prune-only baseline (0.03) and
-portals still get woven in (2.6/run), so triadic-through-a-portal self-stabilization is
+Async long-portal survival (0.131) sits well above the async prune-only baseline (0.03) and
+portals still get woven in (2.8/run), so triadic-through-a-portal self-stabilization is
 **genuine emergent-time dynamics, not an artifact of the synchronous triadic-then-prune
-lockstep**. The honest nuance: async weaves consistently *less* than sync -- woven 2.6 vs 4.4
-at N=1200, 1.33 vs 3.67 at N=2000 (~55-60% at both scales). Mechanism: in a synchronous step
-triadic runs fully *before* prune, so each weaving edge is laid and its protective triangle
-closed before that step's prune pass can reach it; async interleaving lets a fresh weaving
-edge be pruned before it stabilizes the portal. The lockstep **inflates the magnitude** of
-self-stabilization without being its **cause**. (Directional and consistent across two scales
-at 3-5 seeds -- not a high-power estimate of the attenuation factor.)
+lockstep** -- and it is **not significantly attenuated**: long survival is statistically
+identical across schedules (ratio 0.98, t=0.14), and the woven count shows at most a weak,
+non-significant dip (ratio 0.81, t=1.77, async<sync in only 6/12 seeds).
+
+**Correction of the preliminary read (kept in the open, not quietly fixed).** The first-pass
+`--validate` gate runs (5 seeds at N=1200, 3 at N=2000) showed woven 2.6 vs 4.4 and 1.33 vs
+3.67 -- a spurious "~2x attenuation" that did **not** survive the 12-seed paired analysis. It
+was small-sample noise; the honest conclusion is schedule-invariance, not attenuation. A
+*possible* weak mechanism still exists -- async interleaving can prune a fresh weaving edge
+before its protective triangle closes, whereas a synchronous step lays and closes it before
+that step's prune pass -- but at 12 seeds it does not rise above noise; a higher-power run
+would be needed to claim any real effect. (Methodology lesson, reused: don't quantify a
+sync-vs-async delta off a 3-5 seed gate; the gate certifies P1, a paired sweep quantifies P2.)
 
 **Checkpoint verdict.** Unlike the step-3 causal-calibration negative, this first physics
-result is a **positive**: the banked censorship result (threshold, advantage-blindness, weak
-self-stabilization) survives when time is made emergent. The one banked number the async
-schedule revises is the *strength* of P2, which synchronous updating overstated by ~2x.
-Reproduce: `python async_censorship.py --validate`.
+result is a clean **positive**: the *entire* banked censorship result -- threshold,
+advantage-blindness, **and** the magnitude of the weak self-stabilization -- survives when
+time is made emergent, essentially unchanged. Reproduce: `python async_censorship.py
+--validate` (gate); `python async_censorship_paired.py` (the paired P2 estimate).
 
 ### 3. Walkers: the quantum walker is the portal's best customer
 

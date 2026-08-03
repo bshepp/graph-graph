@@ -17,9 +17,10 @@ barrier survive when time is emergent?** The banked flagship-negative (FINDINGS.
 re-runs it under asynchronous (event-driven) updates and asks whether α is unchanged.
 
 This parallels step 4: a banked state-graph result, re-tested under emergent time, with a
-pre-committed null of "schedule-invariant." Step 4's outcome (P1 invariant, P2 attenuated)
-makes the barrier's fate genuinely open — extent is a geometric obstruction like P1
-(likely invariant), but async could quantitatively shift α.
+pre-committed null of "schedule-invariant." Step 4's outcome (both P1 and P2 schedule-
+invariant) makes invariance the leading expectation — extent is a geometric obstruction
+like the schedule-invariant P1 — but α is a quantitative exponent, so async could still
+shift it and it is worth measuring.
 
 ## What ports cleanly (already in hand)
 
@@ -70,8 +71,8 @@ makes the barrier's fate genuinely open — extent is a geometric obstruction li
 
 α unchanged under async: rewiring α ≈ 0.13, control α ≈ 0.5, gap preserved. The interesting
 outcome is any α *shift* — that would mean the flagship-negative was partly a synchronous
-artifact (a banked result overturned, as step 4's P2-attenuation partially was). Either way
-it is publishable; interpretation fixed before the run.
+artifact (a banked result overturned — the kind of outcome step 4 pre-registered for but
+did not find). Either way it is publishable; interpretation fixed before the run.
 
 ## Rough shape (if approved)
 

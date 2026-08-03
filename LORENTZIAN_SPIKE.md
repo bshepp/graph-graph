@@ -378,12 +378,13 @@ artifact of the global clock. That is the real risk this rung is buying down.
    reproduces the synchronous result within noise (long-survival z=0.34, detour-2
    immune, removal geometric and advantage-blind, zero collateral), which also
    serves as the control isolating Gate 2. P2 (triadic-through-a-portal
-   self-stabilization) **survives** emergent time — weaving persists (2.6/40
-   woven), long-survival (0.135) well above the prune-only baseline (0.03) — so it
+   self-stabilization) **survives** emergent time — weaving persists (2.8/40
+   woven), long-survival (0.131) well above the prune-only baseline (0.03) — so it
    is genuine dynamics, *not* an artifact of the synchronous triadic-then-prune
-   lockstep. But async weaves ~2× less than sync, so the lockstep inflated its
-   magnitude without being its cause. Detail in FINDINGS.md "censorship under async
-   (step 4)".
+   lockstep. A 12-seed paired estimate finds it **not significantly attenuated**
+   (long-survival ratio 0.98, t=0.14; woven ratio 0.81, t=1.77 n.s.) — the
+   preliminary "~2× attenuation" from the 3–5 seed gate was small-sample noise.
+   Detail in FINDINGS.md "censorship under async (step 4)".
 5. **Barrier checkpoint** (state-graph extent) **and causal future growth.**
    State-graph extent survives the step-3 negative; the causal-future-growth
    restatement inherits the same non-manifold caveat as step 3 and is at best a
@@ -394,8 +395,9 @@ the payoff that shape is meant to deliver: a cheap, decisive negative that stops
 the causal-dimension observable from being trusted before any physics budget is
 spent. Step 4 (2026-08-03) is the first physics result, on state-graph observables,
 and it is a **positive**: the banked censorship result survives emergent time (P1
-schedule-invariant, P2 self-stabilization real but ~2× attenuated). Step 5 (barrier
-+ causal-future-growth) is the remaining rung-1 work.
+schedule-invariant, P2 self-stabilization real and — on a 12-seed paired estimate —
+not significantly attenuated). Step 5 (barrier + causal-future-growth) is the
+remaining rung-1 work.
 
 ## 7. What this rung does not buy
 
