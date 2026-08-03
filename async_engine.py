@@ -262,6 +262,82 @@ def run_sequential(G: nx.Graph, rule: str, n_events: int, seed: int,
     return G, times
 
 
+def run_sequential_multi(G: nx.Graph, rules: Sequence[str],
+                         rates: Sequence[float],
+                         n_events: Optional[int] = None,
+                         max_time: Optional[float] = None,
+                         seed: int = 0,
+                         params: Optional[Sequence[Optional[Dict]]] = None,
+                         on_event: Optional[Callable] = None
+                         ) -> Tuple[nx.Graph, np.ndarray, np.ndarray]:
+    """
+    Merged-clock async engine for several rules running concurrently.
+
+    Each (node, rule) pair carries an independent exponential clock; the next
+    event is the global argmin, applied via `apply_event` with the rule's own
+    per-event RNG. This is the multi-rate generalisation `run_sequential`'s
+    docstring anticipates. With ONE rule it draws its clocks in the same order
+    as `run_sequential` (one size-N exponential, then one scalar re-draw per
+    event), so it returns a bit-identical graph for a matched seed -- checked
+    in `_validate` Test D.
+
+    Stops at whichever of `n_events` (event count) or `max_time` (absolute
+    Poisson time) is reached first; at least one must be given. With every
+    rate 1.0, absolute time equals sweep-equivalents of each rule
+    independently, so two concurrent rate-1 clocks do NOT double-count time
+    the way an event counter would.
+
+    Parameters
+    ----------
+    rules, rates : one entry per concurrent rule.
+    params : per-rule event kwargs (``params[i]`` -> rule ``i``); None -> the
+        event's own defaults, which reproduces `run_sequential`.
+    on_event : optional ``(event_id, node, rule_idx, time, G) -> None`` hook
+        called after each event, so a caller can observe the trajectory (e.g.
+        portal removal times) without the engine knowing the observable.
+
+    Returns
+    -------
+    (final_graph, times, rule_ids) : times are per-event absolute Poisson
+        times (non-decreasing); rule_ids index into `rules`.
+    """
+    if n_events is None and max_time is None:
+        raise ValueError("run_sequential_multi needs n_events or max_time")
+    if len(rates) != len(rules) or (params is not None
+                                    and len(params) != len(rules)):
+        raise ValueError("rules, rates, params must be the same length")
+
+    G = G.copy()
+    rng = np.random.default_rng(seed)
+    nodes = list(G.nodes())
+    N = len(nodes)
+    R = len(rules)
+
+    clocks = np.empty((R, N))
+    for r in range(R):
+        clocks[r] = rng.exponential(1.0 / rates[r], size=N)
+
+    times: List[float] = []
+    rule_ids: List[int] = []
+    event_id = 0
+    while n_events is None or event_id < n_events:
+        idx = int(clocks.argmin())
+        r, k = divmod(idx, N)
+        t = float(clocks[r, k])
+        if max_time is not None and t > max_time:
+            break
+        p = params[r] if params is not None else None
+        apply_event(G, nodes[k], rules[r], seed, event_id, p)
+        if on_event is not None:
+            on_event(event_id, nodes[k], r, t, G)
+        times.append(t)
+        rule_ids.append(r)
+        clocks[r, k] += rng.exponential(1.0 / rates[r])
+        event_id += 1
+
+    return G, np.asarray(times), np.asarray(rule_ids, dtype=int)
+
+
 def run_batched(G: nx.Graph, rule: str, n_events: int, seed: int
                 ) -> Tuple[nx.Graph, List[int]]:
     """
@@ -523,6 +599,21 @@ def _validate(n_nodes: int = 400, n_events: int = 1200,
         print(f"  N={n:6d}  " + "   ".join(cells))
     print("  Rules by radius: activation/majority r1, prune r2, "
           "triadic/ricci/geometrize r3.")
+
+    print("\nTest D -- run_sequential_multi single-rule equivalence "
+          "(the multi-rate\n         generalisation must not drift from the "
+          "validated single-rule path)")
+    for rule, topo in (('activation', 'grown'), ('prune', 'small_world')):
+        G = create_initial_graph(200, topology=topo, k=6, seed=3)
+        if rule == 'activation':
+            for i, node in enumerate(G.nodes()):
+                G.nodes[node]['active'] = (i % 3 == 0)
+        g1, _ = run_sequential(G, rule, 500, seed=7)
+        g2, _, _ = run_sequential_multi(G, [rule], [1.0], n_events=500, seed=7)
+        same = fingerprint(g1) == fingerprint(g2)
+        ok &= same
+        print(f"  {rule:<12s} on {topo:<12s}: "
+              f"{'bit-identical OK' if same else 'DIVERGED -- FAIL'}")
 
     print(f"\n{'PASS' if ok else 'FAIL'}: asynchronous engine "
           f"(kill criterion: batched must match sequential)")
