@@ -268,7 +268,7 @@ def run_sequential_multi(G: nx.Graph, rules: Sequence[str],
                          max_time: Optional[float] = None,
                          seed: int = 0,
                          params: Optional[Sequence[Optional[Dict]]] = None,
-                         on_event: Optional[Callable] = None
+                         on_event: Optional[Callable[[int, int, int, float, nx.Graph], None]] = None
                          ) -> Tuple[nx.Graph, np.ndarray, np.ndarray]:
     """
     Merged-clock async engine for several rules running concurrently.

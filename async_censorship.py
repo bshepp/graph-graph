@@ -223,9 +223,17 @@ def _validate(n_nodes: int = 1200, cap: int = 6, n_long: int = 40,
     ok &= blind
     print(f"  async rank(adv, t) = {corr:+.3f}  "
           f"{'advantage-blind OK' if blind else 'CORRELATED -- FAIL'}")
-    print(f"  async prune events/node = {np.mean(prune_pn):.1f} "
-          f"(target ~{sweeps})")
+    prune_budget = float(np.mean(prune_pn))
+    budget_ok = abs(prune_budget - sweeps) / max(sweeps, 1) < 0.1
+    ok &= budget_ok
+    print(f"  async prune events/node = {prune_budget:.1f} (target ~{sweeps})  "
+          f"{'matched OK' if budget_ok else 'MISMATCH -- FAIL'}")
 
+    # NOTE: async `_event_triadic` anchors min(endpoints) while sync
+    # `triadic_closure` anchors by G.edges() iteration order, so async triadic is
+    # not trajectory-identical to sync even under the null. Gate 2 is descriptive
+    # precisely because of such orientation differences: the schedule effect is
+    # read from woven/long-survival magnitudes, not from trajectory identity.
     # ---- Gate 2: triadic+prune race (P2), descriptive ----
     print("\nGate 2 -- triadic+prune race (P2): DESCRIPTIVE, "
           "pre-registered both ways")
