@@ -476,7 +476,7 @@ smooth-misfit artifacts by a discriminator ladder, not periodicity:
   +0.89..+0.98 (the same smooth shape at every N = the cubic detrend misfitting d(p),
   not noise) and the signal dies under quartic/quintic detrends at 2 of 3 N. Residual
   curiosity: d(p) has reproducible N-independent fine structure beyond a quintic --
-  unexplained, low stakes, noted for a denser-p sweep if ever wanted.
+  **follow-up below: the dense grid shows it is REAL, and log-periodic.**
 - **ball growth**: raw p 0.001-0.003 at all three seeds under a quadratic detrend --
   but only ~1.5 "cycles" in range (one smooth bow plus the r=2 discreteness point),
   killed by quartic/quintic, and cross-seed residual correlation +0.95..+1.00: the
@@ -497,6 +497,50 @@ runs pure/staircase negative controls.
 
 Reproduce: `python logperiodic_scan.py --generate` then `python logperiodic_scan.py`;
 instrument check `python logperiodic_scan.py --validate`.
+
+### Dense-grid follow-up (2026-08-11, run on jaga): the d(p) fine structure is REAL -- a log-periodic modulation of the pruned-WS dimension
+
+The "residual curiosity" above was given a dense grid: 30 log-spaced p in [0.02, 0.5],
+N=32000, 6 fresh seeds per point (30-way parallel on jaga, ~2 min wall clock). The
+pre-registered scan now reads **perm-p = 0.0005 at n=30** with ~2.0 cycles in range --
+and the signal survives quintic and sextic detrending (p = 0.001-0.002), which a smooth
+misfit bow cannot do. (The discriminator ladder's mechanical all-orders rule printed
+"misfit artifact" off one marginal deg4 = 0.022; the direct artifact tests below
+override that label -- the ladder is a smooth-misfit screen, not the final word.)
+
+Three discriminators, all pointing the same way:
+
+- **Deterministic, not noise:** disjoint seed triples {0,1,2} vs {3,4,5} reproduce the
+  same residual waveform at r = +0.83; every single seed carries it (mean pairwise
+  r = +0.70, min +0.34).
+- **Not a degree/pruning-generation staircase:** d-residuals track neither mean-degree
+  residuals (r = -0.27) nor clustering residuals (r = -0.03).
+- **Not the estimator's fixed fit window (the decisive test):** re-measuring the entire
+  sweep at `--max-radius` 8 and 12 leaves the waveform intact -- cross-window residual
+  correlations **+0.96 to +0.99**, period stable (1.64 / 1.58 / 1.55 ln-units). A
+  fixed-integer-window artifact would shift with the window; this does not.
+
+**The structure:** period ~1.6 in ln p (features recurring every ~5x in p), peaks near
+p ~ 0.02 / 0.10 / 0.36, troughs near ~0.033 / 0.23, amplitude ~ +-0.05-0.08 in d_eff on
+top of the smooth 1->2 crossover. Window-invariant, N-invariant (the cross-N r ~ +0.9
+that first flagged it), seed-robust.
+
+**Mechanism: OPEN.** Leading hypothesis -- a *protection hierarchy*: prune's survivors
+are mutually-protecting shortcut clusters (triangles across shortcuts, the same
+mechanism as the wormhole-throat protection cores), and the shortcut densities at which
+2-fold, 3-fold, k-fold mutual protection first percolates should be spaced roughly
+geometrically in p, which is precisely how log-periodic features arise. Concrete test,
+not yet run: histogram surviving-shortcut cluster sizes vs p and check whether
+cluster-generation onsets align with the d(p) peaks.
+
+Irony worth recording: the pre-registered DSS hunt returned a clean global null on the
+*grown* geometry -- and then the discipline it imposed (dense grid + artifact
+discriminators) promoted its own throwaway curiosity into the sandbox's first genuine
+log-periodic structure, in the *pruned-WS* ensemble instead.
+
+Reproduce: sweep `python prune_dimension.py --nodes 32000 --ps <geomspace(0.02,0.5,30)>
+--seeds 6 --seed 0 [--max-radius 8|10|12]` (one process per p; results merge by
+concatenation), then `python logperiodic_scan.py --prune-csv <merged.csv>`.
 
 ## Scaling directions: what more compute could (and couldn't) unlock
 
