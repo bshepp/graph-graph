@@ -66,6 +66,7 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 | `shortcut_censorship.py` | Do the geometry-maintaining rules (`prune`, `ricci`) censor portals by transport advantage? Tests the a-priori threshold prediction (detour-2 immune, detour ≥ 3 uniformly eligible) and whether `triadic` can weave a portal into the fabric before `prune` kills it |
 | `shortcut_walkers.py` | Who can use the portal? Classical hitting time + stationary occupancy vs. the exact CTQW infinite-time average, with/without a portal between far regions — a portal turns out to be *kinetic* classically (speed only) and *structural* quantum-mechanically (~50–130× long-run transfer). `--validate` self-checks the observable; `--generators adjacency laplacian` cross-checks for degree artifacts |
 | `FINDINGS.md` | Empirical log of the emergent-dimension experiments |
+| `BRANCHES.md` | Living registry of research branches: every design fork's un-chosen options, with status and revival conditions — dormant branches, not dead leaves |
 | `braket_walks.py` | Quantum walk analysis: matrix-based CTQW vs. classical walks (experimental; runs on core deps) |
 | `SCALING.md` | Roadmap from 1K to 100M+ nodes |
 | `DIMENSIONAL_COHERENCE.md` | Theory and roadmap for dimensional coherence measurements |
