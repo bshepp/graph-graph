@@ -586,6 +586,35 @@ seed-robust, 16x-N-robust) whose mechanism is unknown -- and it is *not* discret
 scale invariance. Both "it is real" and "it is not a crystal" are now
 well-supported, each by its own pre-registered test.
 
+### Mechanism round 2 (2026-08-17, pre-registered): the integer-r_c-crossing candidate is KILLED
+
+Candidate (spec `2026-08-17-dp-mechanism-round2-preregistration.md`, commit 4d4044c,
+predictions before data): the pruned graph's ring->mesh crossover radius r_c(p) sweeps
+down through integer fit radii, modulating d_eff. Killed on two independent grounds:
+
+- **Coverage failure.** The operational r_c (local ln-ln slope crossing 1.5 within
+  r <= 14) does not exist for 22 of 30 grid points -- including the features at
+  p ~ 0.02, ~ 0.033, and ~ 0.10. In hindsight this was partly a formulation blunder:
+  the local slope *is* the dimension estimate, so demanding s = 1.5 crossings in the
+  region where d_eff ~ 1.0-1.3 was self-contradictory. The candidate could only ever
+  have addressed the high-p features.
+- **M2 killed by the frozen rule even where r_c exists.** On the 8 valid high-p
+  points, residual vs frac(r_c) fits at **R^2 = 0.099** (< 0.2 = pre-registered kill),
+  and M3 shows no consistent phase (the 0.23 trough sits at frac 0.235, the 0.36 peak
+  at frac 0.179 -- same fractional class for opposite extrema). M1 (r_c monotone
+  decreasing, rho = -1.00) held, but it was only the necessary condition.
+
+Side-measurement: convergence-round counts drift smoothly 7 -> 10 across the grid with
+no banding and no feature alignment -- candidate (b) (convergence-depth bands) gets no
+descriptive support either. **Round 3 starts from the remaining candidate** (WS
+shortcut-overlap statistics) **plus fresh formulation.** Cost accounting: the ill-posed
+candidate cost one cheap overnight run precisely because it was pre-registered with a
+kill rule -- the discipline is doing its job in both directions.
+
+Reproduce: `rc_measure`/`rc_verdict` scratch pair per the spec's frozen definitions
+(construction + convergence imported from `prune_dimension`; N=32000, 30-point grid,
+3 seeds, 400 sources, r <= 15).
+
 ## Scaling directions: what more compute could (and couldn't) unlock
 
 A standing question is whether *scaling up* -- to the largest graphs a private
