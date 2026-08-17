@@ -476,7 +476,9 @@ smooth-misfit artifacts by a discriminator ladder, not periodicity:
   +0.89..+0.98 (the same smooth shape at every N = the cubic detrend misfitting d(p),
   not noise) and the signal dies under quartic/quintic detrends at 2 of 3 N. Residual
   curiosity: d(p) has reproducible N-independent fine structure beyond a quintic --
-  **follow-up below: the dense grid shows it is REAL, and log-periodic.**
+  **follow-up below: the dense grid shows it is REAL and N-invariant to 16x; the
+  pre-registered overnight tests then REFUTED the log-periodic extrapolation -- it is
+  deterministic multi-bump structure in the crossover window, not a periodic law.**
 - **ball growth**: raw p 0.001-0.003 at all three seeds under a quadratic detrend --
   but only ~1.5 "cycles" in range (one smooth bow plus the r=2 discreteness point),
   killed by quartic/quintic, and cross-seed residual correlation +0.95..+1.00: the
@@ -541,6 +543,48 @@ log-periodic structure, in the *pruned-WS* ensemble instead.
 Reproduce: sweep `python prune_dimension.py --nodes 32000 --ps <geomspace(0.02,0.5,30)>
 --seeds 6 --seed 0 [--max-radius 8|10|12]` (one process per p; results merge by
 concatenation), then `python logperiodic_scan.py --prune-csv <merged.csv>`.
+
+### Overnight pre-registered tests (2026-08-12, jaga): N-invariance CONFIRMED at 16x; the log-periodic reading REFUTED
+
+Predictions were committed before the data existed
+(`docs/superpowers/specs/2026-08-12-dp-overnight-preregistration.md`, commit a134c15);
+the analysis pipeline was frozen. Outcomes:
+
+- **P1 (the sharp periodicity prediction) -- REFUTED.** A genuine log-periodic law
+  (period ~1.6) demanded a third-cycle peak near p ~ 0.004 and trough near ~ 0.007.
+  The 45-point grid down to p=0.004 (12 seeds) shows neither robustly: the apparent
+  low-p "peak" is a grid-endpoint feature that inverts under quartic/quintic detrends
+  (+0.126 -> -0.042 -> -0.014), the cubic trough lands at p=0.0107 (outside the
+  pre-registered window), and the fitted period is range-unstable (1.58 on
+  [0.02,0.5] -> 2.71 on [0.004,0.5]). Per the pre-registered falsifier, the reading
+  **downgrades from "log-periodic" to "deterministic multi-bump fine structure
+  confined to the crossover window [0.02, 0.5]"** (features near p ~ 0.02 / 0.10 /
+  0.36, troughs ~ 0.033 / 0.23; below p ~ 0.02 the pruned graph is essentially the
+  bare ring and the structure is gone). This retracts the previous subsection's
+  "log-periodic" language; the structure itself stands.
+- **P2 (N-invariance) -- PASS, decisively.** Waveform correlation with the N=32000
+  reference: **+0.963 at N=8000, +0.945 at N=128000** (a 16x span), period shift
+  0% / 2%. The structure is density-intrinsic -- a property of p and the ensemble,
+  not of graph scale. (d(p) itself is also N-converged: mean d 1.173 / 1.174 / 1.173
+  across the three N -- consistent with the banked crossover claim.)
+- **P3 (cluster-composition mechanism probe) -- hierarchy story unsupported.**
+  Surviving-shortcut cluster onsets (pairs from the lowest densities, triples ~
+  p=0.165, 4+ clusters ~ 0.21) do NOT align with the d(p) peaks; they fall if
+  anywhere in the 0.15-0.23 trough. Survival fraction and composition evolve
+  smoothly. The simple "geometrically-spaced protection-generation onsets" mechanism
+  is not supported; the mechanism is OPEN again.
+- **Secondary (tighter grown ball-growth DSS bound) -- NOT achieved.** At N=100000
+  the quadratic-detrend pipeline got *worse* (a90 0.2-0.4 vs 0.1-0.2 at N=20000):
+  the smooth crossover-shape residual grows with the fitted r-range faster than
+  noise shrinks. Methodological note: tightening this bound requires modeling the
+  saturating ball-growth shape explicitly, not more N. The banked ~10-20% bound
+  stands.
+
+Net position: the pruned-WS d(p) crossover carries **real, deterministic,
+density-intrinsic, N-invariant multi-bump fine structure** (window-invariant,
+seed-robust, 16x-N-robust) whose mechanism is unknown -- and it is *not* discrete
+scale invariance. Both "it is real" and "it is not a crystal" are now
+well-supported, each by its own pre-registered test.
 
 ## Scaling directions: what more compute could (and couldn't) unlock
 
