@@ -19,7 +19,6 @@ out-lists, memory notes, and FINDINGS asides. Practice, adopted 2026-08-11:
 |---|---|---|---|---|
 | **Spectral-dimension flow `d_s(scale)` on `grown`** | FINDINGS "Scaling directions" #1 (2026-05-30), gated behind the cap→d check | cheaper items first | **its gate was satisfied when `cap_dimension_scaling` landed (2026-05-30) and nobody noticed** — the flagship open question: does a minimal local growth rule reproduce a CDT-like `d_s` flow, and does `d_s` split from `d_H`? Pre-committed null (`d_s = d_H`, no flow) already written | high (large-N walks; `traverse.py`/`braket_walks.py` are the seed) |
 | **Triangulated-base `prune` transition** | step-3 fork, 2026-06-27 ("bank the crossover honestly") | banking `prune` as a continuum knob | the un-taken alternative was a genuine-transition hunt on a 2D-triangulated substrate; never invalidated — and now doubly relevant as a stage-2 substrate family for the critical-collapse program | medium (`prune_dimension.py` variant) |
-| **P2 attenuation micro-effect** | step-4 correction, 2026-08-03 | banking schedule-invariance | woven dip t=1.77 at 12 seeds is unresolved, not refuted; ~40+ paired seeds decides it | low (`async_censorship_paired.py --seeds 40`) |
 | **`d(p)` fine structure beyond quintic** | log-periodicity scan curiosity, 2026-08-11 | (side observation) | reproducible N-independent structure, unexplained; a denser-p sweep localizes it | low |
 | **Causal ordering-fraction as a *relative* comparator** | step-3 aftermath, 2026-07-29 | retiring the absolute observable | the monotone family r_graph(D) is intact for async-vs-sync or rule-vs-rule *comparisons*; offered post-step-3, never picked up | medium |
 | **Quasi-1D fragmentation scaling** | step-3 fork, 2026-06-27 | (same fork as triangulated base) | never invalidated; lowest-value survivor of that fork | low-medium |
@@ -57,6 +56,7 @@ out-lists, memory notes, and FINDINGS asides. Practice, adopted 2026-08-11:
 
 | branch | killed by |
 |---|---|
+| P2 attenuation micro-effect | 40-seed paired run (2026-08-11): woven ratio 1.01, t=-0.08; long-survival t=-0.28 — fully schedule-invariant, the 12-seed t=1.77 hint was noise |
 | Interval-scaling as primary causal estimator | step-1 result (biased low at R²>0.99) |
 | Absolute causal-set dimension on the event DAG | step-3 key negative (not manifold-like; estimators disagree) |
 | Rewiring-from-disorder at scale | structural argument (log vs polynomial extent — scale *worsens* it) |

@@ -899,32 +899,34 @@ the triadic/prune interleaving, not to asynchrony itself.
 
 **P2 (self-stabilization) -- SURVIVES async, and is schedule-invariant in magnitude.**
 Pre-registered both ways before the run: weaving persists (genuine dynamics) vs weaving
-collapses (a synchronous lockstep artifact). It **persists**. A **12-seed paired** estimate
-(N=1200, triadic+prune, an independent seed set via `async_censorship_paired.py`) is the
-authoritative comparison -- the 3-5 seed `--validate` gate is too noisy to quantify the
-difference:
+collapses (a synchronous lockstep artifact). It **persists**. A **40-seed paired** estimate
+(N=1200, triadic+prune, independent seed set via `async_censorship_paired.py --seeds 40`,
+2026-08-11) is the authoritative comparison -- the 3-5 seed `--validate` gate is too noisy
+to quantify the difference:
 
 | observable | sync | async | paired diff (sync-async), t |
 |---|---|---|---|
-| long survival | 0.133 ± 0.014 | 0.131 ± 0.016 | +0.002 ± 0.015, t=0.14 |
-| woven-in (of 40) | 3.50 ± 0.40 | 2.83 ± 0.30 | +0.67 ± 0.38, t=1.77 |
+| long survival | 0.126 ± 0.009 | 0.129 ± 0.008 | -0.003 ± 0.011, t=-0.28 |
+| woven-in (of 40) | 2.98 ± 0.23 | 3.00 ± 0.23 | -0.03 ± 0.29, t=-0.08 |
 
-Async long-portal survival (0.131) sits well above the async prune-only baseline (0.03) and
-portals still get woven in (2.8/run), so triadic-through-a-portal self-stabilization is
+Async long-portal survival (0.129) sits well above the async prune-only baseline (0.03) and
+portals still get woven in (3.0/run), so triadic-through-a-portal self-stabilization is
 **genuine emergent-time dynamics, not an artifact of the synchronous triadic-then-prune
-lockstep** -- and it is **not significantly attenuated**: long survival is statistically
-identical across schedules (ratio 0.98, t=0.14), and the woven count shows at most a weak,
-non-significant dip (ratio 0.81, t=1.77, async<sync in only 6/12 seeds).
+lockstep** -- and its magnitude is **schedule-invariant**: long survival ratio 1.02
+(t=-0.28) and woven ratio 1.01 (t=-0.08), with async below sync in only 16-17 of 40 seeds.
+(A 12-seed first pass had hinted at a weak woven dip, ratio 0.81 at t=1.77; the 40-seed run
+shows that hint was itself noise.)
 
 **Correction of the preliminary read (kept in the open, not quietly fixed).** The first-pass
 `--validate` gate runs (5 seeds at N=1200, 3 at N=2000) showed woven 2.6 vs 4.4 and 1.33 vs
 3.67 -- a spurious "~2x attenuation" that did **not** survive the 12-seed paired analysis. It
 was small-sample noise; the honest conclusion is schedule-invariance, not attenuation. A
-*possible* weak mechanism still exists -- async interleaving can prune a fresh weaving edge
+*possible* weak mechanism was mooted -- async interleaving can prune a fresh weaving edge
 before its protective triangle closes, whereas a synchronous step lays and closes it before
-that step's prune pass -- but at 12 seeds it does not rise above noise; a higher-power run
-would be needed to claim any real effect. (Methodology lesson, reused: don't quantify a
-sync-vs-async delta off a 3-5 seed gate; the gate certifies P1, a paired sweep quantifies P2.)
+that step's prune pass -- but the 40-seed run settles it: no detectable effect (woven
+t=-0.08); even the 12-seed t=1.77 hint of it was noise. (Methodology lesson, reused: don't
+quantify a sync-vs-async delta off a 3-5 seed gate; the gate certifies P1, a paired sweep
+quantifies P2.)
 
 **Checkpoint verdict.** Unlike the step-3 causal-calibration negative, this first physics
 result is a clean **positive**: the *entire* banked censorship result -- threshold,
