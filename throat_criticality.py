@@ -71,6 +71,31 @@ def build_arena(n_nodes: int, cap: int, r: int, seed: int,
         f"(N={n_nodes} too small for r={r}?)")
 
 
+def build_arena_geometric(n_nodes: int, cap: int, r: int, seed: int,
+                          max_regen: int = 20
+                          ) -> Tuple[nx.Graph, List[int], List[int], int]:
+    """
+    `build_arena` with substrate-failure regeneration.
+
+    The grown generator occasionally lands in a compact, expander-like phase
+    at small N (e.g. seed 111 at N=600: diameter 4) -- the banked
+    bistability showing up in the generator itself. Such substrates have no
+    geometry to host a throat, so the draw's base is REGENERATED
+    deterministically (seed + 1000003*k) and the regeneration count is
+    returned and reported downstream -- a disclosed refinement of the
+    ensemble to geometric substrates.
+    """
+    for k in range(max_regen):
+        try:
+            base, b1, b2 = build_arena(n_nodes, cap, r, seed + 1000003 * k)
+            return base, b1, b2, k
+        except RuntimeError:
+            continue
+    raise RuntimeError(
+        f"substrate persistently non-geometric after {max_regen} "
+        f"regenerations (N={n_nodes}, r={r}, seed={seed})")
+
+
 def strand_pairs(ball1: List[int], ball2: List[int]) -> List[Strand]:
     """All |B1|*|B2| candidate strands; len(...) is the throat capacity."""
     return [(u, v) for u in ball1 for v in ball2]
@@ -185,7 +210,7 @@ def critical_density_draws(n_nodes: int, cap: int, r: int, n_draws: int,
         else range(n_draws)
     for j in it:
         seed = seed0 + j
-        base, b1, b2 = build_arena(n_nodes, cap, r, seed=seed)
+        base, b1, b2, regen = build_arena_geometric(n_nodes, cap, r, seed)
         pairs = strand_pairs(b1, b2)
         cap_j = len(pairs)
         rng = np.random.default_rng(seed)
@@ -197,7 +222,8 @@ def critical_density_draws(n_nodes: int, cap: int, r: int, n_draws: int,
         top = core_at(cap_j)
         if not top:
             rows.append({'draw': j, 'capacity': cap_j, 'A_star': -1,
-                         'a_star': float('inf'), 'core_frac': 0.0})
+                         'a_star': float('inf'), 'core_frac': 0.0,
+                         'substrate_regens': regen})
             continue
         lo, hi = 0, cap_j          # invariant: core(lo) empty, core(hi) not
         while hi - lo > 1:
@@ -208,7 +234,8 @@ def critical_density_draws(n_nodes: int, cap: int, r: int, n_draws: int,
                 lo = mid
         rows.append({'draw': j, 'capacity': cap_j, 'A_star': hi,
                      'a_star': hi / cap_j,
-                     'core_frac': len(core_at(hi)) / hi})
+                     'core_frac': len(core_at(hi)) / hi,
+                     'substrate_regens': regen})
     return rows
 
 
@@ -239,7 +266,7 @@ def anchor_runs(n_nodes: int, cap: int, r: int, a_values: Sequence[float],
     for a in a_values:
         for s in tqdm(range(seeds), desc=f"anchor a={a}"):
             seed = seed0 + s
-            base, b1, b2 = build_arena(n_nodes, cap, r, seed=seed)
+            base, b1, b2, regen = build_arena_geometric(n_nodes, cap, r, seed)
             pairs = strand_pairs(b1, b2)
             rng = np.random.default_rng(seed)
             perm = [pairs[i] for i in rng.permutation(len(pairs))]
@@ -260,7 +287,7 @@ def anchor_runs(n_nodes: int, cap: int, r: int, a_values: Sequence[float],
                    'n_floor': len(cls['excess_floor']),
                    'n_protected': len(cls['excess_protected']),
                    'n_unattributed': len(cls['excess_unattributed']),
-                   'evap_time': evap}
+                   'evap_time': evap, 'substrate_regens': regen}
             if rider:
                 r_surv, _, _ = run_dynamics(
                     H, strands, ['triadic', 'prune'], tp_params, sweeps,
@@ -269,3 +296,168 @@ def anchor_runs(n_nodes: int, cap: int, r: int, a_values: Sequence[float],
                 row['rider_core_kept'] = len(core & r_surv)
             rows.append(row)
     return rows
+
+
+def _hand_graph() -> nx.Graph:
+    """Known-answer base: u1~u2 near side, v1/v2 far side, pendant triangles
+    keep all endpoint degrees >= 3 so the degree floor never binds."""
+    G = nx.Graph()
+    G.add_edge('u1', 'u2', weight=0.5)
+    for x in ('u1', 'u2', 'v1', 'v2'):
+        G.add_edge(x, f'{x}a', weight=0.5)
+        G.add_edge(x, f'{x}b', weight=0.5)
+        G.add_edge(f'{x}a', f'{x}b', weight=0.5)
+    return G
+
+
+def _validate(quick: bool = False) -> bool:
+    ok = True
+    n_gate = 400 if quick else 600
+    seeds_gate = 2 if quick else 4
+    n_pilot = 600 if quick else 1000
+    draws_pilot = 30 if quick else 60
+
+    print("[1] hand-built known-answer throats (exact equality required)")
+    G = _hand_graph()
+    pos = [('u1', 'v1'), ('u2', 'v1')]
+    core, _ = peel(throat_with_strands(G, pos), pos)
+    good = core == set(pos)
+    ok &= good
+    print(f"  mutually-protecting pair -> core == both: "
+          f"{'OK' if good else 'FAIL ' + str(core)}")
+    neg = [('u1', 'v1'), ('u2', 'v2')]
+    core, rounds = peel(throat_with_strands(G, neg), neg)
+    good = core == set() and rounds == 1
+    ok &= good
+    print(f"  isolated strands -> empty core in 1 round: "
+          f"{'OK' if good else 'FAIL ' + str((core, rounds))}")
+
+    print(f"\n[2] Gate 1 small-scale: peeling == prune-only dynamics "
+          f"(N={n_gate}, {seeds_gate} seeds, T=200)")
+    n_floor = n_prot = 0
+    for s in range(seeds_gate):
+        base, b1, b2 = build_arena(n_gate, 6, 2, seed=s)
+        pairs = strand_pairs(b1, b2)
+        rng = np.random.default_rng(s)
+        perm = [pairs[i] for i in rng.permutation(len(pairs))]
+        for A in (max(2, len(pairs) // 10), max(4, len(pairs) // 3)):
+            strands = perm[:A]
+            H = throat_with_strands(base, strands)
+            core, _ = peel(H, strands)
+            surv, _, final = run_dynamics(H, strands, ['prune'],
+                                          [{'prune_prob': 0.05}], 200.0,
+                                          seed=1000 + s)
+            cls = classify_mismatches(final, core, surv)
+            bad = bool(cls['missing']) or bool(cls['excess_unattributed'])
+            ok &= not bad
+            n_floor += len(cls['excess_floor'])
+            n_prot += len(cls['excess_protected'])
+            if bad:
+                print(f"  seed {s} A={A}: FAIL missing={cls['missing']} "
+                      f"unattributed={cls['excess_unattributed']}")
+    print(f"  all runs: core subset of survivors, every excess attributed "
+          f"(floor {n_floor}, downstream-protected {n_prot})")
+
+    print(f"\n[3] mini-pilot machinery (N={n_pilot}, {draws_pilot} draws)")
+    rows = critical_density_draws(n_pilot, 6, 2, draws_pilot, seed0=100)
+    stats = transition_stats([r['a_star'] for r in rows])
+    regens = sum(r['substrate_regens'] for r in rows)
+    print(f"  substrate regenerations: {regens} across {len(rows)} draws")
+    sane = (stats['n_finite'] > 0
+            and 0.0 < stats['a10'] <= stats['a90'] <= 1.0)
+    ok &= sane
+    print(f"  a* quantiles: a10={stats['a10']:.3f} a50={stats['a50']:.3f} "
+          f"a90={stats['a90']:.3f} width={stats['width']:.3f} "
+          f"(finite {stats['n_finite']}/{stats['n_total']}) "
+          f"{'OK' if sane else 'FAIL'}")
+    both = stats['a10'] > 0.02 and stats['a90'] < 0.98
+    print(f"  both outcomes reachable inside (0,1): "
+          f"{'yes' if both else 'WARN -- check ensemble design'}")
+
+    print(f"\n{'PASS' if ok else 'FAIL'}: throat criticality instrument")
+    return ok
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(
+        description="Stage 1: wormhole-throat critical collapse.")
+    mode = ap.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--validate', action='store_true')
+    mode.add_argument('--pilot', action='store_true')
+    mode.add_argument('--fss', action='store_true')
+    mode.add_argument('--anchor', action='store_true')
+    ap.add_argument('--quick', action='store_true')
+    ap.add_argument('--draws', type=int, default=None)
+    ap.add_argument('--a-values', type=float, nargs='+', default=None)
+    ap.add_argument('--seeds', type=int, default=8)
+    ap.add_argument('--sweeps', type=float, default=400.0)
+    ap.add_argument('--rider', action='store_true')
+    ap.add_argument('--seed', type=int, default=0)
+    args = ap.parse_args()
+
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+
+    if args.validate:
+        raise SystemExit(0 if _validate(args.quick) else 1)
+
+    if args.pilot:
+        draws = args.draws or 300
+        rows = critical_density_draws(2000, 6, 2, draws, seed0=200,
+                                      progress=True)
+        s = transition_stats([r['a_star'] for r in rows])
+        regens = sum(r['substrate_regens'] for r in rows)
+        print(f"  substrate regenerations: {regens} across {len(rows)} draws")
+        cf = np.mean([r['core_frac'] for r in rows if r['A_star'] > 0])
+        print(f"\nPILOT r=2 N=2000 ({draws} draws): "
+              f"a10={s['a10']:.4f} a50={s['a50']:.4f} a90={s['a90']:.4f} "
+              f"width={s['width']:.4f} finite={s['n_finite']}/{s['n_total']}"
+              f" mean core_frac at A*={cf:.3f}")
+        return
+
+    if args.fss:
+        draws = args.draws or 2000
+        print(f"FSS: {draws} draws per geometry; width must shrink with "
+              f"capacity for a SHARP verdict (frozen rule).")
+        for (r, n) in ((2, 2000), (3, 5000), (4, 10000)):
+            rows = critical_density_draws(n, 6, r, draws,
+                                          seed0=300 + 17 * r, progress=True)
+            s = transition_stats([row['a_star'] for row in rows])
+            regens = sum(row['substrate_regens'] for row in rows)
+            capm = np.mean([row['capacity'] for row in rows])
+            cf = np.mean([row['core_frac'] for row in rows
+                          if row['A_star'] > 0])
+            print(f"  r={r} N={n}: capacity~{capm:.0f}  "
+                  f"a50={s['a50']:.4f}  width={s['width']:.4f}  "
+                  f"finite={s['n_finite']}/{s['n_total']}  "
+                  f"core_frac@A*={cf:.3f}  regens={regens}")
+        return
+
+    if args.anchor:
+        if not args.a_values:
+            raise SystemExit("--anchor needs --a-values (frozen from the "
+                             "pilot quantiles)")
+        rows = anchor_runs(2000, 6, 2, args.a_values, args.seeds,
+                           args.sweeps, rider=args.rider)
+        bad = sum(r['n_missing'] + r['n_unattributed'] for r in rows)
+        print(f"\n{'a':>7s} {'seed':>4s} {'A':>4s} {'core':>4s} "
+              f"{'surv':>4s} {'floor':>5s} {'prot':>4s} {'unattr':>6s} "
+              f"{'evap_t':>7s}" + ("  rider(surv/kept)" if args.rider
+                                   else ""))
+        for r in rows:
+            ev = f"{r['evap_time']:.1f}" if r['evap_time'] is not None \
+                else '--'
+            line = (f"{r['a']:7.4f} {r['seed']:4d} {r['A']:4d} "
+                    f"{r['core']:4d} {r['surv']:4d} {r['n_floor']:5d} "
+                    f"{r['n_protected']:4d} {r['n_unattributed']:6d} "
+                    f"{ev:>7s}")
+            if args.rider:
+                line += f"  {r['rider_surv']}/{r['rider_core_kept']}"
+            print(line)
+        print(f"\nGATE 1: {'PASS' if bad == 0 else 'FAIL'} "
+              f"({bad} missing/unattributed across {len(rows)} runs)")
+        raise SystemExit(0 if bad == 0 else 1)
+
+
+if __name__ == '__main__':
+    main()
