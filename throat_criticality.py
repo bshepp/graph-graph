@@ -167,3 +167,105 @@ def classify_mismatches(final_graph: nx.Graph, peel_core: Set[Strand],
         else:
             out['excess_unattributed'].append(s)
     return out
+
+
+def critical_density_draws(n_nodes: int, cap: int, r: int, n_draws: int,
+                           seed0: int, progress: bool = False) -> List[Dict]:
+    """
+    Per-draw critical throat thickness by bisection over nested strands.
+
+    Draw j: one arena (seed0+j) + one uniform permutation of all capacity
+    pairs; A*_j = smallest prefix length whose peeling core is nonempty
+    (valid because core existence is monotone in nested prefixes). P(core|a)
+    is the CDF of a*_j = A*_j/capacity -- the spec's pre-committed ensemble
+    observable at ~log2(capacity) peels per draw.
+    """
+    rows: List[Dict] = []
+    it = tqdm(range(n_draws), desc=f"draws r={r}") if progress \
+        else range(n_draws)
+    for j in it:
+        seed = seed0 + j
+        base, b1, b2 = build_arena(n_nodes, cap, r, seed=seed)
+        pairs = strand_pairs(b1, b2)
+        cap_j = len(pairs)
+        rng = np.random.default_rng(seed)
+        perm = [pairs[i] for i in rng.permutation(cap_j)]
+
+        def core_at(A: int):
+            return peel(throat_with_strands(base, perm[:A]), perm[:A])[0]
+
+        top = core_at(cap_j)
+        if not top:
+            rows.append({'draw': j, 'capacity': cap_j, 'A_star': -1,
+                         'a_star': float('inf'), 'core_frac': 0.0})
+            continue
+        lo, hi = 0, cap_j          # invariant: core(lo) empty, core(hi) not
+        while hi - lo > 1:
+            mid = (lo + hi) // 2
+            if core_at(mid):
+                hi = mid
+            else:
+                lo = mid
+        rows.append({'draw': j, 'capacity': cap_j, 'A_star': hi,
+                     'a_star': hi / cap_j,
+                     'core_frac': len(core_at(hi)) / hi})
+    return rows
+
+
+def transition_stats(a_stars: Sequence[float]) -> Dict[str, float]:
+    """10/50/90 percentiles and width of the finite a* distribution."""
+    a = np.asarray(list(a_stars), dtype=float)
+    finite = a[np.isfinite(a)]
+    if len(finite) == 0:
+        return {'a10': float('nan'), 'a50': float('nan'),
+                'a90': float('nan'), 'width': float('nan'),
+                'n_finite': 0, 'n_total': len(a)}
+    q10, q50, q90 = np.quantile(finite, [0.1, 0.5, 0.9])
+    return {'a10': float(q10), 'a50': float(q50), 'a90': float(q90),
+            'width': float(q90 - q10), 'n_finite': int(len(finite)),
+            'n_total': int(len(a))}
+
+
+def anchor_runs(n_nodes: int, cap: int, r: int, a_values: Sequence[float],
+                seeds: int, sweeps: float, rider: bool,
+                seed0: int = 5000) -> List[Dict]:
+    """
+    Gate-1 (peeling == prune-only dynamics, floor-attributed) and the
+    timing observable; optional Gate-2 triadic rider on the same throats.
+    """
+    prune_params = [{'prune_prob': 0.05}]
+    tp_params = [{'rewire_prob': 0.05}, {'prune_prob': 0.05}]
+    rows: List[Dict] = []
+    for a in a_values:
+        for s in tqdm(range(seeds), desc=f"anchor a={a}"):
+            seed = seed0 + s
+            base, b1, b2 = build_arena(n_nodes, cap, r, seed=seed)
+            pairs = strand_pairs(b1, b2)
+            rng = np.random.default_rng(seed)
+            perm = [pairs[i] for i in rng.permutation(len(pairs))]
+            A = max(1, round(a * len(pairs)))
+            strands = perm[:A]
+            H = throat_with_strands(base, strands)
+            core, _ = peel(H, strands)
+            surv, death, final = run_dynamics(
+                H, strands, ['prune'], prune_params, sweeps,
+                seed=seed + 10000)
+            cls = classify_mismatches(final, core, surv)
+            evap = None
+            if not core and all(t is not None for t in death.values()):
+                evap = max(death.values())
+            row = {'a': a, 'seed': s, 'capacity': len(pairs), 'A': A,
+                   'core': len(core), 'surv': len(surv),
+                   'n_missing': len(cls['missing']),
+                   'n_floor': len(cls['excess_floor']),
+                   'n_protected': len(cls['excess_protected']),
+                   'n_unattributed': len(cls['excess_unattributed']),
+                   'evap_time': evap}
+            if rider:
+                r_surv, _, _ = run_dynamics(
+                    H, strands, ['triadic', 'prune'], tp_params, sweeps,
+                    seed=seed + 50000)
+                row['rider_surv'] = len(r_surv)
+                row['rider_core_kept'] = len(core & r_surv)
+            rows.append(row)
+    return rows
