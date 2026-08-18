@@ -108,3 +108,62 @@ def peel(G: nx.Graph, strands: Sequence[Strand],
             H.remove_edge(u, v)
         alive -= set(doomed)
         rounds += 1
+
+
+def run_dynamics(G: nx.Graph, strands: Sequence[Strand],
+                 rules: Sequence[str], params: Sequence[Optional[Dict]],
+                 sweeps: float, seed: int
+                 ) -> Tuple[Set[Strand], Dict[Strand, Optional[float]],
+                            nx.Graph]:
+    """
+    Evolve a throat under the step-4 engine, tracking per-strand death.
+
+    Survivors are judged from FINAL-GRAPH edge membership (robust to a rule
+    re-creating an edge); `death_time` records the first absence stamp in
+    absolute Poisson time (= sweep-equivalents at rate 1), None if never
+    absent. `run_sequential_multi` copies G, so the caller's graph is
+    untouched.
+    """
+    death: Dict[Strand, Optional[float]] = {s: None for s in strands}
+    by_node: Dict[int, List[Strand]] = {}
+    for u, v in strands:
+        by_node.setdefault(u, []).append((u, v))
+        by_node.setdefault(v, []).append((u, v))
+
+    def on_event(event_id: int, node: int, rule_idx: int, t: float,
+                 H: nx.Graph) -> None:
+        for (u, v) in by_node.get(node, ()):
+            if death[(u, v)] is None and not H.has_edge(u, v):
+                death[(u, v)] = t
+
+    final, _, _ = run_sequential_multi(
+        G, list(rules), [1.0] * len(rules), max_time=float(sweeps),
+        seed=seed, params=list(params), on_event=on_event)
+    survivors = {s for s in strands if final.has_edge(*s)}
+    return survivors, death, final
+
+
+def classify_mismatches(final_graph: nx.Graph, peel_core: Set[Strand],
+                        survivors: Set[Strand], min_overlap: int = 1,
+                        min_degree: int = 2) -> Dict[str, List[Strand]]:
+    """
+    Gate-1 accounting. Peel-core strands must all survive ('missing' empty).
+    Excess survivors are attributed: 'excess_floor' (an endpoint sits at or
+    below prune's degree floor in the final graph), 'excess_protected'
+    (>= min_overlap common neighbors in the final graph -- legitimately
+    protected in the final configuration, downstream of a floor event), or
+    'excess_unattributed' (a genuine Gate-1 failure).
+    """
+    out: Dict[str, List[Strand]] = {'missing': [], 'excess_floor': [],
+                                    'excess_protected': [],
+                                    'excess_unattributed': []}
+    out['missing'] = sorted(peel_core - survivors)
+    for s in sorted(survivors - peel_core):
+        u, v = s
+        if min(final_graph.degree(u), final_graph.degree(v)) <= min_degree:
+            out['excess_floor'].append(s)
+        elif len(set(final_graph[u]) & set(final_graph[v])) >= min_overlap:
+            out['excess_protected'].append(s)
+        else:
+            out['excess_unattributed'].append(s)
+    return out
