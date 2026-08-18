@@ -615,6 +615,90 @@ Reproduce: `rc_measure`/`rc_verdict` scratch pair per the spec's frozen definiti
 (construction + convergence imported from `prune_dimension`; N=32000, 30-point grid,
 3 seeds, 400 sources, r <= 15).
 
+## Wormhole-throat critical collapse (stage 1, 2026-08-17): a local-motif onset, not a critical point -- and throat cores are censor-proof but not churn-proof
+
+*Stage 1 of the critical-collapse program (the Choptuik protocol ported to the sandbox;
+design spec `2026-08-17-throat-criticality-design.md`; driver `throat_criticality.py`).
+All verdict rules and ensembles frozen before measurement; anchor a-values frozen from
+the pilot (0.0109/0.0333/0.0473/0.0681/0.1408); FSS = 2000 draws per geometry.*
+
+**The deterministic-core mechanism is EXACT (Gate 1, strongest possible form).** Under
+prune-only dynamics the surviving-strand set equals the bootstrap-peeling fixed point of
+the initial throat in *every one of 40 production runs* (5 frozen a-values x 8 seeds,
+N=2000, T=400 sweeps) -- not merely "attributable mismatches": zero mismatches of any
+kind, `survivors == core` exactly. Stochastic censorship dynamics on a throat is a
+deterministic geometry computation plus timing noise. (The degree-floor escape hatch the
+design pre-committed to measuring never fired at production scale.)
+
+**The threshold exists per draw but is NOT a critical point (the sharpness verdict).**
+Every throat has a finite critical thickness A*_j (300/300 pilot draws; 2000/2000 at
+every FSS geometry). The FROZEN rule -- transition width w = q90-q10 of a* = A*/capacity
+shrinking across capacities -- fires "sharp": w = 0.0716+-0.0023 -> 0.0397+-0.0008 ->
+0.0256+-0.0007 (r=2/3/4, N=2000/5000/10000, capacities ~134/425/1043; logistic
+cross-check agrees: 0.0707/0.0400/0.0252). But the final whole-branch code review caught
+the confound *before the rule was read against data*, and the disclosure diagnostics
+(added pre-verdict; frozen rule untouched) show the shrinkage is a trivial 1/capacity
+rescaling: the location-relative width w/a50 RISES (1.473 -> 1.574 -> 1.655), the
+ABSOLUTE strand-count width GROWS (7 -> 13 -> 22 strands), and A*'s median grows
+(6 -> 9 -> 13). The clincher: **the core at onset is ~2.6 strands at every capacity**
+(core_frac@A* 0.435/0.288/0.204 x A*50 = 2.61/2.59/2.65) -- the threshold is literally
+the first appearance of a single mutually-protecting motif. **Honest verdict: the frozen
+rule is satisfied vacuously; the intended reading (a genuine collective critical point)
+is NOT supported. A* is a local-motif onset, and the transition does not sharpen in any
+capacity-honest normalization. Banked per the pre-registered crossover reading: no
+critical collapse in the censor-only family -- consistent with every boundary this
+sandbox has probed (prune d(p), the barrier).**
+
+**Secondary predictions.**
+- *Hybrid-jump signature:* reinterpreted by the motif finding. The onset core is
+  "macroscopic" as a fraction of A* only because A* itself is small; the
+  capacity-invariant statement is a constant ~2.6-strand absolute core -- a motif, not a
+  jump to a macroscopic phase.
+- *Critical slowing down:* qualitatively present -- deep-sub-threshold throats evaporate
+  in ~7-39 sweeps (geometric, mean ~ 1/prune_prob) while near-threshold sub-critical
+  throats stretch to 99-105 sweeps (longer peeling cascades). With the motif-onset
+  reading this is cascade-depth growth, not a diverging correlation time.
+
+**Gate 2 (descriptive, pre-registered both ways): triadic DEMOLISHES throat cores.** No
+weaving rescue below threshold (0-1 strands kept across all empty-core runs), and
+wholesale demolition above it: prune-only cores of 19-28 strands are reduced to 0-4
+under triadic+prune (mean core retention ~0.1). A wormhole core is *permanently immune
+to the censor* yet destroyed by the stabilizer's fabric churn -- the starkest form yet
+of the banked portal/step-4 finding that the stabilizer is a worse threat than the
+censor. Pre-registered reading (b) fires.
+
+**Substrate observation (disclosed ensemble refinement + a finding in its own right):**
+the grown generator occasionally lands in a compact expander-like phase (first seen at
+seed 111, N=600: diameter 4, radius 2) -- the banked bistability appearing in the
+GENERATOR itself. Such substrates cannot host a throat and are regenerated
+deterministically with counts disclosed (1/300 pilot; **19/2000 at ALL THREE FSS
+geometries**). The identical count across N=2000/5000/10000 is striking: the FSS seed
+blocks are nested (methodology note ii), so the same growth seeds appear to fail at
+every N -- i.e. **the expander phase is decided early in growth and persists to
+N=10000** (~1% of seeds), not a small-N artifact. In BRANCHES as an open observation
+(needs direct confirmation the 19 failing seeds coincide, then phase statistics vs N).
+
+**Methodology notes.** (i) The width-statistic confound (normalizing an intensive motif
+count by capacity manufactures sharpness) was caught by review BEFORE the verdict was
+read -- the frozen rule is reported as written alongside the disclosure diagnostics, and
+the verdict states which reading survives. (ii) The FSS geometries share nested growth
+seeds (the N=2000 substrate is exactly the first 2000 nodes of the N=5000 one), so
+cross-capacity comparisons are PAIRED -- disclosed rather than redrawn
+post-registration. (iii) P(core|a) was computed as the CDF of per-draw bisected a*
+(exact, ~11 peels/draw) -- valid because core existence is monotone in nested strand
+sets, verified by test and by independent full linear scans in review.
+
+**Consequences for the program:** stage 2 (universality) and stage 3 (driven injection)
+were gated on a SHARP verdict -- the gate does not open; both close in BRANCHES. The
+standing positives are the exact deterministic-core mechanism and the churn-demolition
+result, and the motif-onset structure connects directly to the d(p) fine-structure
+mechanism hunt (protection motifs in random shortcut ensembles -- the same object in a
+different ensemble).
+
+Reproduce: `python throat_criticality.py --validate`; `--pilot --draws 300`;
+`--fss --draws 2000`; `--anchor --a-values 0.0109 0.0333 0.0473 0.0681 0.1408 --seeds 8
+--rider`. Rows persist to `results/throat_*.csv`.
+
 ## Scaling directions: what more compute could (and couldn't) unlock
 
 A standing question is whether *scaling up* -- to the largest graphs a private

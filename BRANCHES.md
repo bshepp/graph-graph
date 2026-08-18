@@ -27,14 +27,18 @@ out-lists, memory notes, and FINDINGS asides. Practice, adopted 2026-08-11:
 
 | branch | gate | origin |
 |---|---|---|
-| **Critical-collapse stage 2 (universality across seed/substrate families)** | stage 1 finds a sharp threshold | program decision 2026-08-11 |
-| **Critical-collapse stage 3 (driven injection λ vs censor)** | stages 1–2 outcomes calibrate where to look; connects to the un-followed **portal-capacity saturation** observation (k≈200 budget at N=2000, tolerance experiment 2026-07-16) | program decision 2026-08-11 |
-| **Full-dynamics FSS for stage 1** | ONLY if the peeling≡dynamics anchor gate fails | stage-1 slicing 2026-08-11 |
 | **Step 5: barrier under async (+ causal-future-growth as relative comparator)** | queued behind the collapse program by owner ordering; readiness note exists (`docs/superpowers/specs/2026-08-03-step5-barrier-async-readiness.md`) | ladder |
 | **`ricci` under async** (`_event_ricci` + validation) | rises from parked only if any async-vs-sync discrepancy appears anywhere | step-4 scope fork 2026-08-03 |
 | **Ladder rung 2 remainder: curved-spacetime sprinkling** | causal-set instruments regain a consumer (e.g. the relative comparator gets used) | LORENTZIAN_SPIKE |
 | **Ladder rung 3: entanglement edges (stabilizer states, ER=EPR toys)** | owner prioritization | de-toying ladder 2026-07-16 |
 | **Ladder rung 4: action principle + universality (Metropolis at T, FSS across microrules)** | owner prioritization; carries the continuum-limit requirement the whole ladder points at | de-toying ladder 2026-07-16 |
+
+## OPEN (continued) — observations from stage 1 (2026-08-17)
+
+| branch | origin | why it's alive | cost |
+|---|---|---|---|
+| **Grown-generator persistent expander phase** | stage-1 substrate regeneration: 19/2000 draws fail geometry at ALL THREE nested-seed geometries (N=2000/5000/10000); first seen seed 111 N=600 (diameter 4) | if the same growth seeds fail at every N, the compact phase is decided early and persists — generator bistability is not a small-N artifact (~1% of seeds). Next: confirm the 19 failing seeds coincide, then phase statistics vs N and what the early-growth discriminator is | low |
+| **Throat-motif ↔ d(p) mechanism cross-pollination** | stage-1 verdict: threshold = first ~2.6-strand mutually-protecting motif | the d(p) fine-structure mechanism hunt (round 3) and the throat onset concern the same object — protection motifs in random shortcut ensembles — in different ensembles; the exact peeling machinery now exists to count motifs directly in the pruned-WS ensemble | low-medium |
 
 ## PARKED — deliberate, no gate
 
@@ -51,11 +55,13 @@ out-lists, memory notes, and FINDINGS asides. Practice, adopted 2026-08-11:
 | **Vectorised batch *application*** (still a Python loop) | async at ≥10⁵ nodes — step 5's AWS-scale fork | step-2 known gap |
 | **`rewire` under async** (collision detection + deferral) | any async experiment involving `rewire` | async_engine design |
 | **`adv_corr` guard backport to `shortcut_censorship.py`** | nothing (latent-bug hygiene; the banked numbers are unaffected) | step-4 review 2026-08-03 |
+| **`throat_criticality.py --fss` width label prints the unguarded diagnostic value** (parked Important from final review; harmless while ensembles are 100%-finite — guarded and unguarded values identical — but a <90%-finite geometry would print a plausible width where nan is owed) | nothing for stage-1 results (verdict computed from persisted CSVs) | stage-1 final review 2026-08-17 |
 
 ## CLOSED — kept for auditability
 
 | branch | killed by |
 |---|---|
+| Critical-collapse stages 2–3 (universality; driven injection) + stage-1 full-dynamics-FSS contingency | stage-1 verdict (2026-08-17): no critical collapse — the throat threshold is a local-motif onset (onset core constant ~2.6 strands across capacities 134–1043; relative width RISES 1.47→1.66; frozen sharpness rule satisfied only vacuously via 1/capacity rescaling). Gate 1 (peeling≡dynamics) passed 40/40 exactly, so the contingency never triggered |
 | P2 attenuation micro-effect | 40-seed paired run (2026-08-11): woven ratio 1.01, t=-0.08; long-survival t=-0.28 — fully schedule-invariant, the 12-seed t=1.77 hint was noise |
 | Interval-scaling as primary causal estimator | step-1 result (biased low at R²>0.99) |
 | Absolute causal-set dimension on the event DAG | step-3 key negative (not manifold-like; estimators disagree) |
