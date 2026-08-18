@@ -25,7 +25,10 @@ Usage:
 """
 
 import argparse
+import csv
 import random
+import time
+from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Set, Tuple
 
 import numpy as np
@@ -46,6 +49,9 @@ def build_arena(n_nodes: int, cap: int, r: int, seed: int,
     Returns (base, ball1, ball2); ball lists start with their center node.
     Deterministic in `seed`. Raises RuntimeError if no sufficiently far
     center pair exists after `max_tries` candidate centers.
+
+    Note: reseeds the GLOBAL random/np.random streams on every call
+    (create_initial_graph draws node state from them).
     """
     random.seed(seed)
     np.random.seed(seed)
@@ -194,6 +200,32 @@ def classify_mismatches(final_graph: nx.Graph, peel_core: Set[Strand],
     return out
 
 
+def _bisect_astar(base: nx.Graph, perm: Sequence[Strand], capacity: int,
+                  min_overlap: int = 1) -> Tuple[int, Set[Strand]]:
+    """
+    Smallest nested prefix length of `perm` whose peeling core is nonempty,
+    found by bisection (valid because core existence is monotone in nested
+    prefixes -- see `peel`). Returns (A_star, core_at_A_star); A_star = -1
+    and an empty core when the full throat (all `capacity` strands) has no
+    core. ~log2(capacity) peels.
+    """
+    def core_at(A: int) -> Set[Strand]:
+        return peel(throat_with_strands(base, perm[:A]), perm[:A],
+                   min_overlap=min_overlap)[0]
+
+    top = core_at(capacity)
+    if not top:
+        return -1, set()
+    lo, hi = 0, capacity        # invariant: core(lo) empty, core(hi) not
+    while hi - lo > 1:
+        mid = (lo + hi) // 2
+        if core_at(mid):
+            hi = mid
+        else:
+            lo = mid
+    return hi, core_at(hi)
+
+
 def critical_density_draws(n_nodes: int, cap: int, r: int, n_draws: int,
                            seed0: int, progress: bool = False) -> List[Dict]:
     """
@@ -216,25 +248,15 @@ def critical_density_draws(n_nodes: int, cap: int, r: int, n_draws: int,
         rng = np.random.default_rng(seed)
         perm = [pairs[i] for i in rng.permutation(cap_j)]
 
-        def core_at(A: int):
-            return peel(throat_with_strands(base, perm[:A]), perm[:A])[0]
-
-        top = core_at(cap_j)
-        if not top:
+        A_star, core = _bisect_astar(base, perm, cap_j, min_overlap=1)
+        if A_star < 0:
             rows.append({'draw': j, 'capacity': cap_j, 'A_star': -1,
                          'a_star': float('inf'), 'core_frac': 0.0,
                          'substrate_regens': regen})
             continue
-        lo, hi = 0, cap_j          # invariant: core(lo) empty, core(hi) not
-        while hi - lo > 1:
-            mid = (lo + hi) // 2
-            if core_at(mid):
-                hi = mid
-            else:
-                lo = mid
-        rows.append({'draw': j, 'capacity': cap_j, 'A_star': hi,
-                     'a_star': hi / cap_j,
-                     'core_frac': len(core_at(hi)) / hi,
+        rows.append({'draw': j, 'capacity': cap_j, 'A_star': A_star,
+                     'a_star': A_star / cap_j,
+                     'core_frac': len(core) / A_star,
                      'substrate_regens': regen})
     return rows
 
@@ -248,9 +270,54 @@ def transition_stats(a_stars: Sequence[float]) -> Dict[str, float]:
                 'a90': float('nan'), 'width': float('nan'),
                 'n_finite': 0, 'n_total': len(a)}
     q10, q50, q90 = np.quantile(finite, [0.1, 0.5, 0.9])
+    if len(finite) / max(len(a), 1) < 0.9:
+        q90, width = float('nan'), float('nan')
+    else:
+        width = float(q90 - q10)
     return {'a10': float(q10), 'a50': float(q50), 'a90': float(q90),
-            'width': float(q90 - q10), 'n_finite': int(len(finite)),
+            'width': width, 'n_finite': int(len(finite)),
             'n_total': int(len(a))}
+
+
+def ensemble_diagnostics(rows: List[Dict]) -> Dict[str, float]:
+    """Disclosure statistics beside the frozen width rule: the ABSOLUTE
+    strand-count threshold A* and the location-relative width, plus
+    bootstrap standard errors (the frozen rule is evaluated as written;
+    these diagnostics let the verdict state which reading survives)."""
+    a = np.array([r['a_star'] for r in rows], dtype=float)
+    A = np.array([float(r['A_star']) for r in rows], dtype=float)
+    fin = np.isfinite(a) & (A > 0)
+    a, A = a[fin], A[fin]
+    rng = np.random.default_rng(12345)
+    def _wq(x):
+        q = np.quantile(x, [0.1, 0.5, 0.9]); return q[2] - q[0], q[1]
+    w_a, a50 = _wq(a)
+    w_A, A50 = _wq(A)
+    boots_w, boots_m = [], []
+    for _ in range(1000):
+        s = rng.choice(a, size=len(a), replace=True)
+        bw, bm = _wq(s); boots_w.append(bw); boots_m.append(bm)
+    return {'a50': a50, 'width': w_a, 'width_se': float(np.std(boots_w)),
+            'a50_se': float(np.std(boots_m)), 'rel_width': w_a / a50,
+            'A50': A50, 'width_A': w_A}
+
+
+def logistic_width(a_stars: Sequence[float]) -> float:
+    """Spec'd cross-check: fit a logistic CDF to the empirical CDF of finite
+    a*; the 10-90 span of a logistic with scale s is s*ln(81)."""
+    a = np.sort(np.asarray([x for x in a_stars if np.isfinite(x)], dtype=float))
+    if len(a) < 8:
+        return float('nan')
+    ecdf = (np.arange(len(a)) + 0.5) / len(a)
+    from scipy.optimize import curve_fit
+    def f(x, mu, s):
+        return 1.0 / (1.0 + np.exp(-(x - mu) / max(s, 1e-9)))
+    try:
+        (mu, s), _ = curve_fit(f, a, ecdf, p0=[np.median(a), a.std()],
+                               maxfev=5000)
+        return float(abs(s) * np.log(81.0))
+    except Exception:
+        return float('nan')
 
 
 def anchor_runs(n_nodes: int, cap: int, r: int, a_values: Sequence[float],
@@ -273,21 +340,27 @@ def anchor_runs(n_nodes: int, cap: int, r: int, a_values: Sequence[float],
             A = max(1, round(a * len(pairs)))
             strands = perm[:A]
             H = throat_with_strands(base, strands)
-            core, _ = peel(H, strands)
+            core, _ = peel(H, strands, min_overlap=1)
             surv, death, final = run_dynamics(
                 H, strands, ['prune'], prune_params, sweeps,
                 seed=seed + 10000)
-            cls = classify_mismatches(final, core, surv)
+            cls = classify_mismatches(final, core, surv, min_overlap=1,
+                                      min_degree=2)
             evap = None
             if not core and all(t is not None for t in death.values()):
                 evap = max(death.values())
+            A_star, _ = _bisect_astar(base, perm, len(pairs), min_overlap=1)
             row = {'a': a, 'seed': s, 'capacity': len(pairs), 'A': A,
                    'core': len(core), 'surv': len(surv),
                    'n_missing': len(cls['missing']),
                    'n_floor': len(cls['excess_floor']),
                    'n_protected': len(cls['excess_protected']),
                    'n_unattributed': len(cls['excess_unattributed']),
-                   'evap_time': evap, 'substrate_regens': regen}
+                   'evap_time': evap, 'substrate_regens': regen,
+                   'a_star': A_star / len(pairs) if A_star > 0
+                   else float('inf'),
+                   'a_eff': A / len(pairs),
+                   'n_died': sum(1 for t in death.values() if t is not None)}
             if rider:
                 r_surv, _, _ = run_dynamics(
                     H, strands, ['triadic', 'prune'], tp_params, sweeps,
@@ -320,13 +393,13 @@ def _validate(quick: bool = False) -> bool:
     print("[1] hand-built known-answer throats (exact equality required)")
     G = _hand_graph()
     pos = [('u1', 'v1'), ('u2', 'v1')]
-    core, _ = peel(throat_with_strands(G, pos), pos)
+    core, _ = peel(throat_with_strands(G, pos), pos, min_overlap=1)
     good = core == set(pos)
     ok &= good
     print(f"  mutually-protecting pair -> core == both: "
           f"{'OK' if good else 'FAIL ' + str(core)}")
     neg = [('u1', 'v1'), ('u2', 'v2')]
-    core, rounds = peel(throat_with_strands(G, neg), neg)
+    core, rounds = peel(throat_with_strands(G, neg), neg, min_overlap=1)
     good = core == set() and rounds == 1
     ok &= good
     print(f"  isolated strands -> empty core in 1 round: "
@@ -343,11 +416,12 @@ def _validate(quick: bool = False) -> bool:
         for A in (max(2, len(pairs) // 10), max(4, len(pairs) // 3)):
             strands = perm[:A]
             H = throat_with_strands(base, strands)
-            core, _ = peel(H, strands)
+            core, _ = peel(H, strands, min_overlap=1)
             surv, _, final = run_dynamics(H, strands, ['prune'],
                                           [{'prune_prob': 0.05}], 200.0,
                                           seed=1000 + s)
-            cls = classify_mismatches(final, core, surv)
+            cls = classify_mismatches(final, core, surv, min_overlap=1,
+                                      min_degree=2)
             bad = bool(cls['missing']) or bool(cls['excess_unattributed'])
             ok &= not bad
             n_floor += len(cls['excess_floor'])
@@ -392,7 +466,10 @@ def main() -> None:
     ap.add_argument('--seeds', type=int, default=8)
     ap.add_argument('--sweeps', type=float, default=400.0)
     ap.add_argument('--rider', action='store_true')
-    ap.add_argument('--seed', type=int, default=0)
+    ap.add_argument('--seed', type=int, default=0,
+                    help='seeds global RNGs; production ensembles use '
+                         'frozen internal seed0 values, so this is a '
+                         'no-op there by design')
     args = ap.parse_args()
 
     random.seed(args.seed)
@@ -406,6 +483,8 @@ def main() -> None:
         rows = critical_density_draws(2000, 6, 2, draws, seed0=200,
                                       progress=True)
         s = transition_stats([r['a_star'] for r in rows])
+        dg = ensemble_diagnostics(rows)
+        w_log = logistic_width([r['a_star'] for r in rows])
         regens = sum(r['substrate_regens'] for r in rows)
         print(f"  substrate regenerations: {regens} across {len(rows)} draws")
         cf = np.mean([r['core_frac'] for r in rows if r['A_star'] > 0])
@@ -413,6 +492,18 @@ def main() -> None:
               f"a10={s['a10']:.4f} a50={s['a50']:.4f} a90={s['a90']:.4f} "
               f"width={s['width']:.4f} finite={s['n_finite']}/{s['n_total']}"
               f" mean core_frac at A*={cf:.3f}")
+        print(f"  disclosure: width={dg['width']:.4f}+/-{dg['width_se']:.4f}"
+              f" a50={dg['a50']:.4f}+/-{dg['a50_se']:.4f}"
+              f" rel_width={dg['rel_width']:.4f} A50={dg['A50']:.2f}"
+              f" width_A={dg['width_A']:.2f} w_logistic={w_log:.4f}")
+        Path('results').mkdir(exist_ok=True)
+        ts = time.strftime('%Y%m%d_%H%M%S')
+        out_path = Path('results') / f'throat_pilot_{ts}.csv'
+        with open(out_path, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+            writer.writeheader()
+            writer.writerows(rows)
+        print(f"  saved: {out_path}")
         return
 
     if args.fss:
@@ -423,14 +514,28 @@ def main() -> None:
             rows = critical_density_draws(n, 6, r, draws,
                                           seed0=300 + 17 * r, progress=True)
             s = transition_stats([row['a_star'] for row in rows])
+            dg = ensemble_diagnostics(rows)
+            w_log = logistic_width([row['a_star'] for row in rows])
             regens = sum(row['substrate_regens'] for row in rows)
             capm = np.mean([row['capacity'] for row in rows])
             cf = np.mean([row['core_frac'] for row in rows
                           if row['A_star'] > 0])
             print(f"  r={r} N={n}: capacity~{capm:.0f}  "
-                  f"a50={s['a50']:.4f}  width={s['width']:.4f}  "
+                  f"a50={dg['a50']:.4f}+/-{dg['a50_se']:.4f}  "
+                  f"width={dg['width']:.4f}+/-{dg['width_se']:.4f}  "
+                  f"rel_width={dg['rel_width']:.4f}  "
+                  f"A*50={dg['A50']:.2f}  width_A={dg['width_A']:.2f}  "
+                  f"w_logistic={w_log:.4f}  "
                   f"finite={s['n_finite']}/{s['n_total']}  "
                   f"core_frac@A*={cf:.3f}  regens={regens}")
+            Path('results').mkdir(exist_ok=True)
+            ts = time.strftime('%Y%m%d_%H%M%S')
+            out_path = Path('results') / f'throat_fss_r{r}_{ts}.csv'
+            with open(out_path, 'w', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+                writer.writeheader()
+                writer.writerows(rows)
+            print(f"  saved: {out_path}")
         return
 
     if args.anchor:
@@ -442,20 +547,43 @@ def main() -> None:
         bad = sum(r['n_missing'] + r['n_unattributed'] for r in rows)
         print(f"\n{'a':>7s} {'seed':>4s} {'A':>4s} {'core':>4s} "
               f"{'surv':>4s} {'floor':>5s} {'prot':>4s} {'unattr':>6s} "
-              f"{'evap_t':>7s}" + ("  rider(surv/kept)" if args.rider
-                                   else ""))
+              f"{'evap_t':>7s} {'a_eff':>7s} {'a_star':>7s}" +
+              ("  rider(surv/kept)" if args.rider else ""))
         for r in rows:
             ev = f"{r['evap_time']:.1f}" if r['evap_time'] is not None \
                 else '--'
+            a_star_s = f"{r['a_star']:.4f}" if np.isfinite(r['a_star']) \
+                else 'inf'
             line = (f"{r['a']:7.4f} {r['seed']:4d} {r['A']:4d} "
                     f"{r['core']:4d} {r['surv']:4d} {r['n_floor']:5d} "
                     f"{r['n_protected']:4d} {r['n_unattributed']:6d} "
-                    f"{ev:>7s}")
+                    f"{ev:>7s} {r['a_eff']:7.4f} {a_star_s:>7s}")
             if args.rider:
                 line += f"  {r['rider_surv']}/{r['rider_core_kept']}"
             print(line)
+        print(f"\nsubstrate regenerations: "
+              f"{sum(r['substrate_regens'] for r in rows)} across "
+              f"{len(rows)} runs")
         print(f"\nGATE 1: {'PASS' if bad == 0 else 'FAIL'} "
               f"({bad} missing/unattributed across {len(rows)} runs)")
+        if args.rider:
+            rescued = [r for r in rows
+                      if r['core'] == 0 and r['rider_surv'] > 0]
+            demolition = [r['rider_core_kept'] / r['core'] for r in rows
+                         if r['core'] > 0]
+            print(f"\nGATE 2 (descriptive, pre-registered both ways):")
+            print(f"  sub-threshold rescue: {len(rescued)} of "
+                  f"{sum(1 for r in rows if r['core'] == 0)} empty-core runs "
+                  f"kept any strand under the rider")
+            if demolition:
+                print(f"  core retention under rider: mean "
+                      f"{np.mean(demolition):.2f} (1.0 = cores untouched; "
+                      f"0 = demolished)")
+            print("  Pre-registered readings: (a) weaving RESCUES condemned "
+                  "throats -> self-stabilization beats the censor here; "
+                  "(b) no rescue and cores demolished -> churn dominates: "
+                  "the stabilizer is a worse threat than the censor, and "
+                  "throat cores are censor-proof but not churn-proof.")
         raise SystemExit(0 if bad == 0 else 1)
 
 
