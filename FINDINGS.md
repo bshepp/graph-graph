@@ -699,6 +699,173 @@ Reproduce: `python throat_criticality.py --validate`; `--pilot --draws 300`;
 `--fss --draws 2000`; `--anchor --a-values 0.0109 0.0333 0.0473 0.0681 0.1408 --seeds 8
 --rider`. Rows persist to `results/throat_*.csv`.
 
+## Audit of 2026-09-26/27: `grown` and high-`p` pruned graphs have NO dimension
+
+*A review of past work before starting new candidates. All thirteen `--validate` gates
+and both smoke tests re-pass, and `barrier_scaling` reproduces its banked CSV bit-for-bit.
+The instruments are sound at what they test. The problem found is in what one of them was
+never asked.*
+
+### The finding
+
+`dimension.local_dimension` fits `log|B(r)| = d log r + c + a/r` over radii 1..`max_radius`
+and gates on R². **A high R² certifies that a curve was fitted, not that the growth is a
+power law** — the lesson this log already records for interval scaling (step 1), now
+applying to the project's primary ruler. Slow *exponential* growth, `|B| ~ b^r` with `b`
+near 1, is fitted at R² > 0.97 over any one window and returns a confident,
+window-dependent number.
+
+`window_stability.py` (new; `--validate` passes) asks the two questions the R² gate
+cannot: does `d_eff` move when the fit window moves, and does a power law beat an
+exponential on the same radii with the same number of parameters? Known answers first:
+
+| control | window drift R6→R40 | model that wins | verdict |
+|---|---|---|---|
+| 2D torus | 1.95 → 1.99 (0.04) | power law, d = 2.00 | DIMENSION DEFINED |
+| 3D torus | 2.94 → 2.99 (0.05) | power law, d = 3.01 | DIMENSION DEFINED |
+| subdivided random 3-regular graph (exponential by construction, base 2^(1/6) = 1.1225) | 1.54 → 2.55 (1.07) | exponential, base 1.121 | EXPONENTIAL |
+
+Then the project's own graphs (N = 2e5, 3 seeds each; `grown` also at N = 5.12e5):
+
+| graph | `d_eff` by fit window | exponential base | verdict |
+|---|---|---|---|
+| `grown` cap 6 | R6 1.74 · R8 2.04 · **R10 2.20** · R12 2.34 · R16 2.73 · R20 3.11 · R24 3.46 · R32 3.95 | 1.30 | EXPONENTIAL, 3/3 seeds |
+| `grown` cap 7 | R6 2.34 · R8 2.65 · **R10 3.05** · R12 3.32 · R16 3.96 · R20 4.52 | 1.47 | EXPONENTIAL, 3/3 |
+| `grown` cap 8 | R6 2.61 · R8 2.99 · **R10 3.48** · R12 3.96 · R16 4.61 | 1.60 | EXPONENTIAL, 3/3 |
+| pruned WS p = 0.05 | 1.00 at every window | — | DIMENSION DEFINED (d = 1) |
+| pruned WS p = 0.1 | 0.92 → 1.01 | — | DIMENSION DEFINED (d = 1) |
+| pruned WS p = 0.2 | ~1.0 → ~1.7 | tie | MIXED (2 seeds), EXPONENTIAL (1) |
+| pruned WS p = 0.3 | 1.3 → 3.1 | 1.15 | EXPONENTIAL, 3/3 |
+| pruned WS p = 0.4 | 1.6 → 3.7 | 1.24 | EXPONENTIAL |
+
+The bold R10 column reproduces the banked cap→d table (2.2 / 3.0 / 3.6) to two digits:
+those numbers are what a radius-10 window reads off an exponential. Independent
+confirmations on `grown` cap 6: the ratio `|B(r+1)|/|B(r)|` is flat at 1.26-1.31 from
+r = 9 to r = 32; the diameter is 31 / 43 / 52 / 61 / 71 at N = 2e3 / 8e3 / 3.2e4 /
+1.28e5 / 5.12e5 — about +10 per factor 4, i.e. **logarithmic**; and the live frontier is
+a constant 37% of N at every size.
+
+**Why.** Every `grown` step attaches a new node to an existing edge, so the graph is a
+partial 2-tree (treewidth ≤ 2): tree-like at every scale above a few hops, however
+triangle-rich it is locally. Nothing in the rule makes two growing arms meet, so the
+frontier stays proportional to the volume, and a frontier proportional to volume *is*
+exponential growth. A d-dimensional object needs a frontier ~ N^((d-1)/d).
+
+### What is retracted, and what stands
+
+Retracted as stated:
+
+- **"`grown` has emergent dimension, tunable by the cap" (strong emergence).** `grown`
+  has no dimension. The cap tunes an exponential growth *rate*; 2.2 / 3.0 / 3.6 are
+  radius-10 readings of it.
+- **"cap→d plateaus at scale."** The plateau in N is real, but it is convergence of a
+  fixed-radius local measurement, which any graph with N-independent local structure
+  shows. It was never evidence of a power-law regime.
+- **"`prune` is a third continuum dimension knob, 1 → 2."** Pruning reveals a genuine
+  d = 1 ring for p ≲ 0.1. Above p ≈ 0.2 the surviving shortcuts make the pruned graph a
+  small world again, with no dimension; the smooth d(p) curve is a fixed-window reading
+  of a ring → small-world crossover. "Crossover, not a transition" stands and is
+  strengthened.
+- **"`grown` is locally 2D but globally compressed (diameter ~ N^0.19)."** The diameter is
+  logarithmic; 0.19 was a power law fitted to a logarithm over one decade.
+- **Step 3's `grown` rows** used `d_H + 1` targets (2.85, 3.67) built on these readings.
+  The lattice and random-geometric rows, which carry the step-3 negative, are unaffected.
+
+Stands unchanged:
+
+- **The bootstrapping barrier** — its positive control is the hand-built lattice, which
+  is window-stable. The audit *extends* it: frontier growth fails to make extent too,
+  for the same structural reason. There is now no example in this project of a local rule
+  that **produces** polynomial extent; the only real geometries are the lattice (built by
+  hand) and the low-p pruned ring (latent in the construction).
+- **Everything measured *on* `grown` as a substrate** — portal tolerance, censorship
+  (sync and async), throat peeling, walkers, preservation, coherence. These are correct
+  statements about dynamics on a triangle-rich, tree-like fabric. What changes is the
+  description of the substrate: it is not "a coherent ~2D geometry". In particular
+  "dimension inflation 2.21 → 3.19 under portals" and Moran's I of the `d_eff` field are
+  statements about the radius-10 reading.
+- **The `d(p)` fine structure** is real and N-invariant as measured, but it is structure
+  in a fixed-window ball count, not in a dimension. That reframes the mechanism hunt.
+
+### Growth extinction (the "persistent expander phase" is not a phase)
+
+BRANCHES carried an open observation: 19 of 2000 `grown` draws fail at all three FSS
+geometries, read as a compact expander phase persisting to N = 10000. Checked directly:
+the 19 failing draws are **the same 19 seeds** at all three geometries (the FSS blocks are
+offset by exactly 17), and each is a graph of **7 to 17 nodes** whatever N was requested.
+Growth stops when every frontier edge has an endpoint at the cap; `_grow_dimensional`
+then returns the small graph silently. "Seed 111, N = 600, diameter 4" is a 15-node graph.
+
+| cap | extinction probability | sizes at extinction |
+|---|---|---|
+| 4 | 0.474 ± 0.009 | 5-6 |
+| 5 | 0.279 ± 0.008 (survival plateaus at 0.718 beyond ~600 nodes) | 6 - 537, heavy tail |
+| 6 | 0.0082 ± 0.0006 (164 / 20000) | 7-20 |
+| 7, 8 | 0.0002 | 8, 12 |
+
+Extinction is decided in the first few dozen attachments (a few hundred at cap 5) and
+never later. No banked result is contaminated: the lowest extinct cap-6 seed is 75, the
+drivers use seeds 0-39 or 3000-3039, and `throat_criticality` regenerated its 19 (and
+seed 5006 in the anchor block) with disclosure. `create_initial_graph` now warns when
+`grown` returns fewer nodes than requested.
+
+Reproduce: `python window_stability.py --validate`; `python window_stability.py --nodes
+200000 --seeds 3`.
+
+## Step 5 (2026-09-27): the bootstrapping barrier survives asynchronous updates
+
+*Pre-registration `docs/superpowers/specs/2026-09-27-step5-async-barrier-preregistration.md`
+(committed before data, with one disclosed post-hoc amendment); driver `async_barrier.py`
+(`--validate` passes). `triadic` from a random graph, N = 1000..32000, 8 paired seeds, 200
+sweep-equivalents, sequential Poisson-clock engine against the synchronous rule on the
+identical start graph.*
+
+| | sync | async |
+|---|---|---|
+| pooled alpha (extent ~ N^alpha) | 0.155 (R² 0.95) | 0.167 (R² 0.97) |
+| per-seed alpha, mean ± SE | 0.158 ± 0.022 | 0.168 ± 0.013 |
+| 95% CI | [0.106, 0.211] | [0.136, 0.200] |
+| mean diameter, N = 1000 → 32000 | 10.5 → 18.0 | 10.5 → 18.8 |
+| largest-component fraction | 0.984 | 0.984 |
+
+Paired difference async − sync: **+0.010 ± 0.032**, 95% CI [−0.067, +0.086].
+
+**Verdicts under the frozen rules.**
+
+- **BARRIER SURVIVES.** The async exponent's upper bound is 0.200, under the 0.25
+  threshold and far from the lattice's 0.515. The flagship negative is not an artifact of
+  the global sweep clock.
+- **Schedule invariance: UNDERPOWERED.** The difference is consistent with zero, but its
+  interval is wider than the ±0.05 band, so invariance is not established. Integer
+  diameters of 10-18 make per-seed exponents coarse. No seeds were added to rescue it.
+
+**Two gates failed as frozen, both through tolerances set badly in the pre-registration,
+and both are recorded as failures.**
+
+- *Gate 0* required my sync arm's final diameters to match the banked CSV within ±2. The
+  banked driver itself reproduces that CSV **exactly**; my arm, which draws a different
+  random realization, differs by up to 4 with no bias (mean 15.0 vs 14.9). Realization
+  scatter is larger than I assumed.
+- *Gate 1* (`prune` on small-world as a control that does grow extent) required the two
+  schedules' exponents to agree within 0.1; they read 0.825 and 0.576. Pruning fragments
+  the ring (largest component 31-100%), so that diameter hinges on a handful of edges.
+  The amended Gate 1A, written after seeing this and before reading Gate 2, compares the
+  final edge sets instead: worst Jaccard distance 0.0052 over 16 runs, diameter growth
+  ×9 to ×97 in every run. It passes — and is post hoc.
+
+**The 200-sweep budget is a transient, not a converged state** (rider, 800 sweeps,
+N = 1000 and 4000, 4 seeds): extent rises to a peak near 300 sweeps and then *falls*, in
+both schedules alike — N = 1000: 8.5 → 11.5 → 4.0 (sync), 8.5 → 13.0 → 4.2 (async) —
+while the largest component stays at 96-97%. So it is crumpling, not fragmentation.
+The banked alpha ≈ 0.13 is therefore a statement about a 200-step budget; run longer,
+`triadic` ends with *less* extent than the expander it started from. This strengthens
+the barrier and means the exponent should not be quoted as an asymptotic quantity.
+
+Scope: one rule (`triadic`); `geometrize` and `ricci` are not async events.
+
+Reproduce: `python async_barrier.py --validate`, then `--gate0`, `--gate1`, `--gate1a`,
+`--gate2 --jobs 12`, `--long --jobs 8`.
+
 ## Scaling directions: what more compute could (and couldn't) unlock
 
 A standing question is whether *scaling up* -- to the largest graphs a private

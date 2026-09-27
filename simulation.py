@@ -7,6 +7,7 @@ Creates a graph, applies rules, records history.
 import argparse
 import random
 import pickle
+import warnings
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any
@@ -74,6 +75,13 @@ def create_initial_graph(n_nodes: int, topology: str = 'small_world',
     elif topology == 'grown':
         # Emergent-geometry generator: k is the degree cap (6 -> ~2D).
         G = _grow_dimensional(n_nodes, degree_cap=k, seed=seed)
+        if len(G) < n_nodes:
+            # Growth went extinct: every frontier edge has an endpoint at
+            # the cap (cap 6: ~0.8% of seeds, always below ~20 nodes).
+            warnings.warn(
+                f"grown: growth went extinct at {len(G)} of {n_nodes} nodes "
+                f"(cap={k}, seed={seed}); see FINDINGS.md 'Growth extinction'",
+                RuntimeWarning, stacklevel=2)
     else:
         raise ValueError(f"Unknown topology: {topology}")
     
