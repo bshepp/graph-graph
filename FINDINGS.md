@@ -738,8 +738,8 @@ Then the project's own graphs (N = 2e5, 3 seeds each; `grown` also at N = 5.12e5
 | `grown` cap 6 | R6 1.74 · R8 2.04 · **R10 2.20** · R12 2.34 · R16 2.73 · R20 3.11 · R24 3.46 · R32 3.95 | 1.30 | EXPONENTIAL, 3/3 seeds |
 | `grown` cap 7 | R6 2.34 · R8 2.65 · **R10 3.05** · R12 3.32 · R16 3.96 · R20 4.52 | 1.47 | EXPONENTIAL, 3/3 |
 | `grown` cap 8 | R6 2.61 · R8 2.99 · **R10 3.48** · R12 3.96 · R16 4.61 | 1.60 | EXPONENTIAL, 3/3 |
-| pruned WS p = 0.05 | 1.00 at every window | — | DIMENSION DEFINED (d = 1) |
-| pruned WS p = 0.1 | 0.92 → 1.01 | — | DIMENSION DEFINED (d = 1) |
+| pruned WS p = 0.05 | 1.00 at every window | — | DIMENSION DEFINED (d = 1), 3/3 |
+| pruned WS p = 0.1 | 0.92 → 1.01 | — | DIMENSION DEFINED (d = 1), 3/3 |
 | pruned WS p = 0.2 | ~1.0 → ~1.7 | tie | MIXED (2 seeds), EXPONENTIAL (1) |
 | pruned WS p = 0.3 | 1.3 → 3.1 | 1.15 | EXPONENTIAL, 3/3 |
 | pruned WS p = 0.4 | 1.6 → 3.7 | 1.24 | EXPONENTIAL, 3/3 |
@@ -889,7 +889,7 @@ modelling.
 | R' (amended, post hoc: waveform correlation with the banked grid) | +0.991, PASS |
 | M1 (median-of-fits vs fit-of-means) | +0.873, PASS |
 
-| radius | fit weight | peak-to-peak of detrended ln\|B\| | seed SE | variance share |
+| radius | fit weight | peak-to-peak of detrended log ball count | seed SE | variance share |
 |---|---|---|---|---|
 | 1 | +0.52 | 0.015 | 0.003 | +0.01 |
 | 2 | −0.60 | 0.023 | 0.003 | −0.02 |
@@ -923,6 +923,134 @@ fit a crossover form to fresh seeds and ask whether the residual falls to seed n
 
 Reproduce: `python dp_decomposition.py --validate`, then `python dp_decomposition.py
 --jobs 6`.
+
+## Spectral-dimension flow (2026-09-27): `grown` flows slowly from ~1.2 to ~1.9 -- my prediction was wrong
+
+*Pre-registration `docs/superpowers/specs/2026-09-27-spectral-flow-preregistration.md`
+(committed before any walk data); driver `spectral_flow.py` (`--validate` passes).
+Lazy-walk return probability by a Hutchinson trace; `D(t) = -2 dln P / dln t`.*
+
+**Gate A (instrument) passes.** The trace matches the exact spectrum to 2-5% on small
+graphs, and every known answer reads FLAT at the right value:
+
+| anchor | truth | measured |
+|---|---|---|
+| ring | 1 | 0.998 |
+| 2D torus | 2 | 2.027 |
+| 3D torus | 3 | 3.041 |
+| Sierpinski gasket | 2 ln 3 / ln 5 = 1.365 | 1.368 |
+| random 3-regular (negative control) | none | not FLAT (2.8 → 6.1 in two octaves) |
+
+The gasket is the control that matters: its Hausdorff dimension is 1.585, so the
+instrument can read a spectral dimension that differs from the Hausdorff one.
+
+**Gate B.** `grown` caps 6 / 7 / 8, N = 5e4 and 2e5, 3 seeds each (18 runs):
+
+| cap | D at t = 16 | D at mid-range | D at the end (t ~ 1e4) |
+|---|---|---|---|
+| 6 | 1.15 | 1.50 - 1.56 | 1.78 - 2.05 |
+| 7 | 1.23 - 1.25 | 1.63 - 1.71 | 1.88 - 2.02 |
+| 8 | 1.30 - 1.32 | 1.67 - 1.79 | 1.89 - 2.05 |
+
+- **P1 (predicted RUNAWAY at every run) -- REFUTED.** 1 run of 18 reads RUNAWAY; 9 read
+  PLATEAU-TO-PLATEAU FLOW and 8 UNCLASSIFIED. I inferred from exponential ball growth
+  that the walk would mix like an expander's. It does not.
+- **P2 (N-robustness) -- PASS.** The seed-mean curves at N = 5e4 and 2e5 agree within
+  0.045 at every common grid point (tolerance 0.15).
+- **P3 (ordering cap 6 < 7 < 8) -- holds at 17 of 17 points at N = 5e4 and 19 of 20 at
+  N = 2e5**; it fails at the last point, where the three curves have converged to within
+  their seed scatter. As frozen ("at every admissible t") that is a FAIL.
+
+**What the curve is.** A slow, monotone, decelerating rise from about 1.2 to about 1.9
+over three decades of walk time, the same at both sizes. The classifier splits between
+two labels because the curve sits on the boundary of its plateau tolerance; the honest
+description is the curve, not either label. Whether it levels at 2 cannot be decided
+inside the admissible range.
+
+**Reading.** `grown` has exponential volume growth but does *not* behave like an
+expander for a walker. The pruned small world is the contrast: at p = 0.3 and 0.5 it reads
+RUNAWAY in 4 of 4 runs (D climbing past 4), so the instrument does report expander-like
+mixing when it is there. `grown` is tree-like -- treewidth <= 2 -- and a tree is full of
+bottlenecks: a walker spends its early time inside one arm, which looks nearly
+one-dimensional, and only slowly discovers the branching. So the volume and the walk
+disagree completely: ball growth says "no dimension, exponential", the walk says "between
+1 and 2". That is a genuine `d_s` / `d_H` split, of the kind trees are known for, and it
+is not a CDT-like flow between two dimensions of a manifold.
+
+Two more tree-like graphs read the same way (one seed each, N = 512000): `sheet` at
+beta = 0 flows 1.40 → 1.92, and the negatively curved `sheet` c = 7 flows 1.57 → 2.03.
+
+Scope: pruned p = 0.1 was not measured -- its largest component fell under the driver's
+size threshold.
+
+Reproduce: `python spectral_flow.py --validate`; `python spectral_flow.py --graphs grown6
+grown7 grown8 --nodes 50000 200000 --seeds 3`.
+
+## `sheet` (2026-09-27): a strictly local growth rule that produces a real dimension
+
+*Sidequest. Pre-registration
+`docs/superpowers/specs/2026-09-27-sheet-growth-preregistration.md` (confirmatory run on
+fresh seeds, exploratory numbers disclosed in it); generator and driver `sheet_growth.py`
+(`--validate` passes).*
+
+The audit says why `grown` fails: nothing makes growing arms meet, so the frontier stays
+proportional to the volume. `sheet` adds three local ingredients, none using a
+coordinate:
+
+- **manifold** -- attach only at edges that lie in exactly one triangle;
+- **closure** -- a boundary vertex whose degree reaches `c` joins the two ends of its
+  link, completing its wheel (reads the same radius as `triadic`);
+- **tension** -- events fire on Poisson clocks with rate `exp(beta * (deg u + deg v))`,
+  so nearly complete neighbourhoods fill in first.
+
+**Confirmatory run**, N = 512000, seeds 100-102, per-octave exponents of seed-mean
+diameter and boundary length:
+
+| c | beta | diameter exponent, last two octaves | boundary exponent, last two octaves | window audit | spectral | verdict (frozen rules) |
+|---|---|---|---|---|---|---|
+| 6 | 0 | 0.110, 0.106 | 1.002, 1.000 | EXPONENTIAL | flow 1.40 → 1.92 | TREE-LIKE (predicted) |
+| 6 | 1 | 0.248, 0.174 | 1.074, 1.037 | defined, d = 1.87 | flow 1.89 → 1.46 | TREE-LIKE (predicted) |
+| 6 | 2 | **0.496, 0.500** | **0.499, 0.503** | DEFINED, d = 1.99, 3/3 | FLAT 1.977 / 1.991 / 1.985 | **GEOMETRY** |
+| 6 | 3 | **0.501, 0.505** | **0.509, 0.502** | DEFINED, d = 1.99, 3/3 | FLAT 1.985 / 1.999 / 1.941 | **GEOMETRY** |
+| 7 | 2 | 0.093, 0.095 | 1.000, 1.000 | EXPONENTIAL | unclassified | not GEOMETRY (predicted) |
+
+(Window audit and spectral columns: three seeds each for beta = 2 and 3, one seed for the
+other rows.)
+
+At beta = 2 the diameter is 56 / 111 / 226 / 450 / 899 at N = 2e3 ... 5.12e5 -- it doubles
+with every factor 4 -- and the boundary is 0.5% of the volume at the largest size, within
+about 15% of the perimeter of a perfect disc.
+
+**The curvature knob behaves as geometry says it should.** `c = 5` closes into a graph of
+exactly 12 nodes in 5 of 5 seeds: the icosahedron. `c = 7` is negatively curved and
+grows exponentially whatever the rates do. `c = 6` is flat.
+
+**What this is, stated plainly.**
+
+- It is the project's first case of a strictly local rule **producing** a window-stable
+  dimension -- not revealing one latent in the construction, and not a fixed-window
+  reading. Four independent observables agree on 2.
+- It is **not** a spontaneously selected dimension. `c = 6` selects flatness and
+  `beta >= 2` selects compactness. Two knobs.
+- Every interior vertex has degree exactly 6 (fraction 1.000 in every run). The object is
+  a **patch of the triangular lattice, assembled without coordinates**. That is less
+  than "a geometry emerged" and more than "a lattice was written down": no step of the
+  rule knows where anything is.
+- beta = 1 is the cautionary case. It reads two-dimensional up to N ~ 8000 and then
+  turns tree-like. beta = 2 and 3 show no such turn through N = 512000, and their
+  numbers are indistinguishable from each other, which suggests a transition between
+  beta = 1 and 2 rather than a persistence length that merely grows -- but nothing here
+  tests that, and a crossover beyond 512000 is not excluded.
+
+**A limit of the window audit, found here.** It labels beta = 1 "DIMENSION DEFINED"
+(drift 0.09). It probes radii up to 40; the beta = 1 graph is two-dimensional at that
+scale and tree-like above it. The audit certifies the scales it looks at and no more.
+At beta = 2 the large-scale evidence is the diameter and boundary exponents and the
+walk, not the audit.
+
+Reproduce: `python sheet_growth.py --validate`; `python sheet_growth.py --betas 0 1 2 3
+--nodes 512000 --seeds 3 --seed 100 --jobs 7 --save-graphs`; then `python
+sheet_growth.py --judge results/sheet_c6_b2_s100_N512000.npz`.
 
 ## Scaling directions: what more compute could (and couldn't) unlock
 
