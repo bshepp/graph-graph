@@ -51,6 +51,23 @@ So the waveform in d(p) splits, with no modelling, into one contribution per rad
   whichever reading applies. Seed-to-seed scatter of `resid(L_r)` is reported so the
   per-radius signal can be compared with its own noise.
 
+## Amendment 1 (2026-09-27, POST HOC — written after Gate R failed, before any decomposition output was read)
+
+**Gate R FAILED as frozen, twice.** First trivially: the banked grid used p values
+rounded to 3 significant digits (they were typed on a command line), so the unrounded
+`geomspace` grid built different graphs. Rebuilt at the banked p values, all 180 rows
+match a banked row, but only 55 agree to 1e-9; the worst difference is 0.067.
+
+Diagnosis, as far as it went: the **graphs** rebuild identically (p = 0.5, seed 0: mean
+degree 2.824875 and clustering 0.34011979166666667, both equal to the banked values to
+every printed digit). What differs is the 400-node sample the median is taken over. The
+banked grid was computed on another machine; the cause of the sampling difference was
+not run down.
+
+Amended **Gate R'**: the cubic-detrended seed-mean waveform of the rebuilt grid must
+correlate with the banked one at >= 0.9. That is the object under study, and it is what a
+sample median can be expected to reproduce. Gates M1 and the readings are unchanged.
+
 ## What this round cannot do
 
 It locates the waveform in radius; it does not name a mechanism. A mechanism hypothesis

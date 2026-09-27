@@ -873,6 +873,57 @@ Scope: one rule (`triadic`); `geometrize` and `ricci` are not async events.
 Reproduce: `python async_barrier.py --validate`, then `--gate0`, `--gate1`, `--gate1a`,
 `--gate2 --jobs 12`, `--long --jobs 8`.
 
+## d(p) fine structure, round 3 (2026-09-27): the waveform lives at large radius
+
+*Pre-registration `docs/superpowers/specs/2026-09-27-dp-round3-decomposition-preregistration.md`
+(one disclosed post-hoc amendment); driver `dp_decomposition.py` (`--validate` passes).*
+
+Rounds 1 and 2 each guessed a mechanism and were killed. Round 3 locates the waveform
+instead. The fitted slope is exactly linear in the log ball counts,
+`d = sum_r w_r ln|B(r)|`, so the waveform splits into one contribution per radius with no
+modelling.
+
+| gate | result |
+|---|---|
+| R (bit-reproduce the banked grid) | **FAIL as frozen** — graphs rebuild identically, the 400-node sample does not (55 of 180 rows agree to 1e-9; worst difference 0.067) |
+| R' (amended, post hoc: waveform correlation with the banked grid) | +0.991, PASS |
+| M1 (median-of-fits vs fit-of-means) | +0.873, PASS |
+
+| radius | fit weight | peak-to-peak of detrended ln\|B\| | seed SE | variance share |
+|---|---|---|---|---|
+| 1 | +0.52 | 0.015 | 0.003 | +0.01 |
+| 2 | −0.60 | 0.023 | 0.003 | −0.02 |
+| 3 | −0.62 | 0.054 | 0.003 | −0.07 |
+| 4-6 | −0.46 … −0.07 | 0.07 - 0.10 | 0.004 | −0.25 |
+| 7 | +0.12 | 0.111 | 0.005 | +0.07 |
+| 8 | +0.30 | 0.127 | 0.006 | +0.22 |
+| 9 | +0.46 | 0.145 | 0.007 | +0.41 |
+| 10 | +0.62 | 0.162 | 0.008 | +0.64 |
+
+**Reading: MESOSCALE, not amplified.** Radii ≥ 4 carry 109% of the variance and radii
+≤ 3 carry −9%; the waveform is not a product of the fit's weights (its peak-to-peak,
+0.125, is below the raw per-radius one). It is far above seed noise — 0.16 against 0.008
+at r = 10 — so it is real structure in how many nodes lie within ten hops.
+
+What this rules out: every local explanation. Degree, triangles and the second shell
+(r ≤ 3) contribute nothing, which is why the earlier residuals tracked neither mean
+degree nor clustering.
+
+**A hypothesis for round 4, stated after seeing the data and therefore not tested
+here.** The detrended `ln|B(10)|` is smooth and slowly varying in p: positive, negative,
+positive, negative, positive across the grid, with no sharp features. That is the
+signature of a polynomial failing to follow a crossover. `|B(10)|` is pinned at the
+ring's value at low p and rises once shortcuts come within reach; a cubic in `ln p`
+cannot follow a curve that is flat and then rises, and what it leaves behind oscillates.
+On this reading there is no mechanism to find: the "multi-bump fine structure" is the
+ring → small-world crossover seen through a polynomial detrend, and it is N-invariant,
+seed-deterministic and window-invariant because the crossover is. The banked survival
+under a sextic detrend argues against it and has to be faced by the test. Round 4 would
+fit a crossover form to fresh seeds and ask whether the residual falls to seed noise.
+
+Reproduce: `python dp_decomposition.py --validate`, then `python dp_decomposition.py
+--jobs 6`.
+
 ## Scaling directions: what more compute could (and couldn't) unlock
 
 A standing question is whether *scaling up* -- to the largest graphs a private
