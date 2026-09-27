@@ -62,8 +62,11 @@ def largest_component(G: nx.Graph) -> nx.Graph:
 
 def lazy_operator(G: nx.Graph) -> sp.csr_array:
     """S = (I + D^-1/2 A D^-1/2) / 2 on a connected graph."""
-    A = nx.to_scipy_sparse_array(G, weight=None, format='csr',
-                                 dtype=np.float64)
+    return lazy_operator_adjacency(nx.to_scipy_sparse_array(
+        G, weight=None, format='csr', dtype=np.float64))
+
+
+def lazy_operator_adjacency(A: sp.csr_array) -> sp.csr_array:
     deg = np.asarray(A.sum(axis=1)).ravel()
     inv = sp.diags_array(1.0 / np.sqrt(deg))
     n = A.shape[0]
@@ -231,6 +234,18 @@ def measure(spec: str, n: int, seed: int, n_probes: int, t_max: int = T_MAX,
                                np.random.default_rng(seed + 7919), progress)
     grid, D = running_dimension(ts, P, S.shape[0])
     return {'spec': spec, 'N': S.shape[0], 'seed': seed, 'grid': grid,
+            'D': D, **classify(grid, D)}
+
+
+def measure_adjacency(name: str, A: sp.csr_array, seed: int, n_probes: int,
+                      t_max: int = T_MAX, progress: bool = False
+                      ) -> Dict[str, object]:
+    """`measure` on a sparse adjacency matrix (connected graph assumed)."""
+    S = lazy_operator_adjacency(sp.csr_array(A, dtype=np.float64))
+    ts, P = return_probability(S, t_max, n_probes,
+                               np.random.default_rng(seed + 7919), progress)
+    grid, D = running_dimension(ts, P, S.shape[0])
+    return {'spec': name, 'N': S.shape[0], 'seed': seed, 'grid': grid,
             'D': D, **classify(grid, D)}
 
 

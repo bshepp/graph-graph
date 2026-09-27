@@ -18,7 +18,7 @@ out-lists, memory notes, and FINDINGS asides. Practice, adopted 2026-08-11:
 | branch | origin | chosen instead | why it's alive | cost |
 |---|---|---|---|---|
 | **Spectral-dimension flow `d_s(scale)` on `grown`** | FINDINGS "Scaling directions" #1 (2026-05-30), gated behind the cap→d check | cheaper items first | **its gate was satisfied when `cap_dimension_scaling` landed (2026-05-30) and nobody noticed** — the flagship open question: does a minimal local growth rule reproduce a CDT-like `d_s` flow, and does `d_s` split from `d_H`? Pre-committed null (`d_s = d_H`, no flow) already written | high (large-N walks; `traverse.py`/`braket_walks.py` are the seed) |
-| **Triangulated-base `prune` transition** | step-3 fork, 2026-06-27 ("bank the crossover honestly") | banking `prune` as a continuum knob | the un-taken alternative was a genuine-transition hunt on a 2D-triangulated substrate; never invalidated — and now doubly relevant as a stage-2 substrate family for the critical-collapse program | medium (`prune_dimension.py` variant) |
+| **Triangulated-base `prune` transition** | step-3 fork, 2026-06-27 ("bank the crossover honestly") | banking `prune` as a continuum knob | the un-taken alternative was a genuine-transition hunt on a 2D-triangulated substrate; never invalidated. **Note 2026-09-27:** `grown` is not such a substrate (it has no dimension); the triangular lattice is, and `sheet` may be | medium (`prune_dimension.py` variant) |
 | **`d(p)` multi-bump fine structure — mechanism hunt (round 3)** | round 1 (protection-hierarchy onsets) unsupported 2026-08-12; round 2 (integer-r_c crossings, spec 4d4044c) KILLED 2026-08-17 — coverage failure (no s=1.5 crossing at 22/30 points incl. 3 of 5 features) + M2 R²=0.099 on the valid points; convergence-depth bands (candidate b) descriptively unsupported (smooth 7→10 rounds, no banding) | two candidates burned cheaply via pre-registration | a real, deterministic, density-intrinsic multi-bump structure with NO surviving mechanism hypothesis after two rounds. Remaining named candidate: (c) WS-construction shortcut-overlap statistics — plus fresh formulation needed. Formulate → pre-register → test | low-medium |
 | **Causal ordering-fraction as a *relative* comparator** | step-3 aftermath, 2026-07-29 | retiring the absolute observable | the monotone family r_graph(D) is intact for async-vs-sync or rule-vs-rule *comparisons*; offered post-step-3, never picked up | medium |
 | **Quasi-1D fragmentation scaling** | step-3 fork, 2026-06-27 | (same fork as triangulated base) | never invalidated; lowest-value survivor of that fork | low-medium |
@@ -27,7 +27,6 @@ out-lists, memory notes, and FINDINGS asides. Practice, adopted 2026-08-11:
 
 | branch | gate | origin |
 |---|---|---|
-| **Step 5: barrier under async (+ causal-future-growth as relative comparator)** | queued behind the collapse program by owner ordering; readiness note exists (`docs/superpowers/specs/2026-08-03-step5-barrier-async-readiness.md`) | ladder |
 | **`ricci` under async** (`_event_ricci` + validation) | rises from parked only if any async-vs-sync discrepancy appears anywhere | step-4 scope fork 2026-08-03 |
 | **Ladder rung 2 remainder: curved-spacetime sprinkling** | causal-set instruments regain a consumer (e.g. the relative comparator gets used) | LORENTZIAN_SPIKE |
 | **Ladder rung 3: entanglement edges (stabilizer states, ER=EPR toys)** | owner prioritization | de-toying ladder 2026-07-16 |
@@ -37,8 +36,17 @@ out-lists, memory notes, and FINDINGS asides. Practice, adopted 2026-08-11:
 
 | branch | origin | why it's alive | cost |
 |---|---|---|---|
-| **Grown-generator persistent expander phase** | stage-1 substrate regeneration: 19/2000 draws fail geometry at ALL THREE nested-seed geometries (N=2000/5000/10000); first seen seed 111 N=600 (diameter 4) | if the same growth seeds fail at every N, the compact phase is decided early and persists — generator bistability is not a small-N artifact (~1% of seeds). Next: confirm the 19 failing seeds coincide, then phase statistics vs N and what the early-growth discriminator is | low |
 | **Throat-motif ↔ d(p) mechanism cross-pollination** | stage-1 verdict: threshold = first ~2.6-strand mutually-protecting motif | the d(p) fine-structure mechanism hunt (round 3) and the throat onset concern the same object — protection motifs in random shortcut ensembles — in different ensembles; the exact peeling machinery now exists to count motifs directly in the pruned-WS ensemble | low-medium |
+
+## OPEN (continued) — raised by the 2026-09-26/27 audit and step 5
+
+| branch | origin | why it's alive | cost |
+|---|---|---|---|
+| **Re-run the portal / censorship / throat program on a substrate that has a dimension** | audit: `grown` is tree-like, so every "portal into a geometry" result was measured on a fabric with no geometry | the dynamics results stand, but "advantage = distance at injection" means something different when distances are logarithmic. Substrates with a real dimension now exist: the triangular lattice, and `sheet` if its confirmatory verdict holds | medium (drivers take a topology; the substrate swap is the work) |
+| **Schedule-invariance of the barrier exponent, at power** | step 5: difference +0.010 ± 0.032, CI wider than the ±0.05 band | integer diameters of 10-18 are too coarse. Needs a continuous extent observable (mean eccentricity or mean pair distance) or ~4x the seeds; a new pre-registration either way | low-medium |
+| **Long-run collapse of extent under `triadic`** | step-5 rider: extent peaks near 300 sweeps then falls below its starting value (N=1000: 8.5 → 11.5 → 4.0) with the largest component intact | the banked alpha is a 200-step transient. What is the long-run state — a hub? does the peak time scale with N? Both schedules agree, so the sync driver suffices | low |
+| **Async events for `geometrize` and `ricci`** | step-5 scope: only `triadic` exists as an async event | the three-rule barrier claim is tested under async for one rule | low-medium |
+| **An honest dimension gate inside `dimension.py`** | audit: the R² gate passes slow exponentials | `window_stability.py` is a separate audit tool; the estimator itself still returns a confident number on `grown`. Folding a window-drift check into `local_dimension` changes `defined_frac` everywhere downstream, so it is an owner decision, not a fix to slip in | medium (touches every consumer) |
 
 ## PARKED — deliberate, no gate
 
@@ -61,6 +69,9 @@ out-lists, memory notes, and FINDINGS asides. Practice, adopted 2026-08-11:
 
 | branch | killed by |
 |---|---|
+| Step 5: barrier under async | **done 2026-09-27** — barrier SURVIVES (alpha_async 0.168, 95% CI [0.136, 0.200], bound 0.25); schedule invariance underpowered. Gates 0 and 1 failed as frozen (tolerances), recorded as such. Causal-future-growth stays deferred with the retired causal DAG |
+| Grown-generator "persistent expander phase" | **resolved 2026-09-26** — it is growth extinction: the 19 failing seeds coincide and are 7-17 node graphs whose frontier died. Extinction probability 0.0082 at cap 6, decided within the first ~20 nodes |
+| "`grown` has a tunable emergent dimension" and "`prune` is a dimension knob 1 → 2" | **audit 2026-09-26** — exponential ball growth; banked values are radius-10 readings. Pruned WS has a real dimension (1) only for p ≲ 0.1 |
 | Critical-collapse stages 2–3 (universality; driven injection) + stage-1 full-dynamics-FSS contingency | stage-1 verdict (2026-08-17): no critical collapse — the throat threshold is a local-motif onset (onset core constant ~2.6 strands across capacities 134–1043; relative width RISES 1.47→1.66; frozen sharpness rule satisfied only vacuously via 1/capacity rescaling). Gate 1 (peeling≡dynamics) passed 40/40 exactly, so the contingency never triggered |
 | P2 attenuation micro-effect | 40-seed paired run (2026-08-11): woven ratio 1.01, t=-0.08; long-survival t=-0.28 — fully schedule-invariant, the 12-seed t=1.77 hint was noise |
 | Interval-scaling as primary causal estimator | step-1 result (biased low at R²>0.99) |

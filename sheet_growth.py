@@ -308,6 +308,39 @@ def local_exponents(rows: List[Dict], c: int, beta: float) -> List[Dict]:
     return out
 
 
+def judge(paths: Sequence[str], n_sources: int = 60, n_probes: int = 8
+          ) -> List[Dict]:
+    """Window-stability and spectral verdicts on saved sheets."""
+    from window_stability import audit_adjacency
+    from spectral_flow import measure_adjacency, show
+    out = []
+    for path in paths:
+        A = load_csr(path)
+        name = Path(path).stem
+        seed = int(name.split('_s')[1].split('_')[0])
+        ws = audit_adjacency(name, A, n_sources, seed)
+        sf = measure_adjacency(name, A, seed, n_probes)
+        show(sf)
+        out.append({'graph': name, 'ws_verdict': ws['verdict'],
+                    'ws_drift': ws['drift'],
+                    'ws_d_last': ws['table'][-1][1] if ws['table']
+                    else float('nan'),
+                    'sf_verdict': sf['verdict'],
+                    'sf_value': sf['value'] if sf['verdict'] == 'FLAT'
+                    else float('nan'),
+                    'sf_first': float(sf['D'][0]) if len(sf['D'])
+                    else float('nan'),
+                    'sf_last': float(sf['D'][-1]) if len(sf['D'])
+                    else float('nan')})
+    print("\nJudged sheets")
+    for r in out:
+        print(f"  {r['graph']:>28}: window {r['ws_verdict']} (drift "
+              f"{r['ws_drift']:.2f}, d {r['ws_d_last']:.2f});  spectral "
+              f"{r['sf_verdict']} (D {r['sf_first']:.2f} -> "
+              f"{r['sf_last']:.2f})")
+    return out
+
+
 def _validate() -> bool:
     ok = True
     print("[1] invariants: manifold, degree bound, determinism")
@@ -358,6 +391,9 @@ def main():
     ap.add_argument('--seeds', type=int, default=3)
     ap.add_argument('--seed', type=int, default=100, help='base seed')
     ap.add_argument('--jobs', type=int, default=1)
+    ap.add_argument('--judge', nargs='+', default=None,
+                    help='saved results/sheet_*.npz files to run the '
+                         'window-stability and spectral instruments on')
     ap.add_argument('--save-graphs', action='store_true',
                     help='save each final edge list to results/sheet_*.npz')
     args = ap.parse_args()
@@ -367,6 +403,9 @@ def main():
 
     if args.validate:
         raise SystemExit(0 if _validate() else 1)
+    if args.judge:
+        judge(args.judge)
+        return
 
     marks = []
     n = args.nodes

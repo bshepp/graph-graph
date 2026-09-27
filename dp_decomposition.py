@@ -38,8 +38,19 @@ from prune_dimension import prune_to_convergence
 
 BANKED_CSV = "results/prune_dimension_dense32k_20260811.csv"
 N_NODES, K, MAX_RADIUS, SAMPLES, SEEDS = 32000, 6, 10, 400, 6
-PS = np.geomspace(0.02, 0.5, 30)
+PS = np.geomspace(0.02, 0.5, 30)   # nominal; the run uses banked_ps()
 DETREND_ORDER = 3
+
+
+def banked_ps() -> List[float]:
+    """The p values the banked grid actually used.
+
+    They are `geomspace(0.02, 0.5, 30)` ROUNDED to 3 significant digits
+    (they were passed on a command line), so rebuilding from the unrounded
+    grid builds different graphs. Read them from the banked CSV instead.
+    """
+    with open(BANKED_CSV) as f:
+        return sorted({float(r["p"]) for r in csv.DictReader(f)})
 
 
 def fit_weights(max_radius: int) -> np.ndarray:
@@ -82,14 +93,16 @@ def analyze(rows: List[Dict], check_banked: bool = True) -> Dict:
 
     ok = True
     if check_banked:
-        worst = 0.0
+        worst, n_matched = 0.0, 0
         with open(BANKED_CSV) as f:
             for b in csv.DictReader(f):
                 k = (round(float(b["p"]), 12), int(b["seed"]))
                 if k in key:
+                    n_matched += 1
                     worst = max(worst, abs(float(b["d_eff_median"])
                                            - float(key[k]["d_eff_median"])))
-        gate_r = worst < 1e-9
+        print(f"  ({n_matched} of {len(rows)} rows matched a banked row)")
+        gate_r = worst < 1e-9 and n_matched == len(rows)
         ok &= gate_r
         print(f"Gate R -- reproduces the banked dense grid: worst |diff| = "
               f"{worst:.2e}  {'PASS' if gate_r else 'FAIL'}")
@@ -222,7 +235,8 @@ def main():
             analyze(list(csv.DictReader(f)))
         return
 
-    specs = [(float(p), s, N_NODES) for p in PS for s in range(SEEDS)]
+    specs = [(float(p), s, N_NODES) for p in banked_ps()
+             for s in range(SEEDS)]
     if args.jobs <= 1:
         rows = [measure(sp) for sp in tqdm(specs, desc='grid')]
     else:

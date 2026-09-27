@@ -111,7 +111,12 @@ def model_comparison(B: np.ndarray, n: int, r_min: int = 6) -> Dict[str, float]:
 
 
 def audit(name: str, G: nx.Graph, n_sources: int, seed: int) -> Dict:
-    A = adjacency(G)
+    return audit_adjacency(name, adjacency(G), n_sources, seed)
+
+
+def audit_adjacency(name: str, A: sp.csr_array, n_sources: int,
+                    seed: int) -> Dict:
+    """`audit` on a sparse adjacency matrix (connected graph assumed)."""
     n = A.shape[0]
     B = ball_curves(A, n_sources, WINDOWS[-1], np.random.default_rng(seed))
     tab = window_table(B, n)

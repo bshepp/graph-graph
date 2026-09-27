@@ -742,7 +742,8 @@ Then the project's own graphs (N = 2e5, 3 seeds each; `grown` also at N = 5.12e5
 | pruned WS p = 0.1 | 0.92 → 1.01 | — | DIMENSION DEFINED (d = 1) |
 | pruned WS p = 0.2 | ~1.0 → ~1.7 | tie | MIXED (2 seeds), EXPONENTIAL (1) |
 | pruned WS p = 0.3 | 1.3 → 3.1 | 1.15 | EXPONENTIAL, 3/3 |
-| pruned WS p = 0.4 | 1.6 → 3.7 | 1.24 | EXPONENTIAL |
+| pruned WS p = 0.4 | 1.6 → 3.7 | 1.24 | EXPONENTIAL, 3/3 |
+| pruned WS p = 0.5 | 1.8 → 4.0 | 1.30 | EXPONENTIAL, 3/3 |
 
 The bold R10 column reproduces the banked cap→d table (2.2 / 3.0 / 3.6) to two digits:
 those numbers are what a radius-10 window reads off an exponential. Independent
