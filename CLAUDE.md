@@ -43,8 +43,9 @@ Both write a pickle to `results/run_*.pkl`. Rules combine freely; available keys
 `activation`, `reinforcement`, `majority`, `rewire`, `prune`, `triadic`
 (all vectorized in both backends), plus `geometrize`, `ricci` (NetworkX reference
 backend only — run with `--no-fast`). Topologies (`--topology`):
-`small_world` (default), `scale_free`, `lattice`, `random`, `grown` (the
-emergent-dimension generator; `k` is its degree cap).
+`small_world` (default), `scale_free`, `lattice`, `random`, `grown` (degree-capped
+frontier growth; `k` is its degree cap — locally triangle-rich but globally tree-like,
+so it has **no dimension**: see FINDINGS.md, audit of 2026-09-26).
 
 ### Analysis / visualization (all take a `results/*.pkl` path as first positional arg)
 

@@ -10,9 +10,10 @@ the assertion into a measurement:
     plateau? (the "crumple, don't unfold" claim);
   * **vs N (the flagship)** -- fit extent ~ N^alpha for each rewiring rule. The
     barrier predicts alpha ~ 0 (extent stays ~log N, expander-like, independent
-    of N), versus a true d-dimensional graph's alpha = 1/d. The `grown`
-    generator is the positive control: it should give alpha ~ 1/2 (cap 6 ~ 2D).
-A *measured* obstruction exponent (alpha ~ 0 for rewiring, ~0.5 for grown) is
+    of N), versus a true d-dimensional graph's alpha = 1/d. The `lattice`
+    is the positive control (alpha = 1/2). `grown` is NOT one: its diameter
+    is logarithmic in N (FINDINGS.md, audit of 2026-09-26).
+A *measured* obstruction exponent (alpha ~ 0 for rewiring, ~0.5 for lattice) is
 far more citable than an asserted one, and the gap between the two is the whole
 result -- it widens with N.
 

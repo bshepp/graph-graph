@@ -21,13 +21,14 @@ independent sets in G (radius 1), which is correct ONLY for pure state rules:
     activation, majority   read N(v) states, write v's state       -> radius 1
     prune                  reads |N(u) & N(v)|, i.e. a NEIGHBOUR'S
                            neighbourhood                            -> radius 2
-    triadic, ricci,        rewire toward friends-of-friends         -> radius 2
-      geometrize
+    triadic, ricci,        rewire toward friends-of-friends, i.e.
+      geometrize           WRITE at distance 2                      -> radius 3
     rewire                 picks a target uniformly from ALL nodes  -> non-local
 
-So every topology rule in this project -- including `prune`, which the
-censorship checkpoint depends on -- needs an independent set in G^2 (nodes
-pairwise at least 3 hops apart), not in G. Using radius 1 for those rules
+So every topology rule in this project needs more than an independent set
+in G: `prune`, which the censorship checkpoint depends on, needs one in G^2
+(nodes pairwise at least 3 hops apart) and the rewiring rules one in G^3
+(see CONFLICT_RADIUS below for the derivation). Using radius 1 for those rules
 produces silently order-dependent results; `--validate` demonstrates exactly
 that as a negative control, so the test is known to have teeth.
 

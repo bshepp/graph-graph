@@ -212,7 +212,8 @@ python track_dimension.py --topology lattice --rules rewire   --steps 200   # de
 # Emergence: shortcut-pruning recovers the latent ~1D ring of a small-world graph
 python track_dimension.py --topology small_world --rules prune --steps 360 --max-radius 10
 
-# Tunable emergent dimension from a grown graph
+# A grown graph (NOTE: `grown` has no dimension -- the reading depends on --max-radius;
+# see FINDINGS.md, audit of 2026-09-26)
 python track_dimension.py --topology grown --rules majority --steps 100 --max-radius 10
 ```
 
@@ -232,10 +233,11 @@ python cap_dimension_scaling.py --caps 8 --nodes 50000 100000 200000 --seeds 3
 ```
 
 Measures the dimension field at a fixed radius across N and reports whether
-`d_eff(N)` plateaus. Finding: it does, at **non-integer** values (cap 6→~2.2,
-7→~3.0, 8→~3.6), and higher-d caps resolve only at larger N. The small-N
-single-point estimates were biased low by ball saturation. See
-[FINDINGS.md](FINDINGS.md) → "cap → d scaling."
+`d_eff(N)` plateaus. It does (cap 6→~2.2, 7→~3.0, 8→~3.6 at radius 10) -- but
+**these are fixed-window readings, not dimensions**: `grown` has exponential
+ball growth, and the same estimator reads 1.7 at radius 6 and 3.9 at radius 32
+(`window_stability.py`). See [FINDINGS.md](FINDINGS.md) → "Audit of
+2026-09-26/27".
 
 ### Quantified bootstrapping barrier
 
@@ -372,7 +374,7 @@ Four initial topologies are available via `--topology`:
 - `scale_free` -- Barabasi-Albert preferential attachment
 - `lattice` -- 2D grid
 - `random` -- Erdos-Renyi
-- `grown` -- degree-capped frontier growth (`k` = degree cap); produces tunable *emergent* dimension (cap 6 → ~2D, 8 → ~3D)
+- `grown` -- degree-capped frontier growth (`k` = degree cap). Triangle-rich locally, tree-like globally (exponential ball growth, diameter ~ log N): it has **no dimension**; the cap tunes a growth rate. ~0.8% of cap-6 seeds go extinct below 20 nodes (a warning is raised)
 
 ## Goals
 

@@ -1,5 +1,11 @@
 # Findings: Emergent Dimension from Local Graph Rules
 
+> **Read first (2026-09-27).** An audit found that the `grown` generator and pruned
+> small-world graphs above p ~ 0.2 have **no dimension**: their ball growth is
+> exponential, and the `d_eff` values quoted for them below (2.2 / 3.0 / 3.6, and the
+> pruned 1 → 2 curve) are readings of one fit window. Passages that depend on this are
+> marked *[superseded]* and left in place. See "Audit of 2026-09-26/27".
+
 A running record of what the emergence experiments have actually shown.
 Theory and framing live in [DIMENSIONAL_COHERENCE.md](DIMENSIONAL_COHERENCE.md);
 this file is the empirical log. All results are reproducible with the seeds
@@ -35,7 +41,7 @@ preservation / emergence signal.
 | `rewire` | rewire edges to **random** targets | **destroys** structure (lattice d≈2 → undefined in ~30 steps) | adds long-range shortcuts → collapses diameter |
 | `prune` | remove low-overlap "shortcut" edges | small-world → **d≈1** (`defined_frac` 0→100%) | strips shortcuts → diameter grows → latent ring revealed |
 | `triadic` | rewire edges to friends-of-friends | clustering 0.002 → 0.625 but **dimension stays undefined** | clustering rises, diameter stays short |
-| `grown` (generator) | degree-capped frontier growth | **tunable emergent d** (converged at scale): cap 6→~2.2, 7→~3.0, 8→~3.6 | cap forces outward growth → large diameter |
+| `grown` (generator) | degree-capped frontier growth | *[superseded]* ~~tunable emergent d~~ — **no dimension**; radius-10 readings 2.2 / 3.0 / 3.6 of exponential growth | frontier stays ∝ N; diameter ~ log N |
 
 > The cap→d numbers above are the **scale-converged** values (`N` up to 2e5;
 > see "cap→d scaling" below). The earlier single-`N` estimates (6→2.1, 7→2.7,
@@ -53,7 +59,8 @@ and dimension falls out, tunable by one local scalar.
 - `prune` is **weak emergence**: d≈1 was *latent* in the Watts-Strogatz
   construction (ring + shortcuts); pruning revealed it.
 - `triadic` is an **honest negative**: proves clustering ≠ geometry.
-- `grown` is **strong emergence**: dimension that was never latent (grown
+- *[superseded 2026-09-26: `grown` has no dimension.]*
+  `grown` is **strong emergence**: dimension that was never latent (grown
   from a triangle), from a simple local rule, tunable by the degree cap.
   Caveat: the cap *selects* d, so it is "emergence with a knob," not a
   spontaneously preferred dimension -- and the knob is a **continuum**, not an
@@ -271,9 +278,8 @@ Reproduce: `python coherence.py --validate` then `python coherence.py`.
 - **Spatial coherence:** *done* -- Moran's I confirms `grown`'s `d_eff` field is
   spatially coherent (I ≈ 0.88, z ≈ 87) where the field is whole, and the
   coherence tracks extent under the rules. See "Spatial coherence" above.
-- **Robustness / scale:** does `grown`'s cap→dimension law hold across N and
-  seeds, and converge to clean integers? (Cheapest win; prerequisite for
-  trusting anything at large N -- see Scaling directions.)
+- **Robustness / scale:** *done (step 1), then superseded (2026-09-26)* -- the
+  fixed-radius reading plateaus in N, but it is not a dimension.
 - **Preservation of emergent structure:** *done* -- `grown`'s dimension is a
   stable fixed point under the structure-respecting rules (`prune`, state-only)
   and eroded only by extent-attacking moves (`rewire`, `triadic`). See
@@ -323,8 +329,8 @@ already carries. Decided with the owner 2026-07-16; unscheduled.
    (censorship, barrier) intact. Step 4 (2026-08-03) is the first physics
    checkpoint and it **passes**: shortcut censorship re-run under async updates
    reproduces P1 (threshold, advantage-blind) as a schedule-invariant, and P2
-   (self-stabilization) survives emergent time essentially unchanged (12-seed
-   paired: no significant attenuation -- the preliminary "~2x" was small-sample
+   (self-stabilization) survives emergent time essentially unchanged (40-seed
+   paired: no attenuation -- the preliminary "~2x" was small-sample
    noise) (`async_censorship.py`; see "censorship under async (step 4)"
    below).** Step 2 revised
    the cost model: the conflict radius is *rule-dependent* (state rules 1,
@@ -336,7 +342,7 @@ already carries. Decided with the owner 2026-07-16; unscheduled.
    rounds per sweep by radius rather than the ~4-5 originally claimed. The spike's verdict: "nearly all
    instrumentation ports over" is half right. The fast backend *survives*
    (asynchronous != sequential; causally independent events batch into vectorised
-   independent sets -- verified, ~4-5 rounds per sweep) and `dimension.py`'s
+   independent sets -- verified; 7 / 24 / 58 rounds per sweep by radius, as above) and `dimension.py`'s
    fitting/gating scaffolding ports to causal-future growth. But the dimension
    *estimator* does not port, and its replacement is only trustworthy with rung 2's
    calibration built alongside -- so **the honest unit of work is rungs 1+2
@@ -986,6 +992,9 @@ prerequisite that licenses the *pipeline* for steps 3-4 (not the exponents).
 
 ### cap → d scaling: done (step 1) -- the instrument scales; the law is a continuum
 
+> *[superseded 2026-09-26]* The plateau in N below is real, but it is the convergence
+> of a radius-10 reading; `grown` has no dimension. See the audit.
+
 `cap_dimension_scaling.py` sweeps the `grown` generator over cap x N x seeds and
 measures the dimension field at a *fixed* radius (so the regime gate, not a
 varying radius, decides resolvability), then checks for a plateau in `d_eff(N)`.
@@ -1053,6 +1062,7 @@ and the gap to a true manifold widens with N exactly as the log-N-vs-N^(1/d)
 argument predicts. This is the flagship negative, with the obstruction rate
 measured rather than asserted.
 
+> *[superseded 2026-09-26: the diameter is logarithmic, and there is no local 2D.]*
 > **Aside (a real surprise worth chasing):** `grown` is locally ~2D by
 > ball-growth (`d_eff` ≈ 2.2) yet its *global* diameter scales only as
 > ~N^0.19, far below the N^0.5 a flat 2D sheet would give. So `grown` is
@@ -1096,6 +1106,9 @@ rule for comparison. Worth remembering when interpreting any `majority` result:
 state 0 is weakly favored. See [[majority-rule-tie-break-bias]].
 
 ### prune dimensional onset: done (step 3) -- a continuum knob, not a transition
+
+> *[partly superseded 2026-09-26]* "Not a transition" stands. "A dimension knob 1 → 2"
+> does not: only p ≲ 0.1 gives a real dimension (d = 1). See the audit.
 
 Step 3 was meant to turn the validated FSS pipeline on `prune` (shortcut-density
 → dimensional onset) and extract the critical exponents. A scout overturned the

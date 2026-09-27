@@ -253,8 +253,21 @@ def census(adj: Adj, c: int) -> Dict[str, float]:
             'max_deg': int(deg.max()), 'nonmanifold_edges': n_bad}
 
 
-def run_one(spec: Tuple[int, float, int, int, Tuple[int, ...]]) -> List[Dict]:
-    c, beta, seed, n_nodes, marks = spec
+def save_edges(adj: Adj, path: str) -> None:
+    e = np.array([(u, v) for u in range(len(adj)) for v in adj[u] if u < v],
+                 dtype=np.int32)
+    np.savez_compressed(path, edges=e, n=len(adj))
+
+
+def load_csr(path: str) -> sp.csr_array:
+    z = np.load(path)
+    e, n = z['edges'], int(z['n'])
+    A = sp.coo_array((np.ones(len(e)), (e[:, 0], e[:, 1])), shape=(n, n))
+    return (A + A.T).tocsr()
+
+
+def run_one(spec: Tuple) -> List[Dict]:
+    c, beta, seed, n_nodes, marks, save = spec
     rows: List[Dict] = []
 
     def snap(n: int, adj: Adj) -> None:
@@ -265,6 +278,9 @@ def run_one(spec: Tuple[int, float, int, int, Tuple[int, ...]]) -> List[Dict]:
     adj = grow_sheet(n_nodes, c, beta, seed, checkpoints=marks,
                      on_checkpoint=snap)
     stalled = len(adj) < n_nodes
+    if save and not stalled:
+        Path("results").mkdir(exist_ok=True)
+        save_edges(adj, f"results/sheet_c{c}_b{beta:g}_s{seed}_N{n_nodes}.npz")
     for r in rows:
         r['stalled_at'] = len(adj) if stalled else 0
         r['seconds'] = time.time() - t0
@@ -342,6 +358,8 @@ def main():
     ap.add_argument('--seeds', type=int, default=3)
     ap.add_argument('--seed', type=int, default=100, help='base seed')
     ap.add_argument('--jobs', type=int, default=1)
+    ap.add_argument('--save-graphs', action='store_true',
+                    help='save each final edge list to results/sheet_*.npz')
     args = ap.parse_args()
 
     random.seed(args.seed)
@@ -356,7 +374,7 @@ def main():
         marks.append(n)
         n //= 4
     marks = tuple(sorted(marks))
-    specs = [(c, b, args.seed + s, args.nodes, marks)
+    specs = [(c, b, args.seed + s, args.nodes, marks, args.save_graphs)
              for c in args.caps for b in args.betas
              for s in range(args.seeds)]
     rows: List[Dict] = []
