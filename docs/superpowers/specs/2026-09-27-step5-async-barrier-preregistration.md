@@ -89,6 +89,28 @@ would be partly a synchronous artifact.
   is a statement about that budget, and that will be said.
 - Static references (lattice / none / grown) are reported for context, labelled static.
 
+## Amendment 1 (2026-09-27, POST HOC — written after Gate 1 data, before Gate 2 data was read)
+
+**Gate 1 FAILED as frozen**, and stays recorded as a failure: pooled alpha sync 0.825 vs
+async 0.576, difference 0.249 against a required < 0.1 (both > 0.5 held).
+
+Diagnosis: the control was badly designed, by me. Pruning a Watts-Strogatz ring
+*fragments* it (`lcc_frac` 0.31-1.00 across runs), so "diameter of the largest component"
+hinges on a handful of edges; with 4 seeds its seed-to-seed scatter (e.g. 585-1448 at
+N = 8000 within the sync arm alone) exceeds any schedule effect. At N = 2000, seed 0 the
+two schedules' final graphs differ in 7 of 5345 edges, with identical diameter.
+
+Amended control, **Gate 1A**: compare what the schedules *do* rather than a fragile
+summary of it. For every (N, seed) in the Gate-1 grid, the Jaccard distance between the
+sync and async final edge sets must be <= 0.01, and both arms must grow the diameter by
+>= x5. This amendment is post hoc and is labelled as such wherever Gate 1 is reported.
+It was written knowing the Gate-1 diameters and one edge-set comparison, and **without
+having read any Gate-2 output**. Gate 2's rules are unchanged.
+
+Consequence for Gate 2, stated before reading it: `triadic` from a random graph keeps
+`lcc_frac` ~ 0.98 in the banked data, so its diameter is not subject to the fragmentation
+problem; `lcc_frac` is reported alongside so this can be checked.
+
 ## Known limits, stated up front
 
 - Diameters here are integers in the range ~8-16, so per-seed alpha is coarse; this is why
