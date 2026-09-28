@@ -1083,6 +1083,8 @@ grows exponentially whatever the rates do. `c = 6` is flat.
   numbers are indistinguishable from each other, which suggests a transition between
   beta = 1 and 2 rather than a persistence length that merely grows -- but nothing here
   tests that, and a crossover beyond 512000 is not excluded.
+  *[Tested 2026-09-28: a crossover is supported, thinly; the predicted crossover size
+  at beta = 2 is 1.6 million. See "`sheet` rate strength".]*
 
 **A limit of the window audit, found here.** It labels beta = 1 "DIMENSION DEFINED"
 (drift 0.09). It probes radii up to 40; the beta = 1 graph is two-dimensional at that
@@ -1093,6 +1095,107 @@ walk, not the audit.
 Reproduce: `python sheet_growth.py --validate`; `python sheet_growth.py --betas 0 1 2 3
 --nodes 512000 --seeds 3 --seed 100 --jobs 7 --save-graphs`; then `python
 sheet_growth.py --judge results/sheet_c6_b2_s100_N512000.npz`.
+
+## `sheet` rate strength (2026-09-28): a crossover, thinly -- the two-dimensional range grows like exp(5.8 beta)
+
+*Step 1 of the plan of 2026-09-28. Pre-registration
+`docs/superpowers/specs/2026-09-28-sheet-beta-transition-preregistration.md` (committed
+before the scan); driver `sheet_transition.py` (`--validate` recovers both planted laws).
+c = 6, seeds 200-203, N to 512000, boundary length at every factor 2.*
+
+Local boundary exponent `e` by size (compact 0.50, tree-like 1.00), and the crossover
+size N* where it passes 0.75 for good:
+
+| beta | N* | e at N ~ 1.4e3 ... 3.6e5 |
+|---|---|---|
+| 1.0 | 5,600 | 0.48 0.65 0.75 0.90 1.00 1.00 0.97 0.98 1.00 |
+| 1.1 | 16,200 | 0.55 0.58 0.62 0.66 0.84 1.08 1.06 1.02 1.03 |
+| 1.2 | 9,300 | 0.55 0.52 0.62 0.80 0.85 0.91 0.94 0.99 1.00 |
+| 1.3 | 17,900 | 0.51 0.52 0.51 0.59 0.83 0.93 0.93 0.99 0.94 |
+| 1.4 | 32,700 | 0.51 0.51 0.51 0.55 0.68 0.81 0.89 0.98 1.01 |
+| 1.5 | 151,000 | 0.50 0.52 0.52 0.57 0.59 0.63 0.69 0.77 1.15 |
+| 1.6 | 164,000 | 0.53 0.50 0.50 0.51 0.50 0.55 0.64 0.77 1.10 |
+| 1.7 | 320,000 | 0.49 0.52 0.50 0.51 0.51 0.51 0.50 0.51 0.80 |
+| 1.8 | > 512,000 | 0.51 0.50 0.51 0.51 0.51 0.50 0.50 0.50 **0.66** |
+| 1.9 | > 512,000 | 0.49 0.53 0.50 0.51 0.49 0.51 0.55 **0.66 0.68** |
+| 2.0 | > 512,000 | 0.53 0.50 0.52 0.50 0.50 0.50 0.51 0.51 0.54 |
+
+| law | fit | RSS | AICc |
+|---|---|---|---|
+| exponential (crossover) | ln N* = 2.68 + 5.82 beta | 1.34 | -7.88 |
+| power law (transition) | ln N* = 10.23 - 5.49 ln(2.325 - beta) | 1.13 | -3.68 |
+
+**Verdict under the frozen rules: CROSSOVER SUPPORTED.** The two laws fit about equally
+well; the exponential wins because it needs one parameter fewer. Its consistency clause
+passes: it predicts N*(1.8) = 515,000, and beta = 1.8 shows no crossover inside the range.
+
+**How thin this is.**
+
+- The consistency clause passed by 0.6% (515,000 against a range ending at 512,000).
+- N* is not monotone (beta = 1.1 reads higher than 1.2). With four seeds the seed scatter
+  of the last exponent is 0.1 - 0.4 wherever the crossover is in progress.
+- A transition at beta_c = 2.33 is not excluded. It fits the finite points slightly
+  better and is penalised only for its third parameter.
+
+**What speaks for a crossover beyond the fit.** beta = 1.8 and 1.9 are censored by the
+rule but their last exponents have left 0.50 (0.66, 0.68): they are turning, at the size
+the exponential law says they should. If there were a compact phase beginning near 2.3,
+nothing requires 1.8 and 1.9 to turn inside this range; if the law is exponential, they
+must.
+
+**A prediction that can fail.** The exponential law puts N*(2.0) at 1.6 million. The
+2026-09-27 result "beta = 2 is two-dimensional through N = 512,000" is then a statement
+about sizes below its crossover. Growing beta = 2 to four million nodes decides it: tree-
+like by then if this is a crossover, still compact if there is a transition below 2.33.
+
+**What `sheet` is, restated.** A strictly local rule that produces a two-dimensional
+sheet up to a size set by the rate strength, about exp(2.7 + 5.8 beta) nodes: 5e8 at
+beta = 3, 2e11 at beta = 4. Beyond that size it is tree-like, like `grown`. As a substrate
+for experiments at N <= 1e6 it is two-dimensional at beta >= 3 on this reading, and that
+qualifier has to travel with it.
+
+Reproduce: `python sheet_transition.py --validate`; `python sheet_transition.py --jobs 14`.
+
+## d(p) fine structure, round 4 (2026-09-28): not one crossover -- two, to within seed noise
+
+*Step 4 of the plan. Pre-registration
+`docs/superpowers/specs/2026-09-28-dp-round4-crossover-preregistration.md`; driver
+`dp_round4.py` (`--validate` passes). Fresh seeds 6-11.*
+
+Hypothesis H: the waveform is a single ring-to-small-world crossover seen through a
+polynomial detrend. RMS residual of each detrend, in units of the seed standard error:
+
+| radius | cubic (4 par.) | single crossover (4 par.) | sextic (7 par.) | two crossovers (7 par.) |
+|---|---|---|---|---|
+| 4 | 3.5 | 2.1 | 1.2 | 0.8 |
+| 6 | 3.7 | 4.9 | 1.3 | 0.7 |
+| 8 | 4.2 | 8.7 | 1.6 | 0.8 |
+| 10 | 4.8 | 5.8 | 1.7 | 0.9 |
+
+**Verdict under the frozen rules: H REFUTED.** A single crossover fits *worse* than the
+cubic (5.8 against 4.8 seed errors at radius 10), and its residual is reproducible
+(split-half correlation +0.92). The log ball counts are not one flat-then-rising curve.
+
+**The comparator, which carries no verdict, is the informative part.** Two crossovers
+added together leave residuals of 0.7 - 0.9 seed errors at every radius from 4 to 10.
+That is what a correct 7-parameter model of 30 points should leave (about 0.88). A
+sextic polynomial, with the same number of parameters, leaves 1.2 - 1.7. So the structure
+that "survived a sextic detrend" in August survived because polynomials are the wrong
+family, not because there is a ripple.
+
+**Reading, with its limits.** The ball counts are described to within noise by a smooth
+curve with two characteristic shortcut densities and nothing else. That is a description,
+not yet a mechanism: this round did not identify what the two scales are. The natural
+candidates are the density at which surviving shortcuts come within ten hops, and the
+density at which the ring backbone itself starts to thin; neither was tested. The
+waveform left in d under the two-crossover form has peak-to-peak 0.050 against a noise
+expectation near 0.03, so a small remainder is not excluded.
+
+Combined with the audit, the d(p) thread now reads: a fixed-window reading (audit) of ball
+counts at radius >= 4 (round 3) that follow a smooth two-scale crossover (round 4). No
+periodicity, no hierarchy, no integer crossings.
+
+Reproduce: `python dp_round4.py --validate`; `python dp_round4.py --jobs 5`.
 
 ## Scaling directions: what more compute could (and couldn't) unlock
 
