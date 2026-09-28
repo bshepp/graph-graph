@@ -54,7 +54,7 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 | `traverse.py` | Animated graph *traversals*: walk diffusion (quantum vs classical) and geodesic ball growth (the dimension estimator's BFS) |
 | `showcase.py` | Generate curated demo animations (one per rule + combos + traversals) |
 | `sweep.py` | Parameter sweep with parallel execution and CSV export |
-| `dimension.py` | Local effective dimension estimator (d_eff via geodesic ball growth) |
+| `dimension.py` | Local effective dimension estimator (d_eff via geodesic ball growth), gated on scale separation, fit quality and **window stability**; `dimension_stats` reports the field-level `window_stable` verdict |
 | `track_dimension.py` | Temporal dimension tracking: how dimensional structure evolves under the rules |
 | `ising_sweep.py` | Finite-size-scaling driver: validates the FSS machinery (Binder cumulant, susceptibility, data collapse) on the majority-vote/Ising transition |
 | `cap_dimension_scaling.py` | cap→dimension finite-size scaling for the `grown` generator: does `d_eff` plateau on a stable value as N grows? (it does — at non-integer values) |

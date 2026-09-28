@@ -47,7 +47,7 @@ out-lists, memory notes, and FINDINGS asides. Practice, adopted 2026-08-11:
 | **Schedule-invariance of the barrier exponent, at power** | step 5: difference +0.010 ± 0.032, CI wider than the ±0.05 band | integer diameters of 10-18 are too coarse. Needs a continuous extent observable (mean eccentricity or mean pair distance) or ~4x the seeds; a new pre-registration either way | low-medium |
 | **Long-run collapse of extent under `triadic`** | step-5 rider: extent peaks near 300 sweeps then falls below its starting value (N=1000: 8.5 → 11.5 → 4.0) with the largest component intact | the banked alpha is a 200-step transient. What is the long-run state — a hub? does the peak time scale with N? Both schedules agree, so the sync driver suffices | low |
 | **Async events for `geometrize` and `ricci`** | step-5 scope: only `triadic` exists as an async event | the three-rule barrier claim is tested under async for one rule | low-medium |
-| **An honest dimension gate inside `dimension.py`** | audit: the R² gate passes slow exponentials | `window_stability.py` is a separate audit tool; the estimator itself still returns a confident number on `grown`. Folding a window-drift check into `local_dimension` changes `defined_frac` everywhere downstream, so it is an owner decision, not a fix to slip in | medium (touches every consumer) |
+| **Re-run the banked `defined_frac` results under the window-stability gate** | gate added to `dimension.py` 2026-09-28 (owner-approved) | preservation, coherence, portal tolerance and the `prune` d(p) curve were all recorded under the old estimator and are now stale as numbers. Most will simply read "not window-stable"; worth one pass so the log and the code agree | low |
 
 ## PARKED — deliberate, no gate
 
@@ -71,6 +71,7 @@ out-lists, memory notes, and FINDINGS asides. Practice, adopted 2026-08-11:
 | branch | killed by |
 |---|---|
 | Spectral-dimension flow on `grown` | **done 2026-09-27** (`spectral_flow.py`) — slow monotone rise 1.2 → 1.9, N-robust; predicted RUNAWAY refuted. `grown` has exponential volume but bottlenecked, tree-like walks: a `d_s`/`d_H` split of the tree kind, not a CDT-like flow |
+| An honest dimension gate inside `dimension.py` | **done 2026-09-28** — gate 3 (window drift) in `local_dimension`, field verdict `window_stable` in `dimension_stats`. Known blind spot: exponential growth slower than base ~1.2 is invisible inside a radius-10 window |
 | Step 5: barrier under async | **done 2026-09-27** — barrier SURVIVES (alpha_async 0.168, 95% CI [0.136, 0.200], bound 0.25); schedule invariance underpowered. Gates 0 and 1 failed as frozen (tolerances), recorded as such. Causal-future-growth stays deferred with the retired causal DAG |
 | Grown-generator "persistent expander phase" | **resolved 2026-09-26** — it is growth extinction: the 19 failing seeds coincide and are 7-17 node graphs whose frontier died. Extinction probability 0.0082 at cap 6, decided within the first ~20 nodes |
 | "`grown` has a tunable emergent dimension" and "`prune` is a dimension knob 1 → 2" | **audit 2026-09-26** — exponential ball growth; banked values are radius-10 readings. Pruned WS has a real dimension (1) only for p ≲ 0.1 |

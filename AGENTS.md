@@ -77,6 +77,13 @@ Analysis scripts (`measure.py`, `visualize.py`, `dimension.py`) all take a
 
 ## Pitfalls
 
+- **A `d_eff` is not a dimension until it is window-stable.** `dimension.py` gates on
+  it per node and reports a field-level `window_stable` in `dimension_stats`; read that,
+  not `defined_frac` alone. The gate only sees the radii it is given (radius 10 misses
+  exponential growth slower than base ~1.2), so run `window_stability.py` on any new
+  graph family before quoting a dimension for it. `grown` has none (FINDINGS.md, audit
+  of 2026-09-26).
+
 - Importing `simulation_fast` pulls in `scipy.sparse`; keep `simulation.py` free of
   sparse-only deps so the slow path stays minimal.
 - `create_initial_graph` lives in [simulation.py](simulation.py) and is reused by the

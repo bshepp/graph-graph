@@ -819,6 +819,48 @@ seed 5006 in the anchor block) with disclosure. `create_initial_graph` now warns
 Reproduce: `python window_stability.py --validate`; `python window_stability.py --nodes
 200000 --seeds 3`.
 
+### The estimator now gates on window stability (2026-09-28, owner-approved)
+
+`dimension.local_dimension` has a third gate. After the fit passes the scale-separation
+and R² gates, it re-fits the inner half of the window and requires the slope not to move:
+`|d(radii 1..n) - d(radii 1..k)| <= 0.25`, `k = max(5, ceil(n/2))`. `dimension_stats`
+adds the field-level verdict, which is the decisive one: `median_drift` over every
+testable node, and `window_stable` (true when `|median_drift| <= 0.10`, `None` when fewer
+than half the sampled nodes have the 8 unsaturated radii the test needs).
+`drift_tol=None` restores the old behaviour. `dimension.py --validate` now has 15 checks.
+
+What it does to the numbers quoted in this log (max_radius 10, 400 samples):
+
+| graph | `defined_frac` before | after | median drift | `window_stable` |
+|---|---|---|---|---|
+| 2D lattice, N = 40000 | 1.00 | 1.00 | +0.02 | yes |
+| pruned WS p = 0.05 | 1.00 | 1.00 | +0.00 | yes |
+| pruned WS p = 0.1 | ~1.00 | 0.89 | +0.03 | yes |
+| pruned WS p = 0.2 | ~1.00 | 0.58 | +0.10 | borderline |
+| pruned WS p = 0.3 | ~1.00 | 0.37 | +0.22 | no |
+| pruned WS p = 0.5 | 0.97 | 0.23 | +0.53 | no |
+| `grown` cap 6, N = 50000 | 0.99 | 0.21 | +0.51 | no |
+| `grown` cap 7 | ~1.00 | 0.14 | +0.75 | no |
+| `grown` cap 8 | ~1.00 | 0.08 | +1.06 | no |
+
+Two things to know before relying on it.
+
+- **The per-node gate thins exponential graphs; it does not empty them.** Ball counts
+  from one node are noisy, so a fifth of `grown` cap-6 nodes still pass. Read
+  `window_stable`, not `defined_frac` alone. `coherence.py` already refuses its verdict
+  on a fragmented field, so on `grown` it now reports "field fragmented (N/A)" where it
+  used to report COHERENT, I = 0.88.
+- **It certifies only the radii it is given.** Exponential growth of base 1.26 is caught
+  at radius 10 (0% defined). Growth of base 1.12 is not: it looks like d ~ 1.5 out to
+  radius 10, drifts only beyond, and passes. `--validate` prints that case as a known
+  blind spot. `window_stability.py`, which audits to radius 40, remains the check to run
+  on any new graph family.
+
+**Every banked number that depends on `defined_frac` of `grown` or of pruned graphs above
+p ~ 0.2 is no longer what the code returns.** That covers the preservation table, the
+coherence table, portal tolerance, and the `prune` d(p) curve. They are left in this log
+as recorded, under the supersession notice; none has been re-run under the new gate.
+
 ## Step 5 (2026-09-27): the bootstrapping barrier survives asynchronous updates
 
 *Pre-registration `docs/superpowers/specs/2026-09-27-step5-async-barrier-preregistration.md`

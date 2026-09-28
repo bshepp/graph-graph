@@ -197,7 +197,8 @@ def _validate() -> bool:
     for _ in range(50):
         counts = np.cumsum(rng.integers(1, 20, size=MAX_RADIUS)) + 1
         balls = [(r + 1, int(c)) for r, c in enumerate(counts)]
-        d, _ = local_dimension(balls, 10 ** 9, r2_threshold=-np.inf)
+        d, _ = local_dimension(balls, 10 ** 9, r2_threshold=-np.inf,
+                               drift_tol=None)
         worst = max(worst, abs(d - float(fit_weights(MAX_RADIUS)
                                          @ np.log(counts))))
     good = worst < 1e-9

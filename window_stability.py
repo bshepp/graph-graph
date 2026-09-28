@@ -77,8 +77,11 @@ def window_table(B: np.ndarray, n: int) -> List[Tuple[int, float, float, int]]:
         for row in B:
             if row[mr - 1] >= SATURATION * n:
                 continue
+            # drift_tol=None: this audit measures the drift itself, so
+            # the estimator's own drift gate must not pre-filter the nodes.
             d, r2 = local_dimension(
-                [(r + 1, int(c)) for r, c in enumerate(row[:mr])], n)
+                [(r + 1, int(c)) for r, c in enumerate(row[:mr])], n,
+                drift_tol=None)
             if np.isfinite(d):
                 ds.append(d)
                 r2s.append(r2)

@@ -47,10 +47,49 @@ def ball_sizes(G: nx.Graph, node, max_radius: int) -> List[Tuple[int, int]]:
     return result
 
 
+DRIFT_TOL = 0.25          # per-node window-drift tolerance (gate 3)
+DRIFT_MIN_RADII = 8       # fewer unsaturated radii than this: gate 3 cannot run
+FIELD_DRIFT_TOL = 0.10    # field-level tolerance on the median drift
+
+
+def _corrected_slope(radii: np.ndarray, log_c: np.ndarray) -> float:
+    """Slope d of the fit  log|B| = d*log r + c + a/r."""
+    design = np.column_stack([np.log(radii), np.ones_like(radii),
+                              1.0 / radii])
+    return float(np.linalg.lstsq(design, log_c, rcond=None)[0][0])
+
+
+def window_drift(ball_counts: List[Tuple[int, int]], n_total: int,
+                 saturation_frac: float = 0.1) -> float:
+    """
+    Change in the fitted slope between the inner half of the fit window and
+    the whole of it:  d(radii 1..n) - d(radii 1..k),  k = max(5, ceil(n/2)).
+
+    A real dimension does not depend on where the window ends, so this is
+    ~0 (lattices: +0.02). Slow exponential growth reads higher with every
+    larger window, so it is large and positive (`grown` cap 6: +0.5).
+    Returns nan when fewer than DRIFT_MIN_RADII unsaturated radii exist --
+    the test needs an inner window that is both fittable and clearly shorter.
+    """
+    thr = int(n_total * saturation_frac)
+    trimmed = [(r, c) for r, c in ball_counts if c < thr]
+    n = len(trimmed)
+    if n < DRIFT_MIN_RADII:
+        return float('nan')
+    radii = np.array([r for r, _ in trimmed], dtype=np.float64)
+    log_c = np.log(np.maximum(
+        np.array([c for _, c in trimmed], dtype=np.float64), 1.0))
+    k = max(5, int(np.ceil(n / 2)))
+    return (_corrected_slope(radii, log_c)
+            - _corrected_slope(radii[:k], log_c[:k]))
+
+
 def local_dimension(ball_counts: List[Tuple[int, int]], n_total: int,
                     saturation_frac: float = 0.1,
                     min_radii: int = 6,
-                    r2_threshold: float = 0.95) -> Tuple[float, float]:
+                    r2_threshold: float = 0.95,
+                    drift_tol: float | None = DRIFT_TOL
+                    ) -> Tuple[float, float]:
     """
     Estimate local effective dimension from ball-growth data, with a
     finite-size correction and a gate for whether dimension is even
@@ -86,9 +125,32 @@ def local_dimension(ball_counts: List[Tuple[int, int]], n_total: int,
     slope there yields a meaningless number. We require:
       1. at least ``min_radii`` unsaturated radii (genuine scale
          separation -- the decisive test; expander graphs fail this), and
-      2. corrected-fit ``R^2 >= r2_threshold`` (the growth is actually a
-         clean power law).
-    If either fails, ``d_eff`` is ``nan``.
+      2. corrected-fit ``R^2 >= r2_threshold`` (the fit is clean), and
+      3. WINDOW STABILITY: ``|window_drift| <= drift_tol``.
+    If any fails, ``d_eff`` is ``nan``.
+
+    Gate 3 exists because gate 2 does not do what it was believed to do. A
+    high R^2 certifies that a curve was fitted, not that the growth is a
+    power law: slow EXPONENTIAL growth (|B| ~ b^r, b near 1) passes gate 2
+    at R^2 > 0.97 over any single window and returns a confident number
+    that depends on where the window ends. That is how the `grown`
+    generator came to be credited with a dimension of 2.2 (FINDINGS.md,
+    audit of 2026-09-26). Gate 3 re-fits the inner half of the window and
+    requires the slope not to move.
+
+    Gate 3 is a per-node test on noisy counts, so it thins exponential
+    graphs rather than emptying them (`grown` cap 6 keeps ~25% of nodes).
+    The decisive statement is the FIELD-level one in `dimension_stats`
+    (``median_drift`` / ``window_stable``). With fewer than DRIFT_MIN_RADII
+    unsaturated radii gate 3 cannot run and the node passes on gates 1-2
+    alone; `dimension_stats` reports how many nodes were actually tested.
+    Pass ``drift_tol=None`` to disable gate 3 (the pre-2026-09-28 behaviour).
+
+    Gate 3 certifies only the radii it is given. At max_radius 10 it
+    catches exponential growth of base >~ 1.2 (`grown`, pruned small worlds
+    at p >= 0.3); growth of base ~1.1 is indistinguishable from a power law
+    inside that window and passes. `window_stability.py` audits to radius
+    40 and is the check to run before trusting a new graph family.
     """
     nan = float('nan')
 
@@ -130,6 +192,13 @@ def local_dimension(ball_counts: List[Tuple[int, int]], n_total: int,
     # Gate 2: growth isn't a clean power law -> dimension undefined.
     if r_squared < r2_threshold:
         return nan, float(r_squared)
+
+    # Gate 3: the slope must not depend on where the fit window ends.
+    if drift_tol is not None and len(trimmed) >= DRIFT_MIN_RADII:
+        k = max(5, int(np.ceil(len(trimmed) / 2)))
+        drift = d_eff - _corrected_slope(radii[:k], log_c[:k])
+        if abs(drift) > drift_tol:
+            return nan, float(r_squared)
 
     return float(d_eff), float(r_squared)
 
@@ -315,7 +384,16 @@ def dimension_stats(dim_field: dict, n_nodes: int) -> Dict[str, Any]:
         d_eff_mean, d_eff_std, d_eff_median, d_eff_min, d_eff_max,
         r_squared_mean, n_sampled, n_defined, n_undefined, defined_frac,
         n_nodes, hist_bins, hist_counts,
-        coherent_frac (fraction of defined nodes with R^2 > 0.9)
+        coherent_frac (fraction of defined nodes with R^2 > 0.9),
+        n_drift_tested, median_drift, window_stable
+
+    ``median_drift`` is the median `window_drift` over every sampled node
+    that has enough radii to test, whether or not it passed the per-node
+    gate. ``window_stable`` is the field-level verdict: True when
+    |median_drift| <= FIELD_DRIFT_TOL, False when it is larger, and None
+    when fewer than half the sampled nodes could be tested (no verdict).
+    A `d_eff` from a field that is not window-stable is a reading of one
+    fit window, not a dimension.
     """
     empty = {
         'd_eff_mean': 0.0, 'd_eff_std': 0.0, 'd_eff_median': 0.0,
@@ -327,9 +405,24 @@ def dimension_stats(dim_field: dict, n_nodes: int) -> Dict[str, Any]:
                       '2.5 <= d < 3.5', 'd >= 3.5'],
         'hist_counts': [0, 0, 0, 0],
         'coherent_frac': 0.0,
+        'n_drift_tested': 0, 'median_drift': float('nan'),
+        'window_stable': None,
     }
     if not dim_field:
         return empty
+
+    drifts = np.array([window_drift(v[2], n_nodes)
+                       for v in dim_field.values()], dtype=np.float64)
+    tested = np.isfinite(drifts)
+    n_tested = int(tested.sum())
+    median_drift = float(np.median(drifts[tested])) if n_tested else \
+        float('nan')
+    if n_tested * 2 < len(drifts):
+        window_stable = None
+    else:
+        window_stable = bool(abs(median_drift) <= FIELD_DRIFT_TOL)
+    drift_stats = {'n_drift_tested': n_tested, 'median_drift': median_drift,
+                   'window_stable': window_stable}
 
     d_all = np.array([v[0] for v in dim_field.values()], dtype=np.float64)
     r2_all = np.array([v[1] for v in dim_field.values()], dtype=np.float64)
@@ -341,7 +434,8 @@ def dimension_stats(dim_field: dict, n_nodes: int) -> Dict[str, Any]:
 
     if n_defined == 0:
         stats = dict(empty)
-        stats.update(n_sampled=n_sampled, n_undefined=n_undefined)
+        stats.update(n_sampled=n_sampled, n_undefined=n_undefined,
+                     **drift_stats)
         return stats
 
     d_effs = d_all[defined_mask]
@@ -370,6 +464,7 @@ def dimension_stats(dim_field: dict, n_nodes: int) -> Dict[str, Any]:
         'hist_bins': bin_labels,
         'hist_counts': hist_counts,
         'coherent_frac': float(np.mean(r_squareds > 0.9)),
+        **drift_stats,
     }
 
 
@@ -391,6 +486,19 @@ def print_dimension_analysis(stats: Dict[str, Any], max_radius: int):
     print(f"  Max radius used:   {max_radius}")
     print(f"  Dimension defined: {n_defined} ({defined_pct:.1f}%)  "
           f"-- undefined (no power-law regime): {n_undef}")
+    stable = stats.get('window_stable')
+    if stable is None:
+        print(f"  Window stability:  NOT TESTED "
+              f"({stats.get('n_drift_tested', 0)} nodes had enough radii) "
+              f"-- any d_eff below is unverified")
+    else:
+        print(f"  Window stability:  "
+              f"{'STABLE' if stable else 'UNSTABLE'}  (median drift "
+              f"{stats['median_drift']:+.2f} over "
+              f"{stats['n_drift_tested']} nodes)")
+        if not stable:
+            print("    -> ball growth is not a power law here; d_eff below "
+                  "is a reading of this fit window, not a dimension.")
 
     if n_defined == 0:
         print("\n  No nodes have a well-defined effective dimension.")
@@ -602,6 +710,65 @@ def validate_estimator(max_radius: int = 12, tol: float = 0.2) -> bool:
         if not is_undefined:
             print(f"    -> expected ~0% defined, got "
                   f"{defined_frac * 100:.1f}% (regime gate too weak?)")
+
+    # ----- (C) window stability: a real dimension vs a slow exponential -----
+    # Imported here: simulation imports nothing from this module, but keeping
+    # the import local leaves `dimension` usable without the generators.
+    from simulation import create_initial_graph
+    print("\n(C) Window stability -- a slow exponential must not pass as a "
+          "dimension")
+    print(f"\n{'graph':24s} {'defined %':>9s} {'median drift':>13s} "
+          f"{'stable':>7s}  result")
+    print("-" * 64)
+    lattice = nx.convert_node_labels_to_integers(nx.grid_2d_graph(140, 140))
+    grown = create_initial_graph(20000, topology='grown', k=6, seed=0)
+
+    def subdivided(n0: int, seg: int) -> nx.Graph:
+        # Random 3-regular graph, every edge replaced by a path of `seg`
+        # edges: exponential ball growth by construction, base 2^(1/seg).
+        reg = nx.random_regular_graph(3, n0, seed=0)
+        S = nx.Graph()
+        nxt = n0
+        for u, v in reg.edges():
+            prev = u
+            for _ in range(seg - 1):
+                S.add_edge(prev, nxt)
+                prev, nxt = nxt, nxt + 1
+            S.add_edge(prev, v)
+        return S
+
+    cases = (("2D lattice (19600)", lattice, True),
+             ("grown cap 6 (20000)", grown, False),
+             ("exponential, base 1.26", subdivided(6000, 3), False))
+    for name, G, want_stable in cases:
+        np.random.seed(0)
+        st = dimension_stats(dimension_field(G, max_radius=10,
+                                             n_samples=200), len(G))
+        ok_case = st['window_stable'] is want_stable
+        if want_stable:
+            ok_case = ok_case and st['defined_frac'] >= 0.95
+        else:
+            ok_case = ok_case and st['defined_frac'] <= 0.5
+        total += 1
+        passed += int(ok_case)
+        print(f"{name:24s} {st['defined_frac'] * 100:8.1f}% "
+              f"{st['median_drift']:+13.2f} {str(st['window_stable']):>7s}  "
+              f"{'PASS' if ok_case else 'FAIL'}")
+
+    # Known blind spot, reported and not counted: growth slow enough that
+    # its curvature does not show inside the window.
+    np.random.seed(0)
+    slow = subdivided(2400, 6)
+    st = dimension_stats(dimension_field(slow, max_radius=10, n_samples=200),
+                         len(slow))
+    print(f"{'exponential, base 1.12':24s} {st['defined_frac'] * 100:8.1f}% "
+          f"{st['median_drift']:+13.2f} {str(st['window_stable']):>7s}  "
+          f"(blind spot -- see note)")
+    print("  Note: the gate sees only the radii it is given. Growth of base "
+          "~1.12 looks")
+    print("  like d ~ 1.5 out to radius 10 and drifts only beyond it; use")
+    print("  window_stability.py (radii to 40) before trusting a new graph "
+          "family.")
 
     # ----- Diagnostic: corrected fit is now radius-stable near the truth -----
     print("\nRadius stability (2D lattice, corrected fit, expect ~2.0):")
