@@ -1281,6 +1281,27 @@ What survives of the walker section: the *method* (horizon-free Pbar, degeneracy
 validated) and the analytic point that classical occupancy is degree-determined. What
 does not: any claim that portals matter to walkers on a geometry.
 
+**Follow-up, same night: the localization is in the eigenvectors.** Inverse
+participation ratio of the walk Hamiltonian's eigenvectors, N = 1500, seed 0
+(`N x IPR` = 1 for a state spread over the whole graph, N for a state on one node;
+"fraction localized" = eigenvectors with IPR > 0.05, i.e. living on fewer than 20 nodes):
+
+| graph | H = A: N x median IPR | fraction localized | H = L: N x median IPR | fraction localized |
+|---|---|---|---|---|
+| triangular | 2.6 | 0.000 | 3.0 | 0.000 |
+| sheet | 2.9 | 0.000 | 3.2 | 0.000 |
+| random k = 6 | 3.4 | 0.000 | 5.4 | 0.043 |
+| pruned WS p = 0.05 | 26.8 | 0.106 | 34.1 | 0.173 |
+| grown cap 6 | 39.7 | 0.278 | 68.0 | 0.473 |
+| grown cap 7 | 42.1 | 0.283 | 102.0 | 0.589 |
+| grown cap 8 | 45.0 | 0.307 | 154.3 | 0.700 |
+
+On the lattice, the sheet and even the random graph every eigenvector is spread over the
+graph. On `grown` a quarter to two thirds of them live on fewer than 20 nodes, more so
+under the Laplacian and more so at higher cap -- which is the order of the banked portal
+gains (x48 adjacency, x131 Laplacian). A tree-like graph with dangling structure
+localizes its walk eigenstates; that, and not the portal, was the physics.
+
 ### Summary against the pre-registration
 
 | prediction | triangular | sheet | grown (reference) |
