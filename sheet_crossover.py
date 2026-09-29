@@ -122,6 +122,8 @@ def seed_mean_curves(rows: List[Dict]) -> Tuple[List[int], Dict[str, list]]:
           if len([r for r in rows if int(r['N']) == n]) == len(seeds)]
     curves = {}
     for key in ('boundary_edges', 'diameter', 'arm_fraction'):
+        if any(r.get(key) in (None, '') for r in rows):
+            continue                 # step-1 rows carry boundary_edges only
         curves[key] = [np.mean([float(r[key]) for r in rows
                                 if int(r['N']) == n]) for n in Ns]
     return Ns, curves
