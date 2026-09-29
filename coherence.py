@@ -33,7 +33,8 @@ import networkx as nx
 import scipy.sparse as sp
 
 from simulation import create_initial_graph
-from dimension import fast_dimension_field, _estimate_max_radius_sparse
+from dimension import (fast_dimension_field, dimension_stats,
+                       _estimate_max_radius_sparse)
 
 
 # ----------------------------------------------------------------------
@@ -110,12 +111,15 @@ def field_coherence(G: nx.Graph, max_radius: int | None = None,
                                  sample_indices=np.arange(n))
     d_eff = np.array([field[i][0] for i in range(n)], dtype=float)
     defined = np.where(np.isfinite(d_eff))[0]
+    dstats = dimension_stats(field, n)
 
     out: Dict[str, Any] = {
         'n_nodes': n,
         'n_defined': int(defined.size),
         'defined_frac': float(defined.size / n),
         'max_radius': max_radius,
+        'median_drift': dstats['median_drift'],
+        'window_stable': dstats['window_stable'],
         'd_eff_mean': float(np.nanmean(d_eff)) if defined.size else float('nan'),
         'd_eff_std': float(np.nanstd(d_eff)) if defined.size else float('nan'),
     }

@@ -72,6 +72,21 @@ def create_initial_graph(n_nodes: int, topology: str = 'small_world',
         G = nx.convert_node_labels_to_integers(G)
     elif topology == 'random':
         G = nx.erdos_renyi_graph(n_nodes, k / n_nodes, seed=seed)
+    elif topology == 'triangular':
+        # Triangular lattice, the flat reference with the same local
+        # structure (degree 6, every edge in two triangles) as a sheet's
+        # interior. Rounded down to the largest (s+1)^2 <= n_nodes.
+        side = max(1, int(np.sqrt(n_nodes)) - 1)
+        G = nx.triangular_lattice_graph(side, 2 * side, with_positions=False)
+        G = nx.convert_node_labels_to_integers(G)
+    elif topology == 'sheet':
+        # Wheel-closing frontier growth with local rates (sheet_growth.py):
+        # a two-dimensional sheet up to ~exp(2.7 + 5.8*beta) nodes. k is the
+        # closure degree (6 = flat); beta is fixed at 3 here, which keeps
+        # the crossover far above any size this function is used at.
+        # Imported lazily: sheet_growth needs scipy and this module must not.
+        from sheet_growth import grow_sheet, to_networkx
+        G = to_networkx(grow_sheet(n_nodes, c=k, beta=3.0, seed=seed))
     elif topology == 'grown':
         # Emergent-geometry generator: k is the degree cap (6 -> ~2D).
         G = _grow_dimensional(n_nodes, degree_cap=k, seed=seed)
@@ -169,7 +184,8 @@ def main():
     parser.add_argument('--nodes', type=int, default=1000, help='Number of nodes')
     parser.add_argument('--steps', type=int, default=1000, help='Simulation steps')
     parser.add_argument('--topology', type=str, default='small_world',
-                        choices=['small_world', 'scale_free', 'lattice', 'random', 'grown'])
+                        choices=['small_world', 'scale_free', 'lattice', 'random', 'grown',
+                                 'triangular', 'sheet'])
     parser.add_argument('--rules', type=str, nargs='+', default=['activation'],
                         choices=list(RULES.keys()))
     parser.add_argument('--seed', type=int, default=None, help='Random seed')

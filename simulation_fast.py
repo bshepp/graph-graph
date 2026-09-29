@@ -462,7 +462,8 @@ def main():
     parser.add_argument('--steps', type=int, default=1000,
                         help='Simulation steps')
     parser.add_argument('--topology', type=str, default='small_world',
-                        choices=['small_world', 'scale_free', 'lattice', 'random', 'grown'])
+                        choices=['small_world', 'scale_free', 'lattice', 'random', 'grown',
+                                 'triangular', 'sheet'])
     parser.add_argument('--rules', type=str, nargs='+', default=['activation'],
                         choices=list(FAST_RULES.keys()))
     parser.add_argument('--seed', type=int, default=None,

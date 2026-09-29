@@ -196,7 +196,7 @@ def main():
                         help='Measure dimension every N steps')
     parser.add_argument('--topology', type=str, default='lattice',
                         choices=['small_world', 'scale_free', 'lattice',
-                                 'random', 'grown'])
+                                 'random', 'grown', 'triangular', 'sheet'])
     parser.add_argument('--rules', type=str, nargs='+', default=['rewire'])
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--max-radius', type=int, default=None,
