@@ -1197,6 +1197,107 @@ periodicity, no hierarchy, no integer crossings.
 
 Reproduce: `python dp_round4.py --validate`; `python dp_round4.py --jobs 5`.
 
+## Portals on substrates with a dimension (2026-09-28/29): censorship holds, tolerance is a threshold, and the walker result was the tree
+
+*Step 3 of the plan. Pre-registration
+`docs/superpowers/specs/2026-09-28-portals-on-geometry-preregistration.md` (committed
+before any run); driver `portals_on_geometry.py` plus `shortcut_walkers.py --topology`.
+Substrates: the triangular lattice, `sheet` (c = 6, beta = 3), and `grown` re-run under
+the identical code as the paired reference. `triangular` and `sheet` are now topologies
+in `create_initial_graph`.*
+
+Every banked portal result was measured on `grown`, which the audit showed to be
+tree-like. This step asks which of them were about portals in a geometry and which were
+about portals in a tree. Two of four predictions held; the two about walkers failed, and
+their failure is the finding.
+
+### E1 censorship (N = 2000, 40 long + 20 detour-2 portals, 120 steps, 5 seeds)
+
+| substrate | condition | long survival | detour-2 survival | rank(adv, t) | woven | collateral |
+|---|---|---|---|---|---|---|
+| triangular | prune | 0.010 | 1.00 | -0.08 | -- | 0.000 |
+| sheet | prune | 0.015 | 1.00 | -0.03 | -- | 0.000 |
+| grown | prune | 0.020 | 1.00 | -0.03 | -- | 0.000 |
+| triangular | triadic+prune | 0.065 | 0.06 | -0.08 | 2.2 | 0.855 |
+| sheet | triadic+prune | 0.040 | 0.07 | +0.01 | 0.8 | 0.853 |
+| grown | triadic+prune | 0.140 | 0.21 | -0.01 | 2.2 | 0.583 |
+
+**P1 (threshold, advantage-blind) holds on every substrate**, as predicted: it is a
+property of the rule. **P2 (triadic self-stabilization) holds on every substrate but is
+weaker on a real dimension** -- long survival 0.04-0.065 against 0.14 on `grown` -- while
+`triadic` churns *more* of a 2D fabric (85% of edges against 58%). The banked reading
+"the stabilizer is a worse threat than the censor" is stronger on a geometry than it was
+on the tree.
+
+### E2 tolerance (N = 5000, fixed r0 = 10, 3 seeds)
+
+| substrate | k | placed | defined | median drift | window-stable | d_eff | Moran I | mean distance |
+|---|---|---|---|---|---|---|---|---|
+| triangular | 0 | 0 | 0.96 | +0.02 | 3/3 | 1.86 | 0.89 | 37.5 |
+| triangular | 10 | 10 | 0.84 | +0.05 | 3/3 | 1.95 | 0.85 | 23.4 |
+| triangular | 20 | 20 | 0.69 | +0.14 | **0/3** | 2.04 | 0.86 | 20.4 |
+| triangular | 50 | 50 | 0.41 | +0.30 | 0/3 | 2.32 | 0.92 | 16.0 |
+| triangular | 100 | 100 | 0.29 | +0.43 | 0/3 | 2.73 | 0.70 | 13.3 |
+| triangular | 400 | 125 | 0.33 | +0.46 | 0/3 | 2.81 | 0.65 | 12.8 |
+| sheet | 0 | 0 | 0.97 | +0.02 | 3/3 | 1.87 | 0.91 | 37.9 |
+| sheet | 20 | 20 | 0.71 | +0.12 | **0/3** | 2.04 | 0.83 | 20.5 |
+| sheet | 400 | 128 | 0.31 | +0.46 | 0/3 | 2.83 | 0.65 | 12.9 |
+| grown | 0 | 0 | 0.27 | +0.43 | 0/3 | 2.15 | 1.10 | 19.8 |
+| grown | 400 | 400 | 0.17 | +0.68 | 0/3 | 3.13 | 0.64 | 13.0 |
+
+**Predicted and found: portals do not inflate a real dimension, they destroy it.** The
+`d_eff` of the still-defined nodes does climb with k (1.86 → 2.8), which is the banked
+"inflation" -- but the window audit turns unstable at **k* = 20** on both 2D substrates
+(predicted range 10-50), and `defined_frac` falls from 0.96 to 0.3. Above k = 20 the
+number is a reading of one fit window, not a dimension. A 2D substrate of 5000 nodes also
+exhausts its far pairs at ~125 portals, where `grown` accepted 400: distances that grow
+like sqrt(N) run out sooner. `grown` is unstable already at k = 0, as the audit said.
+
+### E3 walkers (N = 1500, 10 seeds, offset portal ~2 hops from source and target)
+
+| substrate | source-target distance | classical t_hit gain | classical pi gain | quantum Pbar gain (adjacency) | (Laplacian) | baseline Pbar x N |
+|---|---|---|---|---|---|---|
+| triangular | 41 | **1.4x** | 1.00x | **1.0x** | 1.0x | 0.98 |
+| sheet | 38 | **1.3x** | 1.00x | **1.0x** | 1.0x | 0.97 |
+| grown | 24 | 6.7x | 1.00x | 122x | 166x | 0.03 |
+
+**Both walker predictions FAILED, in the same direction.** I predicted a larger classical
+gain on the 2D substrates (longer distances, larger advantage) and a quantum gain above
+10x everywhere. Instead, on a real geometry an offset portal is almost invisible to both
+walkers in the long run: 1.3-1.4x classically, **1.0x quantum-mechanically**. Only the
+direct source-target edge does anything (2.4x quantum, 3-4x classical).
+
+The last column says why. On the 2D substrates the no-portal quantum occupancy already sits
+at equipartition (`Pbar x N` ~ 1): the eigenstates of a lattice are spread over the
+whole graph, so there is nothing for a portal to improve. On `grown` the baseline is
+30-100 times *below* equipartition -- the walker is localized in the tree's arms -- and
+the portal lifts it to equipartition. **The banked headline "a portal is a structural
+device quantum-mechanically" (3c, x48-131) was a statement about localization on a
+tree-like graph, not about portals in a geometry.** The same holds classically: the
+6.7x hitting-time gain on `grown` came from a walker confined to an arm that finds the
+portal mouth at once; on a plane it wanders off before finding a node two hops away.
+
+What survives of the walker section: the *method* (horizon-free Pbar, degeneracy-grouped,
+validated) and the analytic point that classical occupancy is degree-determined. What
+does not: any claim that portals matter to walkers on a geometry.
+
+### Summary against the pre-registration
+
+| prediction | triangular | sheet | grown (reference) |
+|---|---|---|---|
+| P1 threshold, advantage-blind | PASS | PASS | PASS |
+| P2 self-stabilization survives | PASS (weaker) | PASS (weaker) | PASS |
+| portals destroy, not inflate; k* in 10-50 | PASS, k* = 20 | PASS, k* = 20 | unstable at k = 0 |
+| quantum Pbar gain > 10x | **FAIL** (1.0x) | **FAIL** (1.0x) | 122-166x |
+| classical gain larger on 2D | **FAIL** (1.4x vs 6.7x) | **FAIL** (1.3x) | -- |
+
+`triangular` and `sheet` agree to two decimals on everything, which at these sizes is a
+consistency check (the sheet is a lattice patch with a rough edge), not two substrates.
+
+Reproduce: `python portals_on_geometry.py --e1 --jobs 6`, `--e2 --jobs 6`;
+`python shortcut_walkers.py --topology triangular --nodes 1500 --seeds 10 --generators
+adjacency laplacian` (and `sheet`, `grown`).
+
 ## Scaling directions: what more compute could (and couldn't) unlock
 
 A standing question is whether *scaling up* -- to the largest graphs a private
@@ -1642,6 +1743,9 @@ time is made emergent, essentially unchanged. Reproduce: `python async_censorshi
 
 ### 3. Walkers: the quantum walker is the portal's best customer
 
+> *[superseded 2026-09-29: on a substrate with a dimension neither walker cares much
+> about an offset portal -- see "Portals on substrates with a dimension".]*
+
 grown N=1500, source-target distance 24.4±2.6; conditions: none / offset portal
 (ends ~2 hops from source and target) / direct source-target edge. Classical:
 exact absorbing-walk median hitting time. Quantum: CTQW (H = adjacency) peak
@@ -1717,6 +1821,11 @@ O(10^2-10^3), robust across both generators and both horizons -- not any single
 ratio. A better-defined observable is the honest follow-up; done below.
 
 ### 3c. Horizon-free observable: a portal is kinetic classically, structural quantum-mechanically (2026-07-18)
+
+> *[superseded 2026-09-29]* The quantum gain below is a property of localization on the
+> tree-like `grown` substrate: on the triangular lattice and on `sheet` the same offset
+> portal gives a Pbar gain of 1.0x, because the no-portal walker is already at
+> equipartition. See "Portals on substrates with a dimension".
 
 Replaced the max-over-a-window with the **infinite-time average**, the standard
 CTQW observable with no free time parameter:
