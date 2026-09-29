@@ -47,7 +47,7 @@ out-lists, memory notes, and FINDINGS asides. Practice, adopted 2026-08-11:
 | **Schedule-invariance of the barrier exponent, at power** | step 5: difference +0.010 ± 0.032, CI wider than the ±0.05 band | integer diameters of 10-18 are too coarse. Needs a continuous extent observable (mean eccentricity or mean pair distance) or ~4x the seeds; a new pre-registration either way | low-medium |
 | **Long-run collapse of extent under `triadic`** | step-5 rider: extent peaks near 300 sweeps then falls below its starting value (N=1000: 8.5 → 11.5 → 4.0) with the largest component intact | the banked alpha is a 200-step transient. What is the long-run state — a hub? does the peak time scale with N? Both schedules agree, so the sync driver suffices | low |
 | **Async events for `geometrize` and `ricci`** | step-5 scope: only `triadic` exists as an async event | the three-rule barrier claim is tested under async for one rule | low-medium |
-| **Re-run the banked `defined_frac` results under the window-stability gate** | gate added to `dimension.py` 2026-09-28 (owner-approved) | preservation, coherence, portal tolerance and the `prune` d(p) curve were all recorded under the old estimator and are now stale as numbers. Most will simply read "not window-stable"; worth one pass so the log and the code agree | low |
+| **Re-run the banked `defined_frac` results under the window-stability gate** | gate added to `dimension.py` 2026-09-28 (owner-approved) | coherence (done: grown reads "fragmented") and the `prune` d(p) curve remain; preservation and tolerance were re-done on real substrates instead (2026-09-29), which is the more useful form | low |
 
 ## PARKED — deliberate, no gate
 

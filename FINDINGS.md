@@ -168,6 +168,11 @@ escapes. Two honesty notes:
 
 ## Preservation: is emergent geometry stable under the local rules?
 
+> *[superseded 2026-09-29]* Measured on `grown`, which has no dimension; the
+> `defined_frac` numbers below are stale under the window-stability gate. The same
+> experiment on the triangular lattice and on `sheet` gives the same qualitative
+> pattern -- see "Preservation of a real dimension under the rules".
+
 The barrier says local rewiring cannot *build* extent from disorder. The dual
 question is whether the extent we *do* build (the `grown` generator) *survives*
 the same local dynamics, or erodes. Tested with `track_dimension.py` on a
@@ -1318,6 +1323,44 @@ consistency check (the sheet is a lattice patch with a rough edge), not two subs
 Reproduce: `python portals_on_geometry.py --e1 --jobs 6`, `--e2 --jobs 6`;
 `python shortcut_walkers.py --topology triangular --nodes 1500 --seeds 10 --generators
 adjacency laplacian` (and `sheet`, `grown`).
+
+## Preservation of a real dimension under the rules (2026-09-29)
+
+*Sidequest; pre-registration
+`docs/superpowers/specs/2026-09-29-preservation-on-geometry-preregistration.md`
+(committed before the runs). `track_dimension.py` on `triangular` and `sheet`,
+N = 10000, 200 steps, max_radius 10, seeds 0-2. `track_dimension` now reports
+`median_drift` and `window_stable` at every checkpoint.*
+
+The banked "Preservation" table was measured on `grown`, which has no dimension. On a
+substrate that has one, all four predictions hold on both substrates:
+
+| rule | defined_frac, t = 0 → 200 | median d_eff | window-stable | prediction | reading |
+|---|---|---|---|---|---|
+| `majority` | 0.98 → 0.98 | 1.96 → 1.96 | stable → stable | preserved | PASS |
+| `prune` | 0.98 → 0.98 | 1.96 → 1.96 | stable → stable; edge count unchanged (29601 → 29601, 29625 → 29625) | preserved, exactly inert | PASS |
+| `triadic` | 0.98 → 0.02 | 1.96 → 6.8 (triangular), 5.5 (sheet) | unstable from step 20 (all 6 runs) | eroded, unstable by 200, defined down > 0.3 | PASS |
+| `rewire` | 0.98 → 0.00 | 1.96 → -- | untestable from step 20: no node keeps eight unsaturated radii | destroyed within 40 steps | PASS on destruction; the "reads UNSTABLE" clause cannot be read, because there is nothing left to test |
+
+(Triangular and sheet numbers are identical to two decimals; one column shown.)
+
+`triadic` is worth a sentence. It does not merely thin the field: within 20 steps the
+median drift turns *negative* (-0.13, then -0.25, -0.33 by step 60 -- balls growing
+slower than a power law at large radius, the fabric crumpling locally) and by step 200 it
+is +0.5 with a median `d_eff` of 6-7 among the 2% of nodes still passing: the plane has
+become a small world. The banked "crumpling" reading was right for the wrong graph; the
+same rule crumples a real plane faster than it crumpled the tree (grown: 0.99 → ~0.46 in
+200 steps).
+
+So the banked reading stands, restated on a substrate where it means something: a real
+dimension is a fixed point under the rules that respect triangles (`prune` is exactly
+inert on a triangulation; state rules never touch topology) and is destroyed by the two
+rules that move edges across the plane -- `rewire` within 20 steps, `triadic` within 20
+steps as well, just less completely.
+
+Reproduce: `python track_dimension.py --topology triangular --nodes 10000 --rules triadic
+--steps 200 --track-interval 20 --max-radius 10 --seed 0` (and `sheet`; rules `prune`,
+`majority`, `rewire`).
 
 ## Scaling directions: what more compute could (and couldn't) unlock
 
