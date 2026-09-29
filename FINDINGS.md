@@ -1088,8 +1088,8 @@ grows exponentially whatever the rates do. `c = 6` is flat.
   numbers are indistinguishable from each other, which suggests a transition between
   beta = 1 and 2 rather than a persistence length that merely grows -- but nothing here
   tests that, and a crossover beyond 512000 is not excluded.
-  *[Tested 2026-09-28: a crossover is supported, thinly; the predicted crossover size
-  at beta = 2 is 1.6 million. See "`sheet` rate strength".]*
+  *[Tested 2026-09-28/29: a crossover, confirmed at 4 M nodes -- beta = 2 turns tree-like
+  at ~800,000 nodes, by a sudden per-seed event. See "`sheet` at beta = 2 turns tree-like".]*
 
 **A limit of the window audit, found here.** It labels beta = 1 "DIMENSION DEFINED"
 (drift 0.09). It probes radii up to 40; the beta = 1 graph is two-dimensional at that
@@ -1323,6 +1323,80 @@ consistency check (the sheet is a lattice patch with a rough edge), not two subs
 Reproduce: `python portals_on_geometry.py --e1 --jobs 6`, `--e2 --jobs 6`;
 `python shortcut_walkers.py --topology triangular --nodes 1500 --seeds 10 --generators
 adjacency laplacian` (and `sheet`, `grown`).
+
+## `sheet` at beta = 2 turns tree-like near 800,000 nodes (2026-09-29): the crossover is confirmed, and it is a sudden event
+
+*Step 2 of the plan. Pre-registration
+`docs/superpowers/specs/2026-09-28-sheet-crossover-4M-preregistration.md` (committed
+before the growth); driver `sheet_crossover.py` (`--validate` passes). Three crossover
+estimators on the same growths, per the owner's instruction to run every method and
+compare.*
+
+**Part B first (the law, on 12 seeds).** Re-scanning beta = 1.0-1.7 with 8 fresh seeds
+makes N*(beta) monotone (7.3k, 11k, 14k, 25k, 34k, 117k, 122k, 324k) and gives
+
+| law | fit | AICc |
+|---|---|---|
+| exponential (crossover) | ln N* = 3.30 + 5.38 beta | -16.3 |
+| power law (transition) | ln N* = 10.00 - 4.76 ln(2.270 - beta) | -14.4 |
+
+still a near tie on the finite points, and a prediction for beta = 2 of **N* = 1.26
+million, 95% prediction interval [0.47 M, 3.4 M]** (the step-1 figure of 1.6 M moved by
+less than a factor 3, as the pre-registration required before reading Part A).
+
+**Part A (the test): beta = 2, four seeds, grown to 4,194,304 nodes.** Seed-mean local
+exponents by size (compact: 0.50 / 0.50 / -0.50; tree-like: 1 / ~0.1 / ~0):
+
+| N (midpoint) | boundary e_B | diameter e_D | arm fraction e_A |
+|---|---|---|---|
+| 1.4e3 ... 3.7e5 | 0.49 - 0.52 | 0.49 - 0.53 | -0.32 → -0.48 |
+| 741,455 | **0.71** | 0.49 | **-0.28** |
+| 1,482,910 | **1.18** | 0.40 | **+0.18** |
+| 2,965,821 | 1.24 | **0.25** | 0.24 |
+
+| method | crossover size N* |
+|---|---|
+| M1 boundary exponent | 782,000 |
+| M3 arm fraction | 777,000 |
+| M2 diameter exponent | 2,340,000 |
+
+**Verdict under the frozen rules: CROSSOVER CONFIRMED, quantitatively.** All three
+estimators are finite and inside the window; the boundary and arm-fraction readings agree
+to 1% and the diameter reading lags them by a factor 3 (within the frozen factor 4); and
+N*_B = 782,000 lies inside the 12-seed law's prediction interval. The rival transition at
+beta_c ~ 2.3 is out: beta = 2 is not compact at every size.
+
+**Per seed it is an event, not a drift.** Boundary over sqrt(N), which is 3.75-3.85 for a
+compact disc at every size up to 512,000, then does this:
+
+| seed | 512 k | 1 M | 2 M | 4 M | N*_B |
+|---|---|---|---|---|---|
+| 300 | 3.85 | 3.99 | 7.05 | 11.66 | 886,000 |
+| 301 | 3.86 | 6.17 | 9.16 | 12.16 | 475,000 |
+| 302 | 3.84 | 3.85 | 7.09 | 12.75 | 900,000 |
+| 303 | 3.83 | 3.84 | 5.22 | 11.09 | 1,094,000 |
+
+Each seed stays exactly compact and then, within one octave, its boundary exponent jumps
+from 0.5 to above 1 (0.55 → 1.32 for seed 300). The crossover size varies by a factor 2.3
+across four seeds. That is the signature of a nucleation: one protrusion escapes the
+filling-in and, once it is an arm, grows like a tree; the diameter reacts a factor 3
+later because an arm has to become long before it dominates the diameter. Why a
+protrusion escapes at a size that grows like exp(5.4 beta) is not explained here.
+
+**What `sheet` is, final form.** A strictly local growth rule that produces a
+window-stable two-dimensional sheet up to a size of about exp(3.3 + 5.4 beta) nodes --
+0.8 M at beta = 2, 0.2 G at beta = 3 -- and grows tree-like arms beyond it. Below that
+size four observables (ball growth, walk, diameter, boundary) agree it is a plane; above
+it, `grown`'s fate. Every use of `sheet` as a substrate carries that size. At beta = 3 and
+N <= 1e6 (everything in this log) the margin is a factor 200.
+
+The window audit and spectral flow on the 4 M-node seed-300 graph (supplementary M4, M5)
+are reported below if they complete; they see scales far below the crossover and are
+expected to read two-dimensional.
+
+Reproduce: `python sheet_crossover.py --rescan --jobs 12 --old-scan
+results/sheet_transition_20260928_133040.csv`; `python sheet_crossover.py --seeds 300 301
+302 303 --n-max 4194304 --jobs 4` (~1.5 h per seed, ~5 GB each); `--analyze` on the CSVs.
 
 ## Preservation of a real dimension under the rules (2026-09-29)
 
