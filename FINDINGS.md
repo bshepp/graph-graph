@@ -1390,9 +1390,12 @@ size four observables (ball growth, walk, diameter, boundary) agree it is a plan
 it, `grown`'s fate. Every use of `sheet` as a substrate carries that size. At beta = 3 and
 N <= 1e6 (everything in this log) the margin is a factor 200.
 
-The window audit and spectral flow on the 4 M-node seed-300 graph (supplementary M4, M5)
-are reported below if they complete; they see scales far below the crossover and are
-expected to read two-dimensional.
+**Supplementary M4 / M5 on the 4 M-node seed-300 graph**, which see scales far below the
+crossover: the window audit reads d = 1.94-1.99 at every window from radius 6 to 160 and
+1.94, 1.84 at radii 250 and 400 (drift 0.15, just over its 0.15 tolerance: MIXED), and the
+spectral flow reads FLAT at d_s = 1.96 with a slow decline from 2.00 to 1.85 over t = 16
+to 11,585. Both say what they should: a plane wherever they look, with the arms just
+becoming visible at the largest radii and longest times.
 
 Reproduce: `python sheet_crossover.py --rescan --jobs 12 --old-scan
 results/sheet_transition_20260928_133040.csv`; `python sheet_crossover.py --seeds 300 301
