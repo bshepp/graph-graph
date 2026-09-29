@@ -125,6 +125,8 @@ def run_dimension_trajectory(
         'd_eff_median': [],
         'd_eff_std': [],
         'coherent_frac': [],
+        'median_drift': [],
+        'window_stable': [],
         'hist_bins': None,
         'hist_counts': [],
         'params': {
@@ -148,11 +150,16 @@ def run_dimension_trajectory(
         traj['d_eff_median'].append(stats['d_eff_median'])
         traj['d_eff_std'].append(stats['d_eff_std'])
         traj['coherent_frac'].append(stats['coherent_frac'])
+        traj['median_drift'].append(stats.get('median_drift', float('nan')))
+        traj['window_stable'].append(stats.get('window_stable'))
         traj['hist_counts'].append(stats['hist_counts'])
         if traj['hist_bins'] is None:
             traj['hist_bins'] = stats['hist_bins']
+        ws = stats.get('window_stable')
+        ws_txt = 'untested' if ws is None else ('stable' if ws else 'UNSTABLE')
         print(f"  step {step:5d}:  defined={stats['defined_frac']*100:5.1f}%"
               f"   median d_eff={stats['d_eff_median']:.2f}"
+              f"   drift={stats.get('median_drift', float('nan')):+.2f} {ws_txt}"
               f"   (n_defined={stats['n_defined']})")
 
     print(f"Tracking dimension: {topology}, rules={rules}, "
