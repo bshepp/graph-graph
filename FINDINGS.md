@@ -226,6 +226,10 @@ being a stable fixed point under `geometrize` (bistability table above), and of
 
 ## Spatial coherence: the dimension field forms contiguous phases, not noise
 
+> *[superseded 2026-10-13]* Measured on `grown` with the pre-gate estimator; under the
+> window-stability gate `grown` reads "field fragmented (N/A)". The lattice row stands.
+> See "Round of 2026-10-13, item 3".
+
 A per-node `d_eff` could be spatially *coherent* (graph-neighbouring nodes share
 a dimension, so the field forms contiguous phases) or just per-node estimation
 *noise*. `coherence.py` settles it with **Moran's I** of the `d_eff` field under
@@ -1438,6 +1442,48 @@ steps as well, just less completely.
 Reproduce: `python track_dimension.py --topology triangular --nodes 10000 --rules triadic
 --steps 200 --track-interval 20 --max-radius 10 --seed 0` (and `sheet`; rules `prune`,
 `majority`, `rewire`).
+
+## Round of 2026-10-13, item 3: the banked tables under the window-stability gate
+
+*Pre-registration `docs/superpowers/specs/2026-10-13-round2-preregistrations.md`. Same
+drivers and defaults as the banked runs; only the estimator changed.*
+
+**Coherence** (N = 5000, cap 6, 3 seeds, 999 permutations):
+
+| topology | defined_frac | edge_frac | d_eff | Moran I | z | verdict |
+|---|---|---|---|---|---|---|
+| `grown` | 0.27 (was 0.99) | 0.14 | 2.15 | (1.10) | 42 | **field fragmented (N/A)** (was COHERENT, I = 0.88) |
+| `lattice` | 0.99 | 0.99 | 1.89 | 0.932 | 93 | COHERENT (unchanged) |
+| `small_world` | 0.12 | 0.07 | 4.69 | (0.91) | 30 | field fragmented (unchanged) |
+
+Predicted and found. The banked "`grown`'s dimension field is spatially coherent" was a
+statement about a fixed-window reading; the refusal logic in `coherence.py` now declines
+the verdict on its own.
+
+**Pruned Watts-Strogatz d(p)** (N = 2000 / 8000 / 32000, 3 seeds, max_radius 10; last
+column at N = 32000):
+
+| p | d_eff (N = 2000 / 8000 / 32000) | clustering | defined_frac | median drift | window-stable |
+|---|---|---|---|---|---|
+| 0.05 | 0.99 / 0.99 / 0.99 | 0.58 | 0.99 | +0.00 | 3/3 |
+| 0.10 | 0.98 / 0.97 / 0.98 | 0.57 | 0.89 | +0.02 | 3/3 |
+| 0.15 | 0.98 / 0.96 / 0.97 | 0.56 | 0.72 | +0.02 | 3/3 |
+| 0.20 | 1.03 / 0.97 / 0.98 | 0.57 | 0.56 | +0.06 | 2/3 |
+| 0.30 | 1.44 / 1.32 / 1.35 | 0.55 | 0.38 | +0.25 | 0/3 |
+| 0.40 | 1.94 / 1.67 / 1.71 | 0.47 | 0.25 | +0.41 | 0/3 |
+| 0.50 | 2.12 / 2.12 / 2.01 | 0.34 | 0.20 | +0.50 | 0/3 |
+| 0.60-0.80 | 2.0 - 2.2 | 0.21 → 0.03 | 0.22 - 0.24 | +0.47 - 0.51 | 0/3 |
+
+Predicted and found: window-stable with d = 1 for p <= 0.15, unstable from p = 0.3 on. Two
+things the gated table says that the banked one could not. First, the "1 → 2 knob" is now
+visibly a survivor statistic: at p >= 0.4 only a fifth of nodes pass, and their median of
+~2 is the reading of a fit window on a small world. Second, `defined_frac` starts falling
+(0.99 → 0.56) across p = 0.05-0.2 while the field is still window-stable at d = 1: the
+first shortcuts to survive pruning cost individual nodes their power law one at a time
+before the whole field turns over near p = 0.25. The banked "crossover, not a transition"
+numbers (N-spread 0.12, peak slope 5.0 / 4.5 / 3.7 not growing with N) still hold.
+
+Reproduce: `python coherence.py`; `python prune_dimension.py`.
 
 ## Scaling directions: what more compute could (and couldn't) unlock
 
