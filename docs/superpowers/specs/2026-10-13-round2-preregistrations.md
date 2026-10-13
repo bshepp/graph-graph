@@ -35,6 +35,11 @@ rest of the boundary; (c) degree histogram of the base's 10-hop boundary neighbo
 against the rest of the boundary; (d) the arm's width: nodes in the arm per unit of its
 root-distance extent.
 
+**Instrument amendment (before any real graph was analysed):** validation on a planted
+strip showed the "base = lowest node above 1.5 R" lands at the detection threshold, not at
+the arm's root. The base is now the lowest node of the arm's component among boundary
+nodes above 1.2 R, and the census radius is 20 hops instead of 10, so the root is inside it.
+
 **Frozen readings.**
 - **DEFECT**: blocked-closure density at the base >= 3x the rest of the boundary in at least
   3 of 4 seeds (and >= 8 of 12 once item 4 lands).

@@ -41,6 +41,9 @@ from async_engine import run_sequential_multi
 Strand = Tuple[int, int]
 
 
+TOPOLOGY = 'grown'   # substrate for every arena; set from --topology
+
+
 def build_arena(n_nodes: int, cap: int, r: int, seed: int,
                 max_tries: int = 50) -> Tuple[nx.Graph, List[int], List[int]]:
     """
@@ -55,7 +58,7 @@ def build_arena(n_nodes: int, cap: int, r: int, seed: int,
     """
     random.seed(seed)
     np.random.seed(seed)
-    base = create_initial_graph(n_nodes, topology='grown', k=cap, seed=seed)
+    base = create_initial_graph(n_nodes, topology=TOPOLOGY, k=cap, seed=seed)
     nodes = list(base.nodes())
     rng = np.random.default_rng(seed)
     min_sep = 2 * r + 6
@@ -466,6 +469,9 @@ def main() -> None:
     ap.add_argument('--seeds', type=int, default=8)
     ap.add_argument('--sweeps', type=float, default=400.0)
     ap.add_argument('--rider', action='store_true')
+    ap.add_argument('--topology', type=str, default='grown',
+                    choices=['grown', 'triangular', 'sheet'],
+                    help='substrate for the arenas (round of 2026-10-13)')
     ap.add_argument('--seed', type=int, default=0,
                     help='seeds global RNGs; production ensembles use '
                          'frozen internal seed0 values, so this is a '
@@ -474,6 +480,9 @@ def main() -> None:
 
     random.seed(args.seed)
     np.random.seed(args.seed)
+    global TOPOLOGY
+    TOPOLOGY = args.topology
+    tag = '' if TOPOLOGY == 'grown' else f'{TOPOLOGY}_'
 
     if args.validate:
         raise SystemExit(0 if _validate(args.quick) else 1)
@@ -498,7 +507,7 @@ def main() -> None:
               f" width_A={dg['width_A']:.2f} w_logistic={w_log:.4f}")
         Path('results').mkdir(exist_ok=True)
         ts = time.strftime('%Y%m%d_%H%M%S')
-        out_path = Path('results') / f'throat_pilot_{ts}.csv'
+        out_path = Path('results') / f'throat_pilot_{tag}{ts}.csv'
         with open(out_path, 'w', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
             writer.writeheader()
@@ -530,7 +539,7 @@ def main() -> None:
                   f"core_frac@A*={cf:.3f}  regens={regens}")
             Path('results').mkdir(exist_ok=True)
             ts = time.strftime('%Y%m%d_%H%M%S')
-            out_path = Path('results') / f'throat_fss_r{r}_{ts}.csv'
+            out_path = Path('results') / f'throat_fss_{tag}r{r}_{ts}.csv'
             with open(out_path, 'w', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
                 writer.writeheader()

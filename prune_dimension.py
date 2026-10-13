@@ -93,6 +93,8 @@ def measure_pruned(p: float, n: int, seed: int, k: int,
     return {
         "p": p, "N": n, "seed": seed,
         "d_eff_median": stats["d_eff_median"], "d_eff_mean": stats["d_eff_mean"],
+        "median_drift": stats.get("median_drift", float("nan")),
+        "window_stable": stats.get("window_stable"),
         "defined_frac": stats["defined_frac"], "clustering": clustering,
         "mean_deg": mean_deg, "lcc_frac": lcc,
     }
@@ -261,7 +263,8 @@ def main():
     diag = crossover_diagnostics(agg, args.ps, Ns)
 
     print("\nd(p) master curve (seed-averaged median d_eff; ~N-independent):")
-    head = f"  {'p':>5} " + " ".join(f"N={n:<7d}" for n in Ns) + "  clus  def"
+    head = (f"  {'p':>5} " + " ".join(f"N={n:<7d}" for n in Ns)
+            + "  clus  def  drift stable  (last N)")
     print(head)
     for p in args.ps:
         cells = []
@@ -269,8 +272,11 @@ def main():
             v = agg.get((p, n))
             cells.append(f"{v['d_eff']:8.2f}" if v else f"{'--':>8}")
         ref = agg.get((p, Ns[-1]))
+        last = [r for r in rows if r["p"] == p and r["N"] == Ns[-1]]
+        drift = np.mean([r["median_drift"] for r in last]) if last else float("nan")
+        stab = sum(1 for r in last if r["window_stable"] is True)
         tail = (f"  {ref['clustering']:.2f}  {ref['defined_frac']:.2f}"
-                if ref else "")
+                f"  {drift:+.2f}  {stab}/{len(last)}" if ref else "")
         print(f"  {p:>5.2f} " + " ".join(cells) + tail)
 
     print("\nCrossover, not a transition:")
