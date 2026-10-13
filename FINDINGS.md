@@ -1485,6 +1485,49 @@ numbers (N-spread 0.12, peak slope 5.0 / 4.5 / 3.7 not growing with N) still hol
 
 Reproduce: `python coherence.py`; `python prune_dimension.py`.
 
+## Round of 2026-10-13, item 1: there is no arm -- the sheet's edge roughens
+
+*Pre-registration `docs/superpowers/specs/2026-10-13-round2-preregistrations.md` (item 1);
+tool `arm_birth.py` (`--validate` passes, including a planted strip).*
+
+The step-2 picture -- "one protrusion escapes and grows like a tree" -- was wrong. By the
+frozen definition (a connected run of >= 50 boundary nodes farther than 1.5 R from the
+root) **none of the four 4 M-node sheets has an arm at any size**, so the frozen DEFECT /
+NOT A DEFECT readings cannot be applied; the item's pre-registered verdict is UNDECIDED
+by construction, and the exploratory measurements below are what replaced it.
+
+What the boundary does instead (seeds 300 and 301; R = median root distance of the
+boundary):
+
+| N | boundary edges | 2N / B ("finger width") | root-distance of boundary, q5 / q95 in units of R | share beyond 1.2 R | share inside 0.8 R | max depth from the edge |
+|---|---|---|---|---|---|---|
+| 524,288 | 2,660 | 394 | 0.88 / 1.08 | 0.000 | 0.000 | 365 |
+| 1,048,576 | 3,883 | 540 | 0.88 / 1.08 | 0.000 | 0.000 | 512 |
+| 2,097,152 | 9,717 | 432 | 0.81 / 1.20 | 0.052 | 0.035 | 602 |
+| 4,194,304 | 22,684 | 370 | 0.75 / 1.22 | 0.078 | 0.098 | 675 |
+
+(seed 301 reads the same: q5 / q95 0.73 / 1.17 at 4 M, 11% of the boundary inside 0.8 R.)
+
+Three things follow. The disc keeps a deep core -- the maximum distance from the edge
+keeps growing, 365 → 675 -- so no thin arms are draining the growth. The extra boundary is
+**roughness**: fjords cutting inward to 0.75 R and bumps reaching 1.22 R, on a tenth of the
+edge each. And boundary length proportional to area with a persistent length scale
+2N / B ~ 350-400 nodes says the edge is becoming a fractal with a fixed smallest feature
+size -- a **shape instability** of the growing disc, not a nucleation. Growth that favours
+high coordination acts like surface tension; a circle growing under a surface tension
+goes unstable once its radius exceeds a critical radius set by that tension (the
+Mullins-Sekerka picture), which is exactly a crossover size N* = pi R_c^2 that grows with
+beta, and which would make N* ~ exp(5.4 beta) a statement about R_c ~ exp(2.7 beta).
+
+That is an interpretation, not a result. The measured facts are: no arm; roughness
+amplitude ~0.25 R; feature size ~370 nodes; core intact. A test would be the roughness
+spectrum of the edge against R (the instability should appear at a fixed wavelength, the
+feature size, and R_c should scale with the same width at other beta). The twelve-seed
+crossover-size distribution (item 4) is also read against this picture: an instability at
+a critical radius predicts a *narrow* N* distribution, a nucleation a broad one.
+
+Reproduce: `python arm_birth.py results/sheet_cross_b2_s30{0,1,2,3}_N4194304.npz`.
+
 ## Scaling directions: what more compute could (and couldn't) unlock
 
 A standing question is whether *scaling up* -- to the largest graphs a private
