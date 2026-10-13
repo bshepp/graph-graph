@@ -63,6 +63,10 @@ geometries) and `--anchor` at the stage-1 frozen a-values with `--seeds 8 --ride
 Everything else as in stage 1 (seeds, rules, sweeps). Substrate regeneration never triggers on
 these substrates and is reported as 0.
 
+**Frozen anchor a-values** (pilot quantiles 10/30/50/70/90, fixed before the FSS and anchor
+runs): triangular 0.0111 / 0.0187 / 0.0249 / 0.0307 / 0.0439; sheet from its own pilot the
+same way.
+
 **Predictions.**
 - Capacities are larger than on `grown` (a 2D ball of radius 2 has ~19 nodes against ~12),
   so A* in strands is larger too.
