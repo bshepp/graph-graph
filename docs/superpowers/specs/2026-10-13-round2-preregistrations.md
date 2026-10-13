@@ -64,8 +64,8 @@ Everything else as in stage 1 (seeds, rules, sweeps). Substrate regeneration nev
 these substrates and is reported as 0.
 
 **Frozen anchor a-values** (pilot quantiles 10/30/50/70/90, fixed before the FSS and anchor
-runs): triangular 0.0111 / 0.0187 / 0.0249 / 0.0307 / 0.0439; sheet from its own pilot the
-same way.
+runs): triangular 0.0111 / 0.0187 / 0.0249 / 0.0307 / 0.0439; sheet 0.0111 / 0.0194 / 0.0249 /
+0.0307 / 0.0443 (frozen 2026-10-13 from the sheet pilot before its FSS and anchor runs).
 
 **Predictions.**
 - Capacities are larger than on `grown` (a 2D ball of radius 2 has ~19 nodes against ~12),
