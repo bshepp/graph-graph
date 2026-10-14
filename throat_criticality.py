@@ -469,6 +469,10 @@ def main() -> None:
     ap.add_argument('--seeds', type=int, default=8)
     ap.add_argument('--sweeps', type=float, default=400.0)
     ap.add_argument('--rider', action='store_true')
+    ap.add_argument('--fss-r', type=int, nargs='+', default=None,
+                    help='restrict --fss to these r values (each r has its '
+                         'own frozen seed0, so a subset reproduces the '
+                         'full run rows for that r)')
     ap.add_argument('--topology', type=str, default='grown',
                     choices=['grown', 'triangular', 'sheet'],
                     help='substrate for the arenas (round of 2026-10-13)')
@@ -520,6 +524,8 @@ def main() -> None:
         print(f"FSS: {draws} draws per geometry; width must shrink with "
               f"capacity for a SHARP verdict (frozen rule).")
         for (r, n) in ((2, 2000), (3, 5000), (4, 10000)):
+            if args.fss_r and r not in args.fss_r:
+                continue
             rows = critical_density_draws(n, 6, r, draws,
                                           seed0=300 + 17 * r, progress=True)
             s = transition_stats([row['a_star'] for row in rows])
