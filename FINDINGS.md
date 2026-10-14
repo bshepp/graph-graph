@@ -1596,9 +1596,112 @@ trigger is, it is a rare local event. The exp(5.4 beta) law for N*(beta) was fit
 of 4-12 seeds per beta and now reads as the beta-dependence of a *rate*; its form is not
 re-tested here.
 
+**No arm on any of the eight new graphs either** (`arm_birth.py`, exploratory, run on the same
+saved graphs): by the item-1 definition no boundary run of >= 50 nodes lies beyond 1.5 R at any
+prefix size, including seed 308, whose boundary is 3.6x the compact value at 4 M. Whatever
+leaves at 41 k and whatever leaves at 2 M produce the same thing -- a rough edge, not an arm.
+
 Reproduce: `python crossover_cv.py results/sheet_crossover_partA_N4194304_*.csv`;
 `python sheet_crossover.py --analyze` on the same files for the mean-curve estimators.
 Graphs saved as `results/sheet_cross_b2_s30{4..9}_N4194304.npz`, `s310`, `s311` (42 MB each).
+
+## Round of 2026-10-13, item 2: the throat threshold is the same ~2.6-strand motif on a real plane -- bigger throats, no sharper
+
+*Pre-registration `docs/superpowers/specs/2026-10-13-round2-preregistrations.md` (item 2);
+driver `throat_criticality.py --topology {triangular, sheet}` (`--fss-r` added this round so
+the three FSS geometries could run as separate processes); reducer `throat_compare.py`
+(`--validate` passes; reproduces the stage-1 `grown` numbers from the saved CSVs). Pilots
+and the triangular r = 2 / 3 FSS ran on the desktop; triangular r = 4, the whole `sheet`
+FSS and both anchor runs ran on jaga after the desktop runs were killed for memory (the
+first attempt is disclosed in the pre-registration's status note). Anchor a-values were
+frozen from the pilots before the FSS and anchor runs.*
+
+Pilots (300 draws, N = 2000, r = 2): onset core 2.62 strands on `triangular`, 2.40 on
+`sheet`, against 2.6 banked on `grown`. Then the stage-1 geometries, 2000 draws each:
+
+| substrate | r | capacity (strands) | A*50 | a50 | relative width w / a50 (+/- boot) | core_frac @ A* | onset core (strands) | finite | regens |
+|---|---|---|---|---|---|---|---|---|---|
+| `grown` (banked 2026-08-17) | 2 | 134 | 6 | 0.0486 | 1.473 (0.050) | 0.435 | **2.61** | 2000/2000 | 19 |
+| | 3 | 425 | 9 | 0.0253 | 1.574 (0.038) | 0.288 | **2.59** | 2000/2000 | 19 |
+| | 4 | 1043 | 13 | 0.0155 | 1.655 (0.050) | 0.204 | **2.65** | 2000/2000 | 19 |
+| `triangular` | 2 | 329 | 8 | 0.0249 | 1.315 (0.034) | 0.310 | **2.48** | 2000/2000 | 0 |
+| | 3 | 1264 | 14 | 0.0117 | 1.312 (0.034) | 0.185 | **2.68** | 2000/2000 | 0 |
+| | 4 | 3448 | 22 | 0.0064 | 1.416 (0.035) | 0.121 | **2.66** | 2000/2000 | 0 |
+| `sheet` (beta = 3) | 2 | 330 | 8 | 0.0249 | 1.315 (0.030) | 0.313 | **2.50** | 2000/2000 | 0 |
+| | 3 | 1265 | 14 | 0.0110 | 1.339 (0.043) | 0.186 | **2.61** | 2000/2000 | 0 |
+| | 4 | 3458 | 23 | 0.0067 | 1.354 (0.037) | 0.121 | **2.77** | 2000/2000 | 0 |
+
+**Frozen readings: `triangular` MOTIF ONSET HOLDS; `sheet` MOTIF ONSET HOLDS** (`grown`
+re-reads MOTIF ONSET HOLDS under the same rule). Both pre-registered bullets held on both
+planes: the onset core is inside [2, 3.5] at every capacity, and the relative width does
+not fall with capacity (every step is a rise or flat within 10%). Predicted and found.
+
+What the plane changes, and what it does not:
+
+- **Capacity, not the motif.** A ball of radius r on a plane holds 2.5-3.3x more strands than
+  the same-radius ball of a `grown` tree (329 / 1264 / 3448 against 134 / 425 / 1043), and the
+  median threshold in strands grows with it (8 / 14 / 22 against 6 / 9 / 13; on both
+  substrates A*50 ~ capacity^0.4, so the critical *density* a50 falls). The core at onset
+  does not move: 2.48-2.68 strands on `triangular`, 2.50-2.77 on `sheet`,
+  2.59-2.65 on `grown`. The threshold is the first appearance of one mutually-protecting
+  motif of ~2.6 strands whatever the ball looks like -- the stage-1 reading was a statement
+  about the peeling rule, not about `grown`, and now it is shown to be.
+- **The plane's threshold is better defined but still does not sharpen.** The relative width
+  is 1.31-1.42 on the planes against 1.47-1.66 on `grown`, and it is flat then rising with
+  capacity (1.315 / 1.312 / 1.416 on `triangular`, 1.315 / 1.339 / 1.354 on `sheet`) exactly as on `grown` -- a 20% tighter spread, not a width that
+  shrinks toward a critical point. In absolute strands the 10-90 span grows with capacity
+  on all three substrates.
+- **`triangular` and `sheet` agree to two decimals** at r = 2 (330 vs 329 strands, a50
+  0.0249 on both, relative width 1.315 on both) and to a few percent at r = 3 and 4, as they
+  did throughout step 3: at N <= 10,000 a beta = 3 sheet is a triangular lattice with a
+  rough edge, far below its own crossover size (~exp(3.3 + 5.4 x 3) ~ 2e8 nodes).
+- **No substrate regenerations** on either plane (0 / 2000 at every r, 0 / 40 anchor runs);
+  the 19 / 2000 regenerations banked on `grown` were its expander phase, absent here.
+
+**Gates (anchors: 5 frozen a-values x 8 seeds, N = 2000, 400 sweeps, with `--rider`).**
+Gate 1 (peeling == dynamics) PASSES exactly on both planes: 0 missing / unattributed strands
+across 40 runs each, `survivors == core` in every run, as on `grown`. Gate 2 reads (b) on
+both, as on `grown`: under triadic + prune the cores are demolished (mean core retention 0.08
+on `triangular`, 0.02 on `sheet`; `grown` ~0.1) and the sub-threshold "rescue" is 1-2
+strands surviving in 5 of 24 (`triangular`) and 7 of 26 (`sheet`) empty-core runs, the same
+0-1-strand scale banked on `grown`. Mean prune-only cores at the frozen a-values
+(pilot q10 / q30 / q50 / q70 / q90): 0 / 0.25 / 1.38 / 2.00 / 4.88 on `triangular`,
+0 / 0 / 0.88 / 1.75 / 4.75 on `sheet`. Throat cores are censor-proof but not churn-proof on a
+plane too.
+
+**What this changes.** This was the last portal-program result that rested on `grown` balls
+alone. With it, every banked portal statement has now been re-run on a substrate with a
+real dimension, and the throat one survives unchanged: no critical collapse in the
+censor-only family, a local motif onset, Gate 1 exact, cores demolished by the stabilizer.
+The quantities that *are* substrate-dependent -- capacity, A* in strands, the relative width
+-- all moved in the direction of "a plane is a bigger, more regular container for the same
+motif". BRANCHES row "Throat criticality on a substrate with a dimension" closes.
+
+Reproduce: `python throat_compare.py` (reads the newest `results/throat_fss_*.csv`);
+`python throat_criticality.py --topology triangular --fss --fss-r 4` etc. for the rows; the
+anchor tables are in the run logs (`results/jaga_logs_20261013/throat_{tri,sheet}_anchor.txt`),
+not in CSVs.
+
+### The round, compared
+
+Per the pre-registration's last section: for each item, prediction, outcome, and what it
+changes.
+
+| item | pre-registered prediction | outcome | what it changes |
+|---|---|---|---|
+| 1 -- what nucleates the arm | DEFECT (60%): a blocked closure at the arm's base | **UNDECIDED by construction**: no arm exists on any of 12 graphs; the edge roughens instead (fjords to 0.75 R, bumps to 1.22 R, feature size ~370 nodes, core intact) | the step-2 "arm" picture is withdrawn; the crossover is a shape instability of the disc's edge, and `arm_birth.py` is its instrument |
+| 2 -- throat criticality on a plane | MOTIF ONSET HOLDS on both planes; larger capacities; gates hold | **HELD on `triangular`; HELD on `sheet`**: onset core 2.5-2.8 strands at every capacity, relative width 1.31-1.42 flat-to-rising, capacities 2.5-3.3x grown, Gate 1 40/40 exact, Gate 2 (b) | the throat verdict is substrate-independent; the whole portal program now stands on a real geometry |
+| 3 -- banked tables under the gate | `grown` fragmented (~0.27); d(p) stable at d = 1 for p <= 0.1, unstable for p >= 0.3 | **all held**: defined_frac 0.27; window-stable to p = 0.15, unstable from 0.3; the "1 -> 2 knob" is a survivor statistic | two banked tables replaced under supersession notices |
+| 4 -- crossover-size distribution | IN BETWEEN, CV 0.3-0.6 (rising hazard) | **IN BETWEEN by the frozen rule (CV 0.44)** but 5 / 12 censored and N* spanning 4e4 to > 4e6; right-censored Weibull k = 0.8-1.0, CI covers 1: constant rate per node, sharp threshold excluded | `sheet`'s 2D range at a given beta is a distribution, not a size: at beta = 2 about one event per 3-4 M nodes grown; the mean-curve "0.8 M" is retired as a headline |
+
+Two of the four predictions held as written (items 2 and 3), one held by label but not by
+mechanism (item 4), and one could not be read because its object does not exist (item 1).
+The two negative-leaning outcomes are the informative ones: together they say the sheet's
+crossover is a stochastic roughening with a constant rate, which is neither the nucleated
+arm of step 2 nor the deterministic critical radius that item 1's shape reading suggested.
+The round also moved most of its compute to jaga mid-way after the desktop was out of memory;
+the pre-registration's "jaga is not required" line was wrong, and the first-attempt kills
+are disclosed there.
 
 ## Scaling directions: what more compute could (and couldn't) unlock
 

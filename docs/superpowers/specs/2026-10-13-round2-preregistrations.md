@@ -4,6 +4,16 @@
 Owner's standing instruction: implement everything that can be implemented, then compare.
 Owner is remote; everything here runs on the desktop (jaga is not required for any item).
 
+**Status addendum, 2026-10-13 evening (written after the runs started; no prediction, rule or
+a-value above was changed).** The desktop could not hold the round: item 4's four concurrent
+4 M-node growths (~5 GB each) plus other projects' jobs drove the machine out of memory and
+the harness killed triangular FSS r = 4, both anchor runs, the whole `sheet` FSS / anchor set
+and item 4 before any seed finished. Items 3 and 1, the pilots and triangular FSS r = 2 / 3 had
+already completed on the desktop. The owner powered jaga on at 19:20 PDT and the remainder
+was re-run there from the same commit with the same seeds (every FSS geometry reseeds from
+`300 + 17 r`, so a geometry run alone reproduces the full loop's rows); `--fss-r` was added
+to `throat_criticality.py` for that purpose only. The line "jaga is not required" was wrong.
+
 ---
 
 ## Item 1 — What nucleates the arm? (`arm_birth.py`)
