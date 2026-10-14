@@ -329,6 +329,7 @@ def _validate() -> bool:
 
 
 def main() -> None:
+    global K_MIN
     ap = argparse.ArgumentParser(description="Roughness spectrum of a sheet's edge")
     ap.add_argument('paths', nargs='*')
     ap.add_argument('--validate', action='store_true')
@@ -338,10 +339,16 @@ def main() -> None:
     ap.add_argument('--n-max', type=int, default=2 ** 17)
     ap.add_argument('--per-octave', type=int, default=4)
     ap.add_argument('--out', type=str, default=None)
+    ap.add_argument('--k-min', type=int, default=K_MIN,
+                    help='lowest wave number entering the fit (frozen: 4; a post-hoc '
+                         're-read may raise it to skip the disc\'s six-fold shape mode)')
     ap.add_argument('--seed', type=int, default=0)
     args = ap.parse_args()
     random.seed(args.seed)
     np.random.seed(args.seed)
+    if args.k_min != K_MIN:
+        print(f"NOTE: k_min = {args.k_min} (frozen value 4): exploratory re-read")
+        K_MIN = args.k_min
     if args.validate:
         raise SystemExit(0 if _validate() else 1)
     if not args.paths:

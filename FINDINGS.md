@@ -1519,7 +1519,10 @@ goes unstable once its radius exceeds a critical radius set by that tension (the
 Mullins-Sekerka picture), which is exactly a crossover size N* = pi R_c^2 that grows with
 beta, and which would make N* ~ exp(5.4 beta) a statement about R_c ~ exp(2.7 beta).
 
-That is an interpretation, not a result. The measured facts are: no arm; roughness
+*[Revised 2026-10-14 (follow-up section "the crossover's trigger is a dead corner"): the
+trigger is a boundary node the growth rule can never close, not a surface-tension
+instability, and the roughness spectrum is near scale-free. The measured facts below stand;
+the Mullins-Sekerka reading is withdrawn.]* That is an interpretation, not a result. The measured facts are: no arm; roughness
 amplitude ~0.25 R; feature size ~370 nodes; core intact. A test would be the roughness
 spectrum of the edge against R (the instability should appear at a fixed wavelength, the
 feature size, and R_c should scale with the same width at other beta). The twelve-seed
@@ -1592,7 +1595,8 @@ the crossover is a **rare event with a roughly constant rate**, so a given sheet
 100 k. The item-1 reading of the *shape* (roughening at a fixed feature size, no arms) stands;
 what item 4 adds is that the onset of that roughening is triggered stochastically, not at a
 deterministic critical radius -- a critical radius would give a narrow N*. Whatever the
-trigger is, it is a rare local event. The exp(5.4 beta) law for N*(beta) was fitted on means
+trigger is, it is a rare local event *[identified 2026-10-14: a dead corner of the rule -- see
+the follow-up section]*. The exp(5.4 beta) law for N*(beta) was fitted on means
 of 4-12 seeds per beta and now reads as the beta-dependence of a *rate*; its form is not
 re-tested here.
 
@@ -1689,7 +1693,7 @@ changes.
 
 | item | pre-registered prediction | outcome | what it changes |
 |---|---|---|---|
-| 1 -- what nucleates the arm | DEFECT (60%): a blocked closure at the arm's base | **UNDECIDED by construction**: no arm exists on any of 12 graphs; the edge roughens instead (fjords to 0.75 R, bumps to 1.22 R, feature size ~370 nodes, core intact) | the step-2 "arm" picture is withdrawn; the crossover is a shape instability of the disc's edge, and `arm_birth.py` is its instrument |
+| 1 -- what nucleates the arm | DEFECT (60%): a blocked closure at the arm's base | **UNDECIDED by construction**: no arm exists on any of 12 graphs; the edge roughens instead (fjords to 0.75 R, bumps to 1.22 R, feature size ~370 nodes, core intact) | the step-2 "arm" picture is withdrawn and `arm_birth.py` is its instrument; the "shape instability" reading given here was itself superseded the same night by the dead-corner trigger (follow-up section) |
 | 2 -- throat criticality on a plane | MOTIF ONSET HOLDS on both planes; larger capacities; gates hold | **HELD on `triangular`; HELD on `sheet`**: onset core 2.5-2.8 strands at every capacity, relative width 1.31-1.42 flat-to-rising, capacities 2.5-3.3x grown, Gate 1 40/40 exact, Gate 2 (b) | the throat verdict is substrate-independent; the whole portal program now stands on a real geometry |
 | 3 -- banked tables under the gate | `grown` fragmented (~0.27); d(p) stable at d = 1 for p <= 0.1, unstable for p >= 0.3 | **all held**: defined_frac 0.27; window-stable to p = 0.15, unstable from 0.3; the "1 -> 2 knob" is a survivor statistic | two banked tables replaced under supersession notices |
 | 4 -- crossover-size distribution | IN BETWEEN, CV 0.3-0.6 (rising hazard) | **IN BETWEEN by the frozen rule (CV 0.44)** but 5 / 12 censored and N* spanning 4e4 to > 4e6; right-censored Weibull k = 0.8-1.0, CI covers 1: constant rate per node, sharp threshold excluded | `sheet`'s 2D range at a given beta is a distribution, not a size: at beta = 2 about one event per 3-4 M nodes grown; the mean-curve "0.8 M" is retired as a headline |
@@ -1702,6 +1706,163 @@ arm of step 2 nor the deterministic critical radius that item 1's shape reading 
 The round also moved most of its compute to jaga mid-way after the desktop was out of memory;
 the pre-registration's "jaga is not required" line was wrong, and the first-attempt kills
 are disclosed there.
+
+## Round of 2026-10-13, follow-up: the crossover's trigger is a dead corner -- a boundary node the rule can never close
+
+*Two pre-registrations the same night: `docs/superpowers/specs/2026-10-13-edge-spectrum-preregistration.md`
+(tool `edge_spectrum.py`, `--validate` passes: planted wavelength recovered, 0 / 10 false peaks on
+periodic random walks) and `docs/superpowers/specs/2026-10-13-blocked-closure-preregistration.md`
+(tool `blocked_closure.py`, `--validate` passes: a planted dead corner is found at the exact
+prefix size). The second grew out of the first's onset scan; its spec says which parts are post
+hoc and which are the test. Everything ran on the desktop on the twelve saved beta = 2 graphs
+plus eight fresh beta = 1.5 seeds.*
+
+**1. The roughness spectrum (pre-registered; frozen reading UNDECIDED, and the instrument has a
+fault).** Height profile h(s) = rho(s) - R along the boundary cycle (covered fraction 1.00 at
+every size on every seed), periodogram in log bins of >= 8 modes, power-law fit, peak = bin
+excess >= 3.0 over the fit. Compact edges (B / sqrt(N) < 4.5) are smooth: slopes -3.4 to -4.7.
+Rough edges have slopes -2.0 to -2.8 and peaks. **Frozen verdict: UNDECIDED (fixed 2,
+scale-free 0 of 5 counting seeds).** The fault: the three seeds that never cross (305, 309,
+310) also show "peaks", at lambda = 389 / 551 / 781 / 1110 boundary nodes at 512 k / 1 M / 2 M /
+4 M -- i.e. at k = L / lambda ~ 7 at every size, excess 3.7-8.6. That is the disc's six-fold
+anisotropy on a triangular lattice (a hexagon has power at k = 6 and its neighbours), a global
+shape mode, not roughness; the frozen rule excluded k = 1-3 (offset, ellipticity,
+triangularity) and should have excluded the hexagon too. Post-hoc re-read with k >= 16
+(flagged as such, `--k-min 16`): the compact seeds lose their "peaks" entirely (slopes -3.4 to
+-4.1, no bin above 2.1x), which confirms the diagnosis; the rough edges keep slopes -2.1 to -3.1
+and only modest peaks (excess 3.2-5.9 at lambda = 183-685 boundary nodes, no wavelength shared
+across sizes within a seed except in 308), and the verdict is again UNDECIDED (fixed 1 of 5).
+So the rough edge is closer to a scale-free random surface than to an instability at one
+wavelength; the shape-instability reading of item 1 is not supported by the spectrum, and
+what the next part finds makes it unnecessary. What survives the fault: **seed 308, the earliest
+crossover, has a genuine roughness peak** -- lambda = 247-301 boundary nodes from 262 k to 2 M
+under the frozen settings (k = 15-50, excess 4.8-11.6; 487 at 4 M, excess 17.5), and with
+k >= 16 at 217 / 353 / 428 from 1 M to 4 M (excess 4.1 / 7.4 / 16.7) -- with slope -2.0 to -2.5
+and sigma_h / R rising 0.19 -> 0.26. Its edge is a random-walk-like surface with one preferred
+wavelength of a few hundred nodes that drifts slowly upward with N, of the order of item 1's
+feature size 2N / B (lambda / (2N / B) = 1.1-1.8).
+
+**2. The onset scans (pre-registered, descriptive).** Seed 308 at 2^(1/4) spacing from 16 k:
+the largest excursion of the edge is always inward (a fjord, never a bump); its depth sits at
+the compact baseline (-0.14 to -0.16 R) to 27.5 k, then deepens monotonically (-0.17 R at 33 k,
+-0.24 at 39 k, -0.38 at 66 k, -0.50 at 131 k) while B / sqrt(N) rises 3.8 -> 6.1. **From 32,768
+on the deepest point is the same node, 24862.** The census around it reads blocked closures
+within 20 hops (density 0.04 -> 0.19 of boundary nodes) and **exactly zero on the rest of the
+boundary** at every size. Seed 300 (N*_B 886 k) at 2^(1/8) spacing from 512 k: fjord depth
+-0.135 to -0.147 R and zero blocked closures through 961,548; at 1,048,576 the deepest point is
+the oldest boundary node (916282) with blocked closures around it and nowhere else.
+
+**3. What a blocked closure is, in the rule's own terms.** In `sheet_growth` a boundary edge
+whose endpoint has degree >= c can only fire a closure, and only if that endpoint is
+*closable*: its two boundary neighbours a, b are not adjacent, share no neighbour but it, and
+both still have degree < c. Degrees never fall and adjacency never shrinks, so a degree-c
+boundary node that is not closable is **dead forever**: no event will ever fire on its edges,
+it stays on the boundary while the disc grows past it, and it becomes the bottom of a fjord
+whose walls keep growing. The ad-hoc scan that found it (seed 308, prefix sizes 24 k-524 k):
+
+| N | B / sqrt(N) | boundary nodes of degree >= 6 | blocked | oldest boundary node | deepest fjord (h / R) at node |
+|---|---|---|---|---|---|
+| 24,000-25,500 | 3.77-3.78 | 0 | 0 | 22267-24156 | -0.14 to -0.16 (wandering) |
+| 26,000 | 3.79 | 2 | 2 (24862, 25107, adjacent) | 24284 | -0.151 at 24658 |
+| 27,000-30,000 | 3.81-3.85 | 2 | 2 | **24862** | -0.14 to -0.16 (wandering) |
+| 32,768 | 3.92 | 3 | 3 | 24862 | **-0.171 at 24862** |
+| 40,000 | 4.17 | 5 | 5 | 24862 | -0.243 at 24862 |
+| 65,536 | 4.80 | 7 | 7 | 24862 | -0.379 at 24862 |
+| 131,072 | 6.09 | 12 | 12 | 24862 | -0.503 at 24862 |
+| 524,288 | 8.99 | 24 | 24 | 24862 | -0.653 at 24862 |
+
+Every degree->= 6 boundary node in the graph is blocked, all of them are strung up the fjord
+wall from node 24862 (hops 0, 1, 2, 3, ... from the bottom), and the two first ones appear
+*before* the fjord deepens: dead corner at 26 k, oldest-boundary-node status at 27 k, deepest
+point at 33 k, boundary exponent visibly up at 30-40 k. Seed 305 (compact to 4 M): zero at 32 k,
+131 k, 524 k. Seed 300: zero at every size to 900 k, six at 1,048,576, all within 3 hops of node
+916282.
+
+**The twelve saved graphs (post hoc, no verdict):**
+
+| seed | first dead corner at N (node ids) | N*_B (step-2 estimator) | octave in which B / sqrt(N) leaves 3.85 | dead corners at 4.19 M | clusters (10-hop) | oldest boundary node is a dead corner |
+|---|---|---|---|---|---|---|
+| 308 | 25,885 (24862, 25107) | censored by the rule; ~41 k by eye | 33 k - 66 k | 57 | 2 | yes |
+| 301 | 495,183 (490066, 491027) | 474,877 | 512 k - 1 M | 58 | 3 | yes |
+| 300 | 921,272 (916282, 917875) | 886,232 | 1 M - 2 M | 70 | 3 | yes |
+| 302 | 1,056,569 (1052853, 1052862) | 899,866 | 1 M - 2 M | 81 | 3 | yes |
+| 303 | 1,499,592 (1490903, 1494234) | 1,094,243 | 1 M - 2 M | 71 | 4 | yes |
+| 307 | 2,062,098 (2055514, 2056616) | 1,764,590 | 2 M - 4 M | 39 | 2 | yes |
+| 304 | 2,485,497 (2477931, 2478637) | 1,751,102 | 2 M - 4 M | 48 | 2 | yes |
+| 306 | 2,846,999 (2842027, 2842398) | 1,900,546 | 2 M - 4 M | 36 | 2 | yes |
+| 311 | 3,338,158 (3332769, 3332968) | censored (turning: 4.57 at 4 M) | 2 M - 4 M | 14 | 1 | yes |
+| 305 | none to 4,194,304 | censored (compact, 3.86) | -- | 0 | 0 | no |
+| 309 | none to 4,194,304 | censored (compact, 3.85) | -- | 0 | 0 | no |
+| 310 | none to 4,194,304 | censored (compact, 3.86) | -- | 0 | 0 | no |
+
+Twelve for twelve. Every seed whose boundary left the compact curve has a dead corner, and
+its first dead corner lies inside the octave in which the boundary leaves the curve -- never
+before it; the three seeds still compact at 4.19 M have **no dead corner anywhere**; seed 311,
+which is just turning at 4 M, acquired its first at 3.34 M. In every crossed seed the first
+dead corner is a pair of adjacent nodes born within a few thousand nodes of each other and
+within ~1% of N_first (the two link ends reach the cap together), and that node is the
+*oldest node still on the boundary* at 4.19 M -- the one spot where the disc stopped. By 4 M
+there are 14-81 dead corners in 1-4 clusters: the first pit seeds further ones along its
+walls, and a second or third pit forms elsewhere later. The step-2 N*_B sits 4-50% *before*
+N_first in all nine: the estimator interpolates the 0.75-crossing between octave midpoints,
+so inside a one-octave jump it lands early; the dead corner, not the interpolation, is where
+the boundary actually leaves sqrt(N).
+
+**4. The test on fresh seeds (pre-registered).** Eight new seeds at beta = 1.5 grown to
+524,288 nodes with the blocked count and boundary length at 2^(1/8) spacing; N*_B by the
+step-2 estimator on the octave checkpoints; frozen readings TRIGGER CONFIRMED (>= 3/4 of the
+crossed seeds have a blocked node by N*_B and N*_B / N_first <= 4) / REFUTED / UNDECIDED, with
+the uncrossed seeds as a control.
+
+| seed | B / sqrt(N) at 524 k | N*_B | N_first (first blocked node) | N*_B / N_first | blocked nodes at 524 k |
+|---|---|---|---|---|---|
+| 407 | 15.48 | 12,865 | 5,312 | 2.42 | 85 |
+| 400 | 10.86 | 52,705 | 38,968 | 1.35 | 62 |
+| 403 | 13.41 | 56,369 | 55,109 | 1.02 | 82 |
+| 405 | 14.14 | 62,091 | 55,109 | 1.13 | 100 |
+| 401 | 10.03 | 96,026 | 84,990 | 1.13 | 51 |
+| 402 | 8.04 | 149,595 | 155,872 | 0.96 | 44 |
+| 404 | 8.20 | 157,409 | 155,872 | 1.01 | 39 |
+| 406 | 7.46 | 219,324 | 240,387 | 0.91 | 36 |
+
+**Frozen verdict: TRIGGER CONFIRMED (6 / 8 crossed seeds; no uncrossed seed to serve as
+control -- all eight crossed, as the Part B law said they would at beta = 1.5).** Predicted
+and found, and tighter than predicted: the first dead corner appears within a factor 2.5 of
+N*_B in every seed, within 13% in six. The two "misses" under the frozen rule (402, 406) have
+N_first 4-10% *after* the interpolated N*_B; the step-2 estimator interpolates the exponent's
+0.75-crossing between octave midpoints, so its N*_B carries about half an octave of
+resolution and can land just before the event itself (seed 300 at beta = 2 does the same:
+N_first 921 k against N*_B 886 k). Read without the frozen inequality, 8 / 8 seeds have the
+dead corner and the exponent jump at the same size. The number of dead corners at 524 k
+(36-100) tracks the roughness: Spearman-wise, the seeds that crossed earliest have the most
+and the largest B / sqrt(N).
+
+**What this changes.** Items 1 and 4 of the round, and step 2 before them, were describing one
+mechanism from three sides. The sheet's crossover is triggered by a **local, permanent defect
+of the growth rule**: a boundary node reaches the degree cap while its two boundary neighbours
+are already at the cap (or would pinch), the rule's own degree guard then forbids the closure
+that would bury it, and growth stalls at that one spot forever. The disc grows around the
+stalled point, which becomes the bottom of a deepening fjord; more corners die along the
+fjord's walls; the boundary length stops scaling like sqrt(N) and the "two-dimensional range"
+ends. That is item 1's DEFECT hypothesis, found at the bottom of a fjord rather than at the
+base of an arm (there is no arm). It also says why item 4 saw a constant rate: the crossover
+happens at the first dead corner, and the first occurrence of a rare local configuration in a
+growing boundary is a Poisson-like event -- one per 3-4 M nodes grown at beta = 2. And it
+reframes the exp(5.4 beta) law as the beta-dependence of the probability per boundary site of
+producing a dead corner (higher beta favours high-coordination events, which close wheels
+before they can die); that is a hypothesis, not yet a measurement.
+
+A sharp prediction follows and goes to BRANCHES: a variant of the rule that cannot leave a dead
+corner -- for instance allowing the closure when a link end is already at the cap (raising its
+degree to c + 1), or choosing the cap so that a closure is always available -- should have **no
+crossover at any beta**. If it does, the mechanism here is wrong.
+
+Reproduce: `python edge_spectrum.py results/sheet_cross_b2_s3*_N4194304.npz` (frozen) and
+`--k-min 16` (post hoc); `python edge_spectrum.py --onset results/sheet_cross_b2_s308_N4194304.npz
+--n-min 16384 --n-max 131072 --per-octave 4`; `python blocked_closure.py
+results/sheet_cross_b2_s3*_N4194304.npz --crossover`; `python blocked_closure.py --grow --beta
+1.5 --seeds 400 407 --n-max 524288 --jobs 8`. CSVs under `results/edge_*.csv`,
+`results/blocked_*.csv`; logs under `results/edge_logs/`.
 
 ## Scaling directions: what more compute could (and couldn't) unlock
 
