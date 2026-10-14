@@ -1387,7 +1387,7 @@ filling-in and, once it is an arm, grows like a tree; the diameter reacts a fact
 later because an arm has to become long before it dominates the diameter. Why a
 protrusion escapes at a size that grows like exp(5.4 beta) is not explained here.
 
-**What `sheet` is, final form.** A strictly local growth rule that produces a
+**What `sheet` is, final form.** *[Revised 2026-10-13, item 4: twelve seeds put the beta = 2 crossover anywhere from 4e4 to beyond 4.2e6 nodes, consistent with a constant rate per node; the 0.8 M figure is a four-seed mean curve. Quote the distribution, not a size.]* A strictly local growth rule that produces a
 window-stable two-dimensional sheet up to a size of about exp(3.3 + 5.4 beta) nodes --
 0.8 M at beta = 2, 0.2 G at beta = 3 -- and grows tree-like arms beyond it. Below that
 size four observables (ball growth, walk, diameter, boundary) agree it is a plane; above
@@ -1527,6 +1527,78 @@ crossover-size distribution (item 4) is also read against this picture: an insta
 a critical radius predicts a *narrow* N* distribution, a nucleation a broad one.
 
 Reproduce: `python arm_birth.py results/sheet_cross_b2_s30{0,1,2,3}_N4194304.npz`.
+
+## Round of 2026-10-13, item 4: the crossover size is broad -- two decades -- and consistent with a constant rate per node
+
+*Pre-registration `docs/superpowers/specs/2026-10-13-round2-preregistrations.md` (item 4);
+driver `sheet_crossover.py --seeds 304..311 --n-max 4194304` (run on jaga, 8 workers, ~50 min
+per seed); reducer `crossover_cv.py` (`--validate` passes; reproduces the four step-2 values).*
+
+Twelve seeds at beta = 2 grown to 4,194,304 nodes. Boundary over sqrt(N) (3.8 for a compact
+disc) and the boundary-exponent crossover N*_B by the step-2 estimator (e_B crosses 0.75
+going up and stays above):
+
+| seed | 512 k | 1 M | 2 M | 4 M | e_B last octave | N*_B |
+|---|---|---|---|---|---|---|
+| 301 | 3.86 | 6.17 | 9.16 | 12.16 | 0.91 | 475,000 |
+| 300 | 3.85 | 3.99 | 7.05 | 11.66 | 1.23 | 886,000 |
+| 302 | 3.84 | 3.85 | 7.09 | 12.75 | 1.35 | 900,000 |
+| 303 | 3.83 | 3.84 | 5.22 | 11.09 | 1.59 | 1,094,000 |
+| 304 | 3.83 | 3.84 | 3.86 | 7.86 | 1.53 | 1,751,000 |
+| 307 | 3.82 | 3.83 | 3.86 | 7.55 | 1.47 | 1,765,000 |
+| 306 | 3.82 | 3.83 | 3.84 | 6.20 | 1.19 | 1,901,000 |
+| 311 | 3.84 | 3.84 | 3.86 | 4.57 | 0.75 | censored (turning at 4 M) |
+| 305 | 3.82 | 3.84 | 3.85 | 3.86 | 0.50 | censored (compact) |
+| 309 | 3.82 | 3.84 | 3.84 | 3.85 | 0.50 | censored (compact) |
+| 310 | 3.83 | 3.85 | 3.85 | 3.86 | 0.51 | censored (compact) |
+| **308** | **9.00** | **10.47** | **12.02** | **13.74** | 0.69 | censored *by the rule* -- left at ~41,000 |
+
+**Frozen reading: IN BETWEEN** (7 finite values, CV = 0.44, bootstrap SE 0.10; censored
+fraction 0.42). The label matches the pre-registered prediction (IN BETWEEN, CV 0.3-0.6),
+but it should not be read as support for the prediction's *mechanism* (a hazard rising with
+boundary length), because the frozen rule did not anticipate censoring on this scale and the
+CV of the uncensored values is biased low by it. Two things the table shows directly:
+
+- **Seed 308 is the earliest crossover of all, and the frozen estimator misses it.** Its
+  boundary leaves the compact curve between 33 k and 66 k nodes (B / sqrt(N) 3.9 → 4.8 → 6.1
+  → 7.5 → 9.0 by 512 k) and its exponent then settles at 0.69-0.72, just *under* the 0.75
+  line for the last three octaves, so the "stays above" clause fails. Read by eye it crossed
+  at ~41,000 nodes; its graph is as manifold as the others (interior degree-6 fraction 1.0,
+  no non-manifold edges), and its diameter at 4 M (1,209) is the smallest of the twelve.
+- **Three seeds are exactly compact at 4.19 M** (3.85-3.86, exponents 0.50-0.51 to the last
+  step) and a fourth is just turning. So the crossover size spans from 4e4 to beyond 4e6:
+  **two decades across twelve seeds.** A sharp threshold is excluded outright.
+
+**Censored-data analysis (exploratory, not pre-registered).** Right-censored Weibull maximum
+likelihood on the twelve seeds (shape k = 1 is memoryless in N; k > 1 a rising hazard):
+
+| treatment of seed 308 | shape k [95% profile CI] | scale | median N* | P(no crossover by 4.19 M) | LR test vs k = 1 |
+|---|---|---|---|---|---|
+| censored, as the frozen rule says | 1.02 [0.49, 1.78] | 4.2 M | 3.0 M | 0.37 | p = 0.96 |
+| interval-censored in (0, 512 k] | 0.91 [0.43, 1.56] | 3.3 M | 2.2 M | 0.29 | p = 0.75 |
+| at its visible crossing, 41 k | 0.80 [0.40, 1.37] | 3.3 M | 2.1 M | 0.30 | p = 0.45 |
+
+A constant hazard per added node -- one crossover event per ~3-4 M nodes grown at beta = 2 --
+fits as well as anything; a rising hazard (k > 1) is not favoured under any treatment, and
+the observed 4-5 censored of 12 is what k = 1 predicts (0.3-0.37). The twelve-seed *mean*
+curves read N*_B = 1.27 M and N*_A = 1.25 M (M2 censored), numerically on top of the Part B
+prediction of 1.26 M; the eight new seeds alone read 2.18 / 2.17 M. Mean curves are dominated
+by the earliest seeds and should not be quoted as "the" crossover size any more.
+
+**What this changes.** The step-2 statement "`sheet` is 2D up to ~exp(3.3 + 5.4 beta) nodes"
+described the mean curve of four seeds; the honest statement is distributional: at beta = 2
+the crossover is a **rare event with a roughly constant rate**, so a given sheet has about a
+30% chance of still being a plane at 4 M nodes and a few percent chance of leaving before
+100 k. The item-1 reading of the *shape* (roughening at a fixed feature size, no arms) stands;
+what item 4 adds is that the onset of that roughening is triggered stochastically, not at a
+deterministic critical radius -- a critical radius would give a narrow N*. Whatever the
+trigger is, it is a rare local event. The exp(5.4 beta) law for N*(beta) was fitted on means
+of 4-12 seeds per beta and now reads as the beta-dependence of a *rate*; its form is not
+re-tested here.
+
+Reproduce: `python crossover_cv.py results/sheet_crossover_partA_N4194304_*.csv`;
+`python sheet_crossover.py --analyze` on the same files for the mean-curve estimators.
+Graphs saved as `results/sheet_cross_b2_s30{4..9}_N4194304.npz`, `s310`, `s311` (42 MB each).
 
 ## Scaling directions: what more compute could (and couldn't) unlock
 
