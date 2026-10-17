@@ -2100,6 +2100,122 @@ results/sheet_cross_b2_s3*_N4194304.npz`; the same with `--disc`; `python
 dead_corner_hazard.py --resume results/dead_corner_hazard_20261017_004912.csv --jobs 6`
 (owner's call; ten workers plus concurrent 4 M-node analyses exhausted memory).
 
+## Literature paths, wave 2 (2026-10-17): a pin alone makes only a hairline crack; the sheet's open fjords and its ruffle are its own
+
+*Pre-registration `docs/superpowers/specs/2026-10-17-wave2-preregistration.md` (committed
+before any number below). Tools `edge_geometry.py` and `eden_pin.py` (both validated:
+boundary cycle, zero fjords on a compact sheet, exact fjord on a synthetic chord graph,
+alpha = 0.5 on a random-walk bridge; Eden clusters compact, the local enclosure test never
+misses a disconnection, the constrained variant keeps its pin exposed). Inputs: the twelve
+saved beta = 2 graphs at 4.19 M; 40 Eden runs to radius 200.*
+
+**Summary.**
+
+| part | frozen reading | prediction | what it says |
+|---|---|---|---|
+| W2-a ruffle as cone excess | **NO CONE EXCESS** (median slope g = 0.094, cut 0.1) | missed (CONE EXCESS, 50%) | the excess area starts only beyond the dead corners, but each adds about a tenth of a one-third turn, not a full one |
+| W2-b fjords forced at dead corners | **UNDECIDED**: no fjord by the frozen neck definition on any graph | missed (FORCED FJORDS, 70%) | the sheet has no pinched mouth anywhere: its fjords are open channels, not baby-universe necks |
+| W2-c local vs spectral roughness | **NOT KPZ-LOCAL** (alpha_loc 0.92-0.96 on 11/11 compact edges) | missed (55%) | instrument-limited: hop-distance height is quantised at one hop, so short-scale roughness is not resolved |
+| W2-d boundary as a process | descriptive | | across-seed spread of B / sqrt(N) shrinks from 0.036 to 0.005 between 4 k and 2 M: self-averaging, not diffusive |
+| W2-e Eden with one frozen site | **PLAIN EDEN HEALS** (20/20); **CONSTRAINED EDEN CRACKS** (20/20, width 1) | held (85%, 65%) | a permanent pin forces only a one-site crack and no excess area; the sheet's wide fjords and ruffle are not explained by the pin alone |
+
+### W2-a. The ruffle begins at the dead corners but is not a sum of cones
+
+Shells around node 0 against the compact seeds' mean shell, X(r) = S(r)/S_ref(r) - 1, and
+D(r) = dead corners within distance r (radii 50 to 0.7 ecc):
+
+| seed | nearest dead corner to the centre (hops) | X max | D max in window | slope g of X on D/3 |
+|---|---|---|---|---|
+| 308 | 87 | +6.83 | 52 | 0.309 |
+| 301 | 431 | +2.35 | 47 | 0.111 |
+| 300 | 502 | +1.70 | 42 | 0.094 |
+| 302 | 554 | +1.50 | 65 | 0.068 |
+| 303 | 712 | +0.53 | 34 | 0.027 |
+| 304, 306, 307, 311 | 879-1156 (beyond the window) | 0.00 | 0 | (none) |
+
+Leave-one-out control on the compact seeds: X = 0.000 at every radius. **No graph shows any
+excess before its first dead corner is enclosed** (the early-rise clause fired on 0 of 9),
+and every graph with a dead corner inside the window has X > 0 beyond it. But the slope is
+0.03-0.31 (median 0.094), so the frozen reading is NO CONE EXCESS: a dead corner adds about
+a tenth of the one-third turn the cone model assumed. In hindsight the model ignored
+Gauss-Bonnet: the boundary's total turning is fixed at one full turn, so each dead corner's
+-2 pi/3 is paid back by convex corners elsewhere on the same boundary, and a shell enclosing
+both gains much less than a cone. What the ruffle does show is that it is **caused** by the
+dead corners: it begins exactly where they are, on every graph.
+
+### W2-b. No pinched mouths: the sheet's fjords are open channels
+
+Not one neck (two boundary nodes within 3 hops, at least 100 apart along the boundary) on
+any of the twelve final graphs or the 14 prefix states, crossed or compact. The frozen
+reading is UNDECIDED (its fraction is 0/0). The finding behind it is definite: the sheet
+grows no minimal-neck "baby universes" of the kind that destroy the dimension of random
+triangulations (Ambjorn-Jain-Thorleifsson). Its fjords, rooted at dead corners 430-1160
+hops from the centre, have walls more than 3 hops apart wherever they are separated by
+more than 100 boundary nodes. A neck census with a wider mouth would be a new,
+post hoc instrument; not run.
+
+### W2-c. The compact edge looks smooth at the resolution of hop distance
+
+| edges | alpha_loc | alpha_s (k = 6, 12, 18 removed) | spectral slope |
+|---|---|---|---|
+| 11 compact (3 compact seeds at 4.19 M, 8 crossed seeds before their first dead corner) | 0.92-0.96 | 0.96-1.23 | -2.93 to -3.47 |
+| 9 rough (crossed seeds at 4.19 M) | 0.68-0.93 | 0.70-1.09 | -2.39 to -3.18 |
+
+Frozen reading NOT KPZ-LOCAL (0/11 compact edges in [0.4, 0.6]; not anomalous either).
+Post hoc check, labelled as such: removing each window's linear trend as well as its mean
+gives 0.77-0.83 on compact edges and 0.96-0.98 on rough ones (0.51 on a random-walk
+control), and the width at the smallest window is 0.31 hops on every edge, which is the
+floor set by integer hop distances. The radial height in hops is too coarse to see KPZ
+roughness at short scales; this reading is instrument-limited and does not refute KPZ.
+The rough edges' alpha_loc (0.68-0.93) sits in the band [0.5, 0.9] for 8 of 9.
+
+### W2-d. The compact boundary self-averages
+
+| N | seeds | mean B / sqrt(N) | across-seed sd |
+|---|---|---|---|
+| 4,096 | 12 | 3.737 | 0.036 |
+| 65,536 | 11 | 3.790 | 0.018 |
+| 1,048,576 | 9 | 3.838 | 0.008 |
+| 2,097,152 | 6 | 3.847 | 0.005 |
+
+The spread shrinks roughly as N^(-1/4) and the mean creeps up by 3% over three decades.
+That is a deterministic limit shape with shrinking relative fluctuations (Richardson /
+Cox-Durrett), not the diffusing boundary of layered causal growth (Sisko-Yambartsev-Zohren).
+
+### W2-e. A permanent pin alone forces a hairline crack and nothing more
+
+Eden on a triangular lattice graph, one perimeter site frozen when the cluster reaches
+radius 20; 20 runs per variant to radius 200 (about 9e4 sites):
+
+| variant | frozen site exposed at R = 40 / 80 / 120 / 160 / 200 | channel width at half depth (median, R >= 80) | sites at R = 200 |
+|---|---|---|---|
+| plain | 0 / 0 / 0 / 0 / 0 of 20 | (enclosed) | 90,737 +/- 4,387 |
+| no enclosure | 20 / 20 / 20 / 20 / 20 of 20 | 1 site (10-90%: 1-7 at R = 80, 1-1 at R = 200) | 90,557 +/- 2,521 |
+
+**PLAIN EDEN HEALS** (enclosed by R = 40 in 20/20) and **CONSTRAINED EDEN CRACKS** (alive
+at R = 200 in 20/20, width <= 3 in 20/20); both predicted. A plain Eden front simply grows
+over a frozen site and leaves a one-site hole. If the pin must stay on the edge, as a
+sheet's dead corner must, the front leaves a crack exactly one site wide down to it and
+otherwise fills everything: no wide fjord and no excess area (the cluster holds the same
+number of sites at the same radius with or without the constraint). The width at R = 40
+(median 100) is the unfilled front, not the channel; by R = 80 it is 1.
+
+**What wave 2 adds.** The dead corner is the cause of everything that happens past N*: the
+ruffle starts at the dead corners on every graph and nowhere before them (W2-a), and a
+pin that must stay on the edge necessarily leaves a channel (W2-e). But a pin by itself
+leaves only a hairline crack in a compact front, while the sheet's channels are open (no
+two boundary nodes 100 or more apart along the edge come within 3 hops, W2-b) and its outer annulus carries up to 4x a flat disc's
+mass (wave 1). That extra is the sheet's own growth rule acting around the defect. A hypothesis, not yet
+tested: the dead
+pair blocks attachment on its own boundary edges, and the degree-capped closure cannot fill
+in next to a capped node, so the stalled zone is wider than one site and the boundary near
+it grows extra length. Which of those two local effects carries the excess is the next
+question (it separates cleanly in a rule variant, wave 5's C1).
+
+Reproduce: `python edge_geometry.py results/sheet_cross_b2_s3*_N4194304.npz`; `python
+eden_pin.py --runs 20 --r-max 200`.
+
+
 ## Scaling directions: what more compute could (and couldn't) unlock
 
 A standing question is whether *scaling up* -- to the largest graphs a private
