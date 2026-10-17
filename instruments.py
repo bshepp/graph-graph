@@ -543,8 +543,7 @@ def run_nw(seed: int = 0, jobs: int = 3) -> List[Dict]:
             v = 'NO COLLAPSE'
         else:
             v = 'UNDECIDED'
-        print(f"
-slope of ln k* on ln(N/r0^2) = {sl:.2f}, scatter {scat:.2f} over "
+        print(f"\nslope of ln k* on ln(N/r0^2) = {sl:.2f}, scatter {scat:.2f} over "
               f"{len(fin)} cells")
         print(f"W3-d: {v}")
     banked = [k for n, R, k in cells if n == 5000 and R == 10]
