@@ -69,7 +69,9 @@ def _closable(adj: Adj, x: int, c: int) -> Optional[Tuple[int, int]]:
 def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
                seed: int | None = None,
                checkpoints: Sequence[int] = (),
-               on_checkpoint: Optional[Callable[[int, Adj], None]] = None
+               on_checkpoint: Optional[Callable[[int, Adj], None]] = None,
+               on_event: Optional[Callable[[str, Tuple[int, ...], Adj],
+                                           Optional[bool]]] = None
                ) -> Adj:
     """
     Grow a sheet from a seed triangle; returns adjacency as a list of sets.
@@ -83,6 +85,12 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
 
     Growth can stall (no live event); the returned graph is then smaller than
     `n_nodes`, and the caller must check.
+
+    `on_event(kind, nodes, adj)`, if given, is called after every event:
+    kind 'attach' with nodes (u, v, w) (w the new node) or 'close' with
+    nodes (x, a, b) (x the closed node, a-b the new edge). It never touches
+    the random stream, so growth is identical with or without it; a return
+    value of True stops the growth.
     """
     rng = np.random.default_rng(seed)
     adj: Adj = [{1, 2}, {0, 2}, {0, 1}]
@@ -145,6 +153,8 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
             adj[bb].add(a)
             refresh(a)
             refresh(bb)
+            if on_event is not None and on_event('close', (x, a, bb), adj):
+                break
         else:
             w = len(adj)
             adj.append({u, v})
@@ -156,6 +166,8 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
                 marks.pop(0)
                 if on_checkpoint is not None:
                     on_checkpoint(len(adj), adj)
+            if on_event is not None and on_event('attach', (u, v, w), adj):
+                break
     return adj
 
 
