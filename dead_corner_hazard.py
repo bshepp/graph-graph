@@ -33,6 +33,9 @@ from scipy.optimize import minimize_scalar
 from sheet_growth import grow_sheet, _closable, to_csr
 
 CAP = 6
+FIELDS = ['beta', 'seed', 'n_max', 'n_end', 'stalled', 'seconds', 'event',
+          'N_first', 'exposure', 'N', 'node', 'mode', 'kind', 'event_nodes',
+          'event_degs', 'ends', 'end_degs', 'partner_new', 'n_new']
 # Frozen scan (pre-registration W1-d).
 SCAN_BETAS = (1.0, 1.25, 1.5, 1.75)
 SCAN_NMAX = {1.0: 131072, 1.25: 524288, 1.5: 2097152, 1.75: 4194304}
@@ -143,21 +146,31 @@ def grow_one(spec: Tuple[float, int, int]) -> List[Dict]:
             for r in det.records if r['N'] == first_n]
 
 
+def done_specs(path: str) -> Set[Tuple[float, int]]:
+    with open(path) as f:
+        return {(float(r['beta']), int(r['seed'])) for r in csv.DictReader(f)}
+
+
 def scan(jobs: int, out_csv: str, betas: Sequence[float] = SCAN_BETAS,
-         seeds: Sequence[int] = SCAN_SEEDS) -> List[Dict]:
+         seeds: Sequence[int] = SCAN_SEEDS, resume: bool = False) -> List[Dict]:
+    """The frozen scan. With resume=True, (beta, seed) pairs already in
+    out_csv are skipped and new rows are appended. Every growth is
+    independent and seeded, so an interrupted-and-resumed CSV holds the same
+    rows as an uninterrupted run (in a different order)."""
+    done = done_specs(out_csv) if resume else set()
     # Most expensive first, so the long tails start early.
-    specs = sorted(((b, s, SCAN_NMAX[b]) for b in betas for s in seeds),
-                   key=lambda t: -t[0])
+    specs = sorted(((b, s, SCAN_NMAX[b]) for b in betas for s in seeds
+                    if (b, s) not in done), key=lambda t: -t[0])
+    print(f"{len(specs)} growths to run ({len(done)} already done)", flush=True)
     rows: List[Dict] = []
     Path(out_csv).parent.mkdir(exist_ok=True)
     with ProcessPoolExecutor(max_workers=jobs) as ex, \
-            open(out_csv, 'w', newline='') as f:
-        w = None
+            open(out_csv, 'a' if resume else 'w', newline='') as f:
+        w = csv.DictWriter(f, fieldnames=FIELDS)
+        if not resume:
+            w.writeheader()
         for res in ex.map(grow_one, specs):
             for r in res:
-                if w is None:
-                    w = csv.DictWriter(f, fieldnames=list(r.keys()))
-                    w.writeheader()
                 w.writerow(r)
                 f.flush()
             rows += res
@@ -450,6 +463,8 @@ def main() -> None:
     mode.add_argument('--validate', action='store_true')
     mode.add_argument('--scan', action='store_true')
     mode.add_argument('--analyze', nargs='+')
+    mode.add_argument('--resume', type=str, metavar='CSV',
+                      help='continue an interrupted --scan, appending to CSV')
     ap.add_argument('--jobs', type=int, default=10)
     ap.add_argument('--seed', type=int, default=0,
                     help='unused by the frozen scan (seeds are fixed); kept for '
@@ -464,6 +479,9 @@ def main() -> None:
         out = f"results/dead_corner_hazard_{stamp}.csv"
         scan(args.jobs, out)
         analyze([out])
+    elif args.resume:
+        scan(args.jobs, args.resume, resume=True)
+        analyze([args.resume])
     else:
         paths = [p for a in args.analyze for p in glob.glob(a)]
         analyze(paths)

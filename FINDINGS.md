@@ -655,7 +655,7 @@ the confound *before the rule was read against data*, and the disclosure diagnos
 (added pre-verdict; frozen rule untouched) show the shrinkage is a trivial 1/capacity
 rescaling: the location-relative width w/a50 RISES (1.473 -> 1.574 -> 1.655), the
 ABSOLUTE strand-count width GROWS (7 -> 13 -> 22 strands), and A*'s median grows
-(6 -> 9 -> 13). The clincher: **the core at onset is ~2.6 strands at every capacity**
+(6 -> 9 -> 13). *[Revised 2026-10-17, wave 1 W1-a: the 2.6 is an estimator artifact (mean(core_frac) x median(A*)); the per-draw core at onset is exactly 2 strands in 91-98% of draws on every substrate. The motif-onset verdict stands; the number is withdrawn.]* The clincher: **the core at onset is ~2.6 strands at every capacity**
 (core_frac@A* 0.435/0.288/0.204 x A*50 = 2.61/2.59/2.65) -- the threshold is literally
 the first appearance of a single mutually-protecting motif. **Honest verdict: the frozen
 rule is satisfied vacuously; the intended reading (a genuine collective critical point)
@@ -1387,7 +1387,7 @@ filling-in and, once it is an arm, grows like a tree; the diameter reacts a fact
 later because an arm has to become long before it dominates the diameter. Why a
 protrusion escapes at a size that grows like exp(5.4 beta) is not explained here.
 
-**What `sheet` is, final form.** *[Revised 2026-10-13, item 4: twelve seeds put the beta = 2 crossover anywhere from 4e4 to beyond 4.2e6 nodes, consistent with a constant rate per node; the 0.8 M figure is a four-seed mean curve. Quote the distribution, not a size.]* A strictly local growth rule that produces a
+**What `sheet` is, final form.** *[Revised 2026-10-17, wave 1 W1-c: there are no tree-like arms. Past its first dead corner the sheet stays two-dimensional wherever a ball fits inside it and its outer annulus ruffles (excess area, up to 4x a flat disc's mass within a given distance of the centre; the centre's eccentricity grows as N^0.23-0.30). Read 'tree-like' below as 'ruffled'.]* *[Revised 2026-10-13, item 4: twelve seeds put the beta = 2 crossover anywhere from 4e4 to beyond 4.2e6 nodes, consistent with a constant rate per node; the 0.8 M figure is a four-seed mean curve. Quote the distribution, not a size.]* A strictly local growth rule that produces a
 window-stable two-dimensional sheet up to a size of about exp(3.3 + 5.4 beta) nodes --
 0.8 M at beta = 2, 0.2 G at beta = 3 -- and grows tree-like arms beyond it. Below that
 size four observables (ball growth, walk, diameter, boundary) agree it is a plane; above
@@ -1611,6 +1611,8 @@ Graphs saved as `results/sheet_cross_b2_s30{4..9}_N4194304.npz`, `s310`, `s311` 
 
 ## Round of 2026-10-13, item 2: the throat threshold is the same ~2.6-strand motif on a real plane -- bigger throats, no sharper
 
+*[Revised 2026-10-17, wave 1 W1-a: the 2.6 is an estimator artifact (mean(core_frac) x median(A*)); the per-draw core at onset is exactly 2 strands in 91-98% of draws on every substrate. The motif-onset verdict stands; the number is withdrawn.]*
+
 *Pre-registration `docs/superpowers/specs/2026-10-13-round2-preregistrations.md` (item 2);
 driver `throat_criticality.py --topology {triangular, sheet}` (`--fss-r` added this round so
 the three FSS geometries could run as separate processes); reducer `throat_compare.py`
@@ -1694,7 +1696,7 @@ changes.
 | item | pre-registered prediction | outcome | what it changes |
 |---|---|---|---|
 | 1 -- what nucleates the arm | DEFECT (60%): a blocked closure at the arm's base | **UNDECIDED by construction**: no arm exists on any of 12 graphs; the edge roughens instead (fjords to 0.75 R, bumps to 1.22 R, feature size ~370 nodes, core intact) | the step-2 "arm" picture is withdrawn and `arm_birth.py` is its instrument; the "shape instability" reading given here was itself superseded the same night by the dead-corner trigger (follow-up section) |
-| 2 -- throat criticality on a plane | MOTIF ONSET HOLDS on both planes; larger capacities; gates hold | **HELD on `triangular`; HELD on `sheet`**: onset core 2.5-2.8 strands at every capacity, relative width 1.31-1.42 flat-to-rising, capacities 2.5-3.3x grown, Gate 1 40/40 exact, Gate 2 (b) | the throat verdict is substrate-independent; the whole portal program now stands on a real geometry |
+| 2 -- throat criticality on a plane | MOTIF ONSET HOLDS on both planes; larger capacities; gates hold | **HELD on `triangular`; HELD on `sheet`**: onset core 2.5-2.8 strands at every capacity (*revised 2026-10-17: 2 strands per draw; the 2.5-2.8 was an artifact*), relative width 1.31-1.42 flat-to-rising, capacities 2.5-3.3x grown, Gate 1 40/40 exact, Gate 2 (b) | the throat verdict is substrate-independent; the whole portal program now stands on a real geometry |
 | 3 -- banked tables under the gate | `grown` fragmented (~0.27); d(p) stable at d = 1 for p <= 0.1, unstable for p >= 0.3 | **all held**: defined_frac 0.27; window-stable to p = 0.15, unstable from 0.3; the "1 -> 2 knob" is a survivor statistic | two banked tables replaced under supersession notices |
 | 4 -- crossover-size distribution | IN BETWEEN, CV 0.3-0.6 (rising hazard) | **IN BETWEEN by the frozen rule (CV 0.44)** but 5 / 12 censored and N* spanning 4e4 to > 4e6; right-censored Weibull k = 0.8-1.0, CI covers 1: constant rate per node, sharp threshold excluded | `sheet`'s 2D range at a given beta is a distribution, not a size: at beta = 2 about one event per 3-4 M nodes grown; the mean-curve "0.8 M" is retired as a headline |
 
@@ -1863,6 +1865,240 @@ Reproduce: `python edge_spectrum.py results/sheet_cross_b2_s3*_N4194304.npz` (fr
 results/sheet_cross_b2_s3*_N4194304.npz --crossover`; `python blocked_closure.py --grow --beta
 1.5 --seeds 400 407 --n-max 524288 --jobs 8`. CSVs under `results/edge_*.csv`,
 `results/blocked_*.csv`; logs under `results/edge_logs/`.
+
+## Literature paths, wave 1 (2026-10-17): the throat motif is two strands, every dead corner is the degree guard, and past N* the sheet stays flat locally but ruffles globally
+
+*Pre-registration `docs/superpowers/specs/2026-10-17-wave1-preregistration.md` (committed
+before any number below was computed); plan `2026-10-17-literature-paths-plan.md`; the
+paths come from `reports/Local graph growth literature survey.md` (A1, A2, A3, A6, A7).
+Three of the four parts are complete. The fourth, the direct hazard scan, was killed by
+the harness for low system memory after 14 of its 160 growths and has not been restarted
+(see W1-d).*
+
+**Summary.**
+
+| part | frozen reading | prediction | consequence |
+|---|---|---|---|
+| W1-a throat onset as integers | **INTEGER MIXTURE, FRACTION UNIVERSAL**; m = 2 in 91-98% of draws | held (75%, 50%); survey's 40/60 guess wrong | the banked "~2.6-strand onset core" was an estimator artifact; the onset is the two-strand triangle |
+| W1-b curvature and failure modes | **DEGREE GUARD**, 9/9; all 474 dead corners fail (iv) only | held (75%, 65%) | the dead corner is the cap and nothing else; the edge's local make-up never changes |
+| W1-c still a disc? | **DISC WITH A STALLED RADIUS** (audit 2D on 8/9, eccentricity exponent 0.23-0.30 after the defect) | missed (STILL A DISC, 60%) | past N* the sheet is locally flat and globally ruffled: excess area in the outer annulus, not a tree |
+| W1-d direct hazard scan | not read (interrupted at 14/160) | | restart needs the owner; 14 interim seeds all show the predicted lost race |
+
+### W1-a. The throat onset is the two-strand triangle, not a 2.6-strand motif
+
+*Reducer: `python throat_compare.py --integer` (validated). Inputs: the nine 2000-draw FSS
+CSVs already on disk.*
+
+The per-draw core size at onset, m = A_star x core_frac, is an integer, and it is almost
+always the smallest possible core:
+
+| substrate | r | P(m = 2) | P(m = 3) | P(m = 4) | P(m >= 5) | mean m |
+|---|---|---|---|---|---|---|
+| grown | 2 | 0.907 | 0.086 | 0.006 | 0 | 2.10 |
+| grown | 3 | 0.937 | 0.059 | 0.004 | 0 | 2.07 |
+| grown | 4 | 0.956 | 0.043 | 0.001 | 0 | 2.05 |
+| triangular | 2 | 0.929 | 0.069 | 0.003 | 0 | 2.07 |
+| triangular | 3 | 0.958 | 0.042 | 0.001 | 0 | 2.04 |
+| triangular | 4 | 0.979 | 0.021 | 0 | 0 | 2.02 |
+| sheet | 2 | 0.925 | 0.071 | 0.003 | 0 | 2.08 |
+| sheet | 3 | 0.963 | 0.037 | 0 | 0 | 2.04 |
+| sheet | 4 | 0.977 | 0.024 | 0 | 0 | 2.02 |
+
+**Frozen readings: INTEGER MIXTURE** (P(2) + P(3) >= 0.994 in every cell) and **FRACTION
+UNIVERSAL** (P(2) spans 0.907-0.979, inside the 0.15 band); mode 2 in 9 of 9 cells. The
+instrument check passed (m >= 2 in every one of the 18,000 draws). Predictions: the
+mixture and the universal fraction were predicted (75%, 50%) and mode 2 was predicted
+(60%); the survey's guess of a 40/60 mixture of 2 and 3 was wrong, because it was built on
+the banked mean of 2.6.
+
+**The banked "~2.6-strand onset core" was an estimator artifact.** It was computed as
+mean(core_frac) x median(A_star). Since core_frac = m / A_star and m is nearly always 2,
+that product is about 2 x mean(1/A_star) x median(A_star), which exceeds 2 whenever
+A_star is right-skewed, as it is (10/50/90% of A_star are 3/6/10 on grown r = 2 and 9/23/40
+on sheet r = 4):
+
+| cell | banked mean(cf) x median(A*) | 2 x mean(1/A*) x median(A*) | true mean m |
+|---|---|---|---|
+| grown r = 2 | 2.61 | 2.51 | 2.10 |
+| triangular r = 4 | 2.66 | 2.64 | 2.02 |
+| sheet r = 4 | 2.77 | 2.75 | 2.02 |
+
+What the throat threshold is, corrected: the first moment a random prefix of strands
+contains **two strands sharing an endpoint whose far ends are adjacent** (a triangle with one
+base edge, the smallest set in which every strand has a common neighbour). That fixed point
+is reached exactly at onset in 91-98% of draws, and the fraction rises toward 1 with
+capacity on every substrate. The qualitative verdict (a local-motif onset, not a critical
+point) stands and is sharper. The number 2.6 is withdrawn everywhere it was quoted.
+
+### W1-b. Every dead corner is the degree guard, and the rough edge is locally identical to the compact one
+
+*Tool: `python curvature_census.py results/sheet_cross_b2_s3*_N4194304.npz` (validated:
+disc identities and dead-corner census agree with `blocked_closure` on three test sheets).
+CSV `results/curvature_census_20261017_010558.csv`.*
+
+**Instrument gate: PASS.** On all twelve final graphs B_v = B_e (one simple boundary
+cycle), every interior node has degree 6, no edge is in zero or three triangles, and the
+Gauss-Bonnet sum over boundary nodes of (4 - d) is exactly 6. The prefix artifact the
+pre-registration worried about (closure edges among old nodes appearing early) did not
+show at all: 0 of 138 prefix rows have an edge in no triangle.
+
+**Frozen reading: DEGREE GUARD**, 9 of 9 crossed seeds. In every one, the first dead
+corner is a pair of adjacent boundary nodes, both of degree 6, each failing condition (iv)
+and nothing else:
+
+| seed | N_first | first dead pair | dead corners at 4.19 M |
+|---|---|---|---|
+| 308 | 25,885 | 24862, 25107 | 57 |
+| 301 | 495,183 | 490066, 491027 | 58 |
+| 300 | 921,272 | 916282, 917875 | 70 |
+| 302 | 1,056,569 | 1052853, 1052862 | 81 |
+| 303 | 1,499,592 | 1490903, 1494234 | 71 |
+| 307 | 2,062,098 | 2055514, 2056616 | 39 |
+| 304 | 2,485,497 | 2477931, 2478637 | 48 |
+| 306 | 2,846,999 | 2842027, 2842398 | 36 |
+| 311 | 3,338,158 | 3332769, 3332968 | 14 |
+| 305, 309, 310 | none | | 0 |
+
+All **474 of 474** dead corners in the final graphs fail (iv) only (prediction >= 0.80).
+No pinch, no other mode, ever. In curvature terms each dead corner is a boundary node of
+kappa = -1/3 whose link end also has kappa = -1/3; the fill that would neutralise it needs
+a degree-7 node, which the cap forbids.
+
+**What did not change: the boundary's local make-up** (predicted to shift toward high
+degree; it does not). The fraction of boundary nodes at degree 5 or 6 is 0.31-0.34 in
+every seed at every size, compact or crossed, and the degree histogram per boundary node
+is the same before and after the first dead corner (seed 300: 0.313 at 16 k, 0.333 at
+N_first, 0.329 at 4.19 M with B 6.5 times longer). The negative-curvature mass M_- grows
+in proportion to B (about 0.055 per boundary node throughout). So the roughened edge is,
+node by node, the same edge as the compact one; only its global length and shape differ.
+The crossover is not a change in what the boundary is made of, it is a change in how much
+of it there is, driven by the permanent defects.
+
+### W1-c. Past N* the sheet is flat everywhere locally but ruffled globally: DISC WITH A STALLED RADIUS
+
+*Tool: `python curvature_census.py results/sheet_cross_b2_s3*_N4194304.npz --disc`
+(validated: a compact 400 k beta = 3 sheet reads DIMENSION DEFINED at 1.96-1.99). CSV
+`results/disc_audit_20261017_010926.csv`.*
+
+**Large-radius window audit** (30 uniformly sampled sources per graph, windows to radius
+480, used only by sources whose ball is below 0.1 N):
+
+| seed | state at 4.19 M | median d by window (R10 ... last usable) | drift | power vs exponential RSS | audit |
+|---|---|---|---|---|---|
+| 300 | crossed | 1.96 1.98 1.99 1.99 1.94 1.93 1.90 (R320) | 0.09 | 2.08 vs 18.0 | DEFINED |
+| 301 | crossed | 1.96 ... 1.99 1.95 1.89 (R320) | 0.10 | 1.30 vs 19.3 | DEFINED |
+| 302 | crossed | 1.96 ... 1.99 1.96 1.91 (R320) | 0.08 | 0.12 vs 26.8 | DEFINED |
+| 303 | crossed | 1.96 ... 1.99 1.99 1.96 (R320) | 0.03 | 1.17 vs 20.0 | DEFINED |
+| 304 | crossed | 1.96 ... 2.00 2.00 (R320) | 0.04 | 0.11 vs 35.5 | DEFINED |
+| 306 | crossed | 1.96 ... 2.00 2.00, 1.79 at R480 (7 sources) | 0.21 | 0.06 vs 36.5 | MIXED, d_last 1.79 |
+| 307 | crossed | 1.96 ... 1.98 1.97 (R320) | 0.03 | 0.13 vs 31.8 | DEFINED |
+| 308 | crossed | 1.96 ... 1.95 1.86 1.82 (R320) | 0.17 | 1.25 vs 16.6 | MIXED, d_last 1.82 |
+| 311 | crossed | 1.96 ... 2.00 2.00 (R320) | 0.04 | 0.02 vs 34.0 | DEFINED |
+| 305 | compact | 1.96 ... 2.00 2.00 (R320) | 0.04 | 0.06 vs 34.7 | DEFINED |
+| 309 | compact | 1.96 ... 1.99, 1.77 at R480 (8 sources) | 0.22 | 0.06 vs 38.0 | MIXED, d_last 1.77 |
+| 310 | compact | 1.96 ... 2.00 2.00 (R320) | 0.04 | 0.07 vs 35.6 | DEFINED |
+
+Disc-like by the frozen rule on 8 of 9 crossed graphs (seed 306 misses on d_last = 1.79 at a
+radius-480 window read by 7 sources). EXPONENTIAL on 0 of 9; the power law beats the
+exponential by a factor 8-1400 in RSS on every graph. The radius-480 dip is an edge effect
+of the instrument, not of the crossover: compact seed 309 shows the same dip (1.77 from 8
+sources).
+
+**Radius growth from the centre** (eccentricity of node 0; exponent over 2.1 M -> 4.2 M):
+
+| seed | N_first | ecc at 1 M / 2 M / 4.2 M | last-octave exponent |
+|---|---|---|---|
+| 308 | 26 k | 402 / 497 / 611 | 0.30 |
+| 301 | 495 k | 614 / 750 / 891 | 0.25 |
+| 300 | 921 k | 650 / 853 / 1017 | 0.25 |
+| 302 | 1.06 M | 649 / 865 / 1016 | 0.23 |
+| 303 | 1.50 M | 652 / 907 / 1096 | 0.27 |
+| 307 | 2.06 M | 649 / 920 / 1204 | 0.39 |
+| 304 | 2.49 M | 650 / 921 / 1226 | 0.41 |
+| 306 | 2.85 M | 649 / 920 / 1305 | 0.50 |
+| 311 | 3.34 M | 647 / 917 / 1294 | 0.50 |
+| 305, 309, 310 (compact) | none | 648 / 917 / 1303 | 0.50 |
+
+Eccentricity exponent in [0.40, 0.65] on 3 of 9 crossed graphs, so **the frozen reading is
+DISC WITH A STALLED RADIUS** (prediction: STILL A DISC, 60%; missed). Every seed follows
+the compact curve exactly (ecc 648 at 1 M, 917 at 2 M) until its first dead corner and then
+falls below it; the three seeds that crossed in the last octave have not yet moved.
+
+**What the two readings mean together** (post hoc, descriptive; ball volume around node 0
+on five graphs). Around the centre the volume grows exactly as r^2 out to the radius of
+the first dead corners; beyond it there is a band of super-quadratic growth, local slope
+d ln V / d ln r up to 3.2-3.5, before the ball saturates:
+
+| seed | local slope of V(r) from node 0 at r = 100, 200, 300, 400, 500, 600, 700 | V(600) / flat disc |
+|---|---|---|
+| 308 | 3.25 3.27 2.26 1.54 (saturated) | 3.88 |
+| 301 | 1.99 1.99 2.00 2.39 3.43 3.54 2.37 | 1.77 |
+| 300 | 1.99 1.99 2.00 2.00 2.67 3.22 2.98 | 1.25 |
+| 305, 309 (compact) | 2.00 at every r to 800, then the edge | 1.00 |
+
+So past N* the sheet is two-dimensional wherever a ball fits inside it (every audit window,
+every source), and the outer annulus carries **excess area**: it packs up to four times a
+flat disc's mass within a given distance of the centre. That is what a surface of negative
+curvature does (a hyperbolic disc has excess circumference), and it is the global
+expression of the -1/3 boundary charges of W1-b: each dead corner forces extra boundary,
+the boundary ruffles, and the ruffled outer region is neither flat nor a tree. The banked
+phrase "grows tree-like arms" is withdrawn (item 1 already found no arm); "turns tree-like"
+is replaced by **"stays locally flat and becomes ruffled (negatively curved) at large
+scale, starting at the first dead corner"**. The 2026-09-29 diameter exponent of 0.25 is
+explained: the centre's eccentricity itself grows as N^0.23-0.30 after the defect, so the
+double-sweep reading was right, not an artifact.
+
+### W1-d. The direct hazard scan: interrupted, not read
+
+*Tool: `dead_corner_hazard.py` (validated: the `on_event` hook leaves growth bit-identical;
+the incremental dead set equals the static census; prefix bisection never fires after the
+exact history, gap 0 on three seeds; interval coverage 0.93-0.95 on synthetic data). The
+frozen scan (beta 1.0, 1.25, 1.5, 1.75 x seeds 500-539, ten workers) started 00:49 and was
+**killed by the harness for low system memory** some time after 01:17 (the last saved row), with the desktop also
+running this wave's census and disc audit and other projects' jobs. Per the harness rule it
+has not been restarted; `--resume results/dead_corner_hazard_20261017_004912.csv` continues
+it (skips the finished growths, appends the rest).*
+
+Saved: 14 growths, all at beta = 1.75 (seeds 500-513). **No frozen reading is attached to
+them, and they are not a fair sample**: results are written in submission order, so the
+first unfinished growth (seed 514) blocked every later row, and a growth is unfinished
+after ~28 minutes precisely when its first dead corner comes late. The saved subset is
+therefore cut off at the long end. Disclosed because it was seen while testing the resume
+option, before any restart: on these 14 alone the Weibull shape reads 2.4 (95% interval
+1.5-3.4; no first dead corner before 158 k nodes, all by 788 k), an estimate biased upward
+by exactly that truncation. It does not decide P1, which needs all four betas and all 40
+seeds each, and the frozen rules are unchanged.
+
+Descriptively, every one of the 14 first dead corners has exactly the predicted shape: an
+adjacent pair of degree-6 boundary nodes, each failing (iv) only, created by a single
+attachment whose endpoints went from degree (5, 3) or (5, 4) to (6, 4) or (6, 5) (10 and 4
+seeds). That is the lost race stated in the pre-registration: a capped node waits to close
+while its degree-5 neighbour receives an attachment on its other boundary edge, and both
+are then capped forever. The rate gap of the winning attachment against the closure is
+12 - (5 + 3) = 4 or 12 - (5 + 4) = 3 units of beta.
+
+### What wave 1 revises in the banked text
+
+- **"~2.6-strand onset core"** (throat stage 1, 2026-08-17; round 2 item 2): withdrawn. The
+  onset is the two-strand triangle in 91-98% of draws on every substrate; the verdict
+  "local-motif onset, not a critical point" stands and is sharper. Revision flags added at
+  each place the number was quoted (FINDINGS, BRANCHES, README).
+- **"`sheet` ... grows tree-like arms beyond N*"** (2026-09-29): replaced by "stays locally
+  flat and ruffles at large scale from its first dead corner on" (W1-c). The diameter
+  exponent of 0.25 measured then is confirmed by the centre's eccentricity, not an
+  artifact.
+- **The dead corner** (follow-up of 2026-10-13/14): its mechanism is now fixed in the rule's
+  own terms and in curvature terms. It is always the degree guard (474 of 474), always born
+  as an adjacent capped pair (9 of 9 saved graphs, 14 of 14 interim fresh seeds), created by
+  an attachment that beats a waiting closure.
+
+Still open from this wave: P1 and P2 (is the hazard constant per node, and does its rate
+follow exp(-a beta) with a near 5.4?), which need the interrupted scan finished.
+
+Reproduce: `python throat_compare.py --integer`; `python curvature_census.py
+results/sheet_cross_b2_s3*_N4194304.npz`; the same with `--disc`; `python
+dead_corner_hazard.py --resume results/dead_corner_hazard_20261017_004912.csv --jobs 6`
+(owner's call; ten workers plus concurrent 4 M-node analyses exhausted memory).
 
 ## Scaling directions: what more compute could (and couldn't) unlock
 
