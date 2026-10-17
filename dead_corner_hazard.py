@@ -81,8 +81,10 @@ class DeadDetector:
     (edges and triangles are never removed), so interior nodes are cached.
     """
 
-    def __init__(self, c: int = CAP, stop_at_first: bool = False):
+    def __init__(self, c: int = CAP, stop_at_first: bool = False,
+                 guard: Optional[int] = None):
         self.c = c
+        self.guard = guard          # the variant's closability guard (None = c)
         self.stop_at_first = stop_at_first
         self.dead: Set[int] = set()
         self.interior: Set[int] = set()
@@ -100,7 +102,7 @@ class DeadDetector:
             if not is_boundary_node(adj, y):
                 self.interior.add(y)
                 continue
-            if _closable(adj, y, c) is None:
+            if _closable(adj, y, c, self.guard) is None:
                 new.append(y)
         if not new:
             return False

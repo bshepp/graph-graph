@@ -53,17 +53,38 @@ def _is_boundary(adj: Adj, u: int, v: int) -> bool:
     return len(adj[u] & adj[v]) == 1
 
 
-def _closable(adj: Adj, x: int, c: int) -> Optional[Tuple[int, int]]:
-    """The link ends (a, b) of x if its wheel can be closed, else None."""
+def _closable(adj: Adj, x: int, c: int, guard: Optional[int] = None
+              ) -> Optional[Tuple[int, int]]:
+    """The link ends (a, b) of x if its wheel can be closed, else None.
+
+    `guard` (default c) is the degree at which a link end blocks the closure;
+    the `relief` variant passes c + 1 (a link end at the cap may rise to c + 1).
+    """
+    g = c if guard is None else guard
     ends = [y for y in adj[x] if _is_boundary(adj, x, y)]
     if len(ends) != 2:
         return None
     a, b = ends
     if b in adj[a] or (adj[a] & adj[b]) != {x}:
         return None                       # would pinch the surface
-    if len(adj[a]) >= c or len(adj[b]) >= c:
+    if len(adj[a]) >= g or len(adj[b]) >= g:
         return None                       # keeps every degree <= c
     return a, b
+
+
+VARIANTS = ('sheet', 'relief', 'veto')
+
+
+def _vetoed(adj: Adj, u: int, v: int, c: int) -> bool:
+    """`veto` variant: would attaching at boundary edge (u, v) cap an endpoint
+    whose other boundary neighbour is already capped (the lost race that makes
+    a dead corner)? Reads the endpoints' neighbours and their degrees only."""
+    for x, y in ((u, v), (v, u)):
+        if len(adj[x]) == c - 1:
+            for q in adj[x]:
+                if q != y and _is_boundary(adj, x, q) and len(adj[q]) >= c:
+                    return True
+    return False
 
 
 def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
@@ -71,7 +92,8 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
                checkpoints: Sequence[int] = (),
                on_checkpoint: Optional[Callable[[int, Adj], None]] = None,
                on_event: Optional[Callable[[str, Tuple[int, ...], Adj],
-                                           Optional[bool]]] = None
+                                           Optional[bool]]] = None,
+               variant: str = 'sheet'
                ) -> Adj:
     """
     Grow a sheet from a seed triangle; returns adjacency as a list of sets.
@@ -91,7 +113,16 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
     nodes (x, a, b) (x the closed node, a-b the new edge). It never touches
     the random stream, so growth is identical with or without it; a return
     value of True stops the growth.
+
+    `variant` (default 'sheet', the registered generator, unchanged): labelled
+    rule variants of the 2026-10-17 wave 5 pre-registration, never reported as
+    `sheet`. 'relief': a closure is admitted when a link end is at the cap,
+    which rises to c + 1. 'veto': an attachment that would cap a node whose
+    other boundary neighbour is already capped is refused.
     """
+    if variant not in VARIANTS:
+        raise ValueError(f"unknown variant {variant!r}")
+    guard = c + 1 if variant == 'relief' else c
     rng = np.random.default_rng(seed)
     adj: Adj = [{1, 2}, {0, 2}, {0, 1}]
     kmax = 2 * c
@@ -108,7 +139,7 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
             return
         du, dv = len(adj[u]), len(adj[v])
         if du >= c or dv >= c:
-            if any(len(adj[x]) >= c and _closable(adj, x, c) for x in e):
+            if any(len(adj[x]) >= c and _closable(adj, x, c, guard) for x in e):
                 buckets[kmax].append((e, t))
         else:
             buckets[du + dv].append((e, t))
@@ -144,11 +175,11 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
         u, v = e
         if k == kmax:
             cand = [x for x in e
-                    if len(adj[x]) >= c and _closable(adj, x, c)]
+                    if len(adj[x]) >= c and _closable(adj, x, c, guard)]
             if not cand:
                 continue
             x = cand[int(rng.integers(len(cand)))]
-            a, bb = _closable(adj, x, c)
+            a, bb = _closable(adj, x, c, guard)
             adj[a].add(bb)
             adj[bb].add(a)
             refresh(a)
@@ -156,6 +187,8 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
             if on_event is not None and on_event('close', (x, a, bb), adj):
                 break
         else:
+            if variant == 'veto' and _vetoed(adj, u, v, c):
+                continue                  # refused; re-offered when a degree changes
             w = len(adj)
             adj.append({u, v})
             adj[u].add(w)
