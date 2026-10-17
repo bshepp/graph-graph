@@ -1256,7 +1256,7 @@ on the tree.
 
 **Predicted and found: portals do not inflate a real dimension, they destroy it.** The
 `d_eff` of the still-defined nodes does climb with k (1.86 → 2.8), which is the banked
-"inflation" -- but the window audit turns unstable at **k* = 20** on both 2D substrates
+"inflation" -- but the window audit turns unstable at **k* = 20** *(revised 2026-10-17, wave 3 W3-d: k* is the Newman-Watts crossover, proportional to N / r0^2 -- 20 at N = 5000 with radius 10, 80 at N = 20000 -- not a fixed tolerance of the planes)* on both 2D substrates
 (predicted range 10-50), and `defined_frac` falls from 0.96 to 0.3. Above k = 20 the
 number is a reading of one fit window, not a dimension. A 2D substrate of 5000 nodes also
 exhausts its far pairs at ~125 portals, where `grown` accepted 400: distances that grow
@@ -2214,6 +2214,162 @@ question (it separates cleanly in a rule variant, wave 5's C1).
 
 Reproduce: `python edge_geometry.py results/sheet_cross_b2_s3*_N4194304.npz`; `python
 eden_pin.py --runs 20 --r-max 200`.
+
+
+## Literature paths, wave 3 (2026-10-17): the portal threshold is Newman-Watts, the perimeter criterion is blind, and resistance explains the walkers
+
+*Pre-registration `docs/superpowers/specs/2026-10-17-wave3-preregistration.md` (committed
+before any number below); tool `instruments.py` (validated: Pruefer tree and Wilson UST are
+spanning trees; effective resistance exact on a path and a cycle; a random 4-regular graph
+has nothing below the Kesten-McKay edge; flipped sphere triangulations keep E = 3N - 6 and
+F = 2N - 4; hull volumes exact on a torus; the saturation fit recovers a known plateau).
+`shortcut_tolerance.measure_tolerance` gained an optional `max_radius` (default unchanged).
+The pre-registration also records that the survey's "spike decomposition" (half of A8)
+rested on a misdescribed brief and was dropped.*
+
+**Summary.**
+
+| part | frozen reading | prediction | what it says |
+|---|---|---|---|
+| W3-a spectral plateau + critical trees | **VOID** (gate failed: the saturation fit hit its bound on the 3D torus) | gate 90%, missed | the walk instrument itself reads every known answer (3D torus 3.0-3.2, tree 1.31 vs 4/3, UST 1.22 vs 16/13), so the void is the fit, not the instrument |
+| W3-b gap count | not separated (`grown` has the most modes below the edge) | missed (55%) | `grown` is not an expander at N = 5000; the gap count is not a dimension test |
+| W3-c effective resistance | missed on one clause (`triangular` 1.37 > 1.3) | missed (70%) | resistance ratios match the banked hitting gains (1.37 vs 1.4, 1.29 vs 1.3, 3.4 vs 6.7); the rule was self-inconsistent |
+| W3-d portal threshold vs N and radius | **NEWMAN-WATTS COLLAPSE** (slope 0.74, scatter 0.19; banked k* = 20 reproduced) | held (60%) | "20 shortcuts" is the Newman-Watts crossover for N = 5000 and radius 10, not a property of the planes |
+| W3-e perimeter criterion vs a random surface | **PERIMETER CRITERION BLIND** | held (60%) | B ~ sqrt(V) on a d_H = 4 surface too; the sheet's flatness rests on its volume exponent |
+| W3-f box covering | `sheet` d_B 1.67 (missed [1.8, 2.2]); `grown` FINITE d_B by 3% | missed (60%) | box covering does not separate these graphs |
+
+### W3-a. The spectral instrument reads every known answer; the frozen fit did not
+
+Running spectral dimension D(t) (lazy walk) and the window audit, one graph each:
+
+| graph | D(t) at t = 16 ... 11,585 | saturation-fit plateau a | window audit | theory (d_s; d_H) |
+|---|---|---|---|---|
+| 2D torus 300^2 | 2.03 ... 1.97-2.02 | 1.98 | DEFINED, 1.99 | 2; 2 |
+| 3D torus 45^3 | 3.13 3.07 3.04 3.04 3.07 3.10 3.16 (to t = 128) | **10.0 (fit at its bound)** | DEFINED, 2.99 | 3; 3 |
+| uniform random tree, 200 k | 1.15 ... 1.30 1.31 1.31 1.33 | 1.31 | MIXED, 1.87 | 4/3; 2 |
+| UST of a 300^2 torus | 1.11 ... 1.22 1.22 1.24 1.25 | 1.23 | DEFINED, 1.56 | 16/13 = 1.23; 8/5 = 1.6 |
+| `sheet` beta = 3, 512 k | 2.00 ... 1.90 1.88 1.85 | 1.85 | DEFINED, 1.99 | 2; 2 |
+| `grown` cap 6, 200 k | 1.15 rising to 1.94, no plateau | 1.93 (not a plateau) | EXPONENTIAL | none |
+| `sheet` beta = 2 seed 308, 4.19 M (ruffled) | 2.00 ... 1.82 1.77 1.73 1.70 | 1.52 | (not run) | |
+
+**Frozen reading: VOID.** The gate required the saturation fit to return a in [2.7, 3.3] on
+the 3D torus; on that short, slightly rising curve (seven points before the 45^3 torus
+equilibrates) the fit ran to its parameter bound. The raw D(t) there is 3.04-3.16, and the
+audit reads 2.99, so the walk instrument is sound and the fit is not robust on short curves.
+Per the pre-registration the critical-tree verdict is void; it is not rescued here.
+
+Descriptively, and labelled as such: the random tree is exactly the case the survey asked
+for. Its ball growth reads d = 1.87 (MIXED, not EXPONENTIAL; Hausdorff dimension 2) while its
+walk reads 1.31 (4/3), so the two instruments disagree in the way theory says they should,
+and the window audit does not reject every tree. The uniform spanning tree reads 1.56 and
+1.22 against 8/5 and 16/13. `grown` is the supercritical class: no plateau and an exponential
+audit. On the ruffled 4.19 M-node seed 308 the stated expectation (D rising at long times,
+40%) failed: D falls to 1.70, faster than on the compact 512 k sheet (1.85), so the ruffled
+annulus slows the walk's spreading rather than speeding it. A robust plateau estimator
+(for example the median of the last five D values) would replace the saturation fit in any
+re-run; that is a new instrument and needs its own registration.
+
+### W3-b. Gap count: `grown` is not an expander at N = 5000
+
+Full normalized-Laplacian spectra, N = 5000 (`triangular` 4900), seed 0:
+
+| graph | mean degree | Kesten-McKay edge | fraction f below it | lambda_2 |
+|---|---|---|---|---|
+| random 4-regular (control) | 4.00 | 0.134 | 0.0002 | 0.134 |
+| `triangular` | 5.89 | 0.249 | 0.0755 | 0.00052 |
+| `sheet` | 5.89 | 0.249 | 0.0756 | 0.00058 |
+| `grown` cap 6 | 4.00 | 0.134 | **0.0850** | **0.00011** |
+| random tree | 2.00 | 0 (degenerate) | 0 | 0.00001 |
+
+Gate PASS (the random regular graph sits exactly at the edge). **Frozen reading: not
+separated** (prediction GAP COUNT SEPARATES, 55%, missed): `grown` has *more* eigenvalues
+below the edge than the planes and the smallest spectral gap of all. Ball growth on
+`grown` is exponential, but at this size it is not an expander: its long degree-capped
+arms carry many slow modes. The gap count does not discriminate "has a dimension" here;
+the window audit and the spectral plateau remain the instruments. (The random tree's row
+is uninformative: with mean degree 2 the edge is at 0.)
+
+### W3-c. Effective resistance tracks the walker contrast
+
+The banked E3 configuration exactly (N = 1500, seeds 0-9, offset portal 2 hops from source
+and target), unit conductances:
+
+| substrate | source-target distance | R_eff without portal | with portal | median ratio (range) | banked hitting-time gain |
+|---|---|---|---|---|---|
+| `triangular` | 30-51 | 1.8-2.5 | 1.3-1.7 | **1.37** (1.34-1.43) | 1.4x |
+| `sheet` | 30-45 | 1.4-1.7 | 1.1-1.3 | **1.29** (1.25-1.42) | 1.3x |
+| `grown` | 19-28 | 7.0-10.2 | 2.2-2.6 | **3.42** (2.67-3.86) | 6.7x |
+
+**Frozen reading: missed** (RESISTANCE EXPLAINS THE CONTRAST, 70%), on one clause:
+`triangular`'s 1.37 exceeds the 1.3 cap. The rule was inconsistent with itself (it asked the
+triangular ratio to stay below 1.3 and to sit within a factor 2 of a banked gain of 1.4).
+The other clauses hold: `grown` 3.42 >= 3, `sheet` 1.29 <= 1.3, and every substrate's ratio
+is within a factor 2 of its banked gain (1.37/1.4, 1.29/1.3, 3.42/6.7 = 0.51). The mechanism
+reads directly off the raw numbers: on `grown` the resistance is 7-10 over ~24 hops (close
+to a single path), on the planes about 2 over ~40 hops (two-dimensional resistance grows
+only logarithmically), so one extra edge relieves `grown` by a factor 3-4 and a plane by a
+third.
+
+### W3-d. The portal threshold is Newman-Watts
+
+`measure_tolerance` on `triangular`, 3 seeds per cell; k* = first count whose seed-median
+window drift exceeds 0.10:
+
+| N | r0 | k* | N / r0^2 |
+|---|---|---|---|
+| 2,000 | 14 / 10 / 8 | 10 / 15 / 15 | 10 / 20 / 31 |
+| 5,000 | 14 / 10 / 8 | 15 / **20** / 30 | 26 / 50 / 78 |
+| 20,000 | 14 / 10 / 8 | 40 / 80 / 120 | 102 / 200 / 313 |
+
+Slope of ln k* on ln(N/r0^2) = 0.74, scatter 0.19 over 9 cells: **NEWMAN-WATTS COLLAPSE**
+(predicted, 60%; the slope is at the low end of the band). The banked cell (N = 5000,
+automatic radius 10) reproduces k* = 20 exactly. The banked "a 2D substrate tolerates about
+20 shortcuts" is therefore not a property of the planes: it is where the Newman-Watts
+crossover length (N/S)^(1/2) falls inside a radius-10 window at N = 5000, and it moves with
+N and with the window as the formula says. (Moran's I used 19 permutations instead of 199;
+the drift that defines k* does not use them.)
+
+### W3-e. The perimeter criterion cannot tell a plane from a random surface
+
+A uniform random sphere triangulation (N = 20,000, 150 sweeps of edge flips, 6.7 M accepted;
+mean degree 5.999, maximum 33) against `sheet` beta = 3 at 512,000; hulled balls below 0.1 N:
+
+| graph | radii (middle third) | ball volume exponent d_V | hull boundary vs hull volume s_HV |
+|---|---|---|---|
+| random triangulation | 4-6 | 2.84 | 0.41 |
+| `sheet` | 9-30 | 1.91 | 0.50 |
+
+**PERIMETER CRITERION BLIND** (predicted, 60%): both boundaries grow like the square root of
+the enclosed volume while the volume exponents differ by 0.93. A boundary that scales as
+sqrt(N) certifies nothing by itself; the sheet's flatness rests on its ball-volume exponent
+and the window audit, as the survey said. The triangulation's usable range is short (radii
+4-6 at 20,000 nodes), so its d_V of 2.84 is a finite-size reading of a d_H = 4 surface.
+
+### W3-f. Box covering does not separate either
+
+Random sequential ball covering, five repetitions per radius:
+
+| graph | N_B at r_B = 1, 4, 8, 16, 24 | power-law d_B (RSS) | exponential (RSS) |
+|---|---|---|---|
+| `sheet` beta = 3, 512 k | 118,681 / 16,681 / 4,961 / 1,377 / 635 | 1.67 (0.12) | (2.86) |
+| `grown` cap 6, 200 k | 72,537 / 14,099 / 5,241 / 1,153 / 301 | 1.64 (1.02) | (1.05) |
+
+`sheet`'s d_B = 1.67 misses the predicted [1.8, 2.2]: random sequential covering wastes
+overlap at small radii, and over r_B = 8-24 alone the slope is 1.87. `grown` reads FINITE d_B
+by a 3% RSS margin, which is no discrimination at all: its curve is power-like at small
+radii and falls steeply at large ones. Prediction (EXPONENTIAL, 60%) missed on the frozen
+rule; in substance box covering cannot tell these two graphs apart, which is the survey's
+point that d_B is a different exponent from a dimension.
+
+**What wave 3 adds.** Two banked statements are now explained by textbook results: the
+portal threshold is the Newman-Watts crossover (it scales as N / r0^2 and reproduces the
+banked 20), and the walker contrast is effective resistance (a near-single path on `grown`,
+logarithmic resistance on the planes). Two cheap discriminators the survey proposed fail on
+these graphs (the spectral gap count and box covering), and the perimeter criterion is shown
+blind on a known d_H = 4 surface. The spectral dimension reads every known answer, but the
+frozen fit voided its verdict.
+
+Reproduce: `python instruments.py --gap | --reff | --nw | --triang | --boxes | --spectral`.
 
 
 ## Scaling directions: what more compute could (and couldn't) unlock
