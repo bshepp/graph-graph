@@ -16,8 +16,16 @@ relative width (10-90 span of a* over a50), and the onset core
                          or relative width falls by > 10% across capacities
   UNDECIDED              otherwise
 
+`--integer` (pre-registration 2026-10-17-wave1-preregistration.md, W1-a):
+the per-draw core size at onset m = round(A_star * core_frac) is an integer
+>= 2; its histogram per substrate and r, with the frozen readings
+  INTEGER MIXTURE     P(m=2) + P(m=3) >= 0.80 in every cell
+  BROAD               below 0.80 in at least three cells
+  FRACTION UNIVERSAL  max - min of P(m=2) over cells <= 0.15
+
 Usage:
     python throat_compare.py            # all substrates with saved FSS files
+    python throat_compare.py --integer
     python throat_compare.py --validate
 """
 
@@ -117,6 +125,53 @@ def compare(results_dir: str = 'results') -> Dict[str, Dict[int, Dict[str, float
     return table
 
 
+def core_sizes(rows: List[Dict[str, float]]) -> np.ndarray:
+    """Per finite draw, the number of strands in the peeling core at onset."""
+    return np.array([int(round(r['A_star'] * r['core_frac'])) for r in rows
+                     if r['A_star'] > 0], dtype=int)
+
+
+def integer_reading(cells: Dict[str, Dict[str, float]]) -> Dict[str, str]:
+    p23 = [c['p2'] + c['p3'] for c in cells.values()]
+    low = sum(x < 0.80 for x in p23)
+    mix = ('INTEGER MIXTURE' if low == 0 else
+           'BROAD' if low >= 3 else 'UNDECIDED')
+    p2 = [c['p2'] for c in cells.values()]
+    frac = ('FRACTION UNIVERSAL' if max(p2) - min(p2) <= 0.15
+            else 'FRACTION VARIES')
+    return {'mixture': mix, 'fraction': frac,
+            'p2_range': f"{min(p2):.3f}-{max(p2):.3f}"}
+
+
+def integer_mixture(results_dir: str = 'results') -> Dict[str, Dict[str, float]]:
+    files = newest_files(results_dir)
+    cells: Dict[str, Dict[str, float]] = {}
+    print(f"{'substrate':>10} {'r':>2} {'draws':>5} {'min m':>5} {'P(2)':>6} "
+          f"{'P(3)':>6} {'P(4)':>6} {'P(>=5)':>6} {'P(2)+P(3)':>9} {'mean m':>6} "
+          f"{'mode':>4}")
+    bad = 0
+    for topo in TOPOS:
+        for r in sorted(files[topo]):
+            m = core_sizes(load_rows(files[topo][r]))
+            bad += int((m < 2).sum())
+            n = len(m)
+            c = {'n': n, 'p2': float(np.mean(m == 2)), 'p3': float(np.mean(m == 3)),
+                 'p4': float(np.mean(m == 4)), 'p5': float(np.mean(m >= 5)),
+                 'mean': float(m.mean()), 'mode': int(np.bincount(m).argmax()),
+                 'min': int(m.min())}
+            cells[f"{topo} r{r}"] = c
+            print(f"{topo:>10} {r:2d} {n:5d} {c['min']:5d} {c['p2']:6.3f} "
+                  f"{c['p3']:6.3f} {c['p4']:6.3f} {c['p5']:6.3f} "
+                  f"{c['p2'] + c['p3']:9.3f} {c['mean']:6.2f} {c['mode']:4d}")
+    rd = integer_reading(cells)
+    check = 'PASS' if bad == 0 else f'FAIL ({bad} draws)'
+    print(f"\ninstrument check (m >= 2 in every draw): {check}")
+    n2 = sum(c['mode'] == 2 for c in cells.values())
+    print(f"W1-a: {rd['mixture']}; {rd['fraction']} (P(2) range {rd['p2_range']}); "
+          f"mode 2 in {n2}/{len(cells)} cells")
+    return cells
+
+
 def _validate() -> bool:
     ok = True
     print("[1] synthetic ensembles with known statistics")
@@ -150,6 +205,22 @@ def _validate() -> bool:
         good = got == want
         ok &= good
         print(f"  {name:>9}: {got}  {'OK' if good else 'FAIL (want ' + want + ')'}")
+    print("[3] integer core sizes and readings")
+    rows3 = [{'A_star': 10.0, 'core_frac': 0.2}, {'A_star': 10.0, 'core_frac': 0.3},
+             {'A_star': -1.0, 'core_frac': 0.0}, {'A_star': 7.0, 'core_frac': 4 / 7}]
+    m = core_sizes(rows3)
+    good = list(m) == [2, 3, 4]
+    ok &= good
+    print(f"  sizes {list(m)} (want [2, 3, 4])  {'OK' if good else 'FAIL'}")
+    mix = {f"c{i}": {'p2': 0.5 + 0.01 * i, 'p3': 0.4} for i in range(9)}
+    broad = {f"c{i}": {'p2': 0.4, 'p3': 0.3 if i < 3 else 0.5} for i in range(9)}
+    for name, d, want in (('mixture', mix, ('INTEGER MIXTURE', 'FRACTION UNIVERSAL')),
+                          ('broad', broad, ('BROAD', 'FRACTION UNIVERSAL'))):
+        rd = integer_reading(d)
+        good = (rd['mixture'], rd['fraction']) == want
+        ok &= good
+        print(f"  {name:>9}: {rd['mixture']}, {rd['fraction']}  "
+              f"{'OK' if good else 'FAIL'}")
     print("\nPASS: throat comparison" if ok else "\nFAIL: throat comparison")
     return ok
 
@@ -157,6 +228,8 @@ def _validate() -> bool:
 def main() -> None:
     ap = argparse.ArgumentParser(description="Throat criticality across substrates")
     ap.add_argument('--validate', action='store_true')
+    ap.add_argument('--integer', action='store_true',
+                    help='per-draw integer core size at onset (wave 1, W1-a)')
     ap.add_argument('--results', type=str, default='results')
     ap.add_argument('--seed', type=int, default=0)
     args = ap.parse_args()
@@ -164,7 +237,10 @@ def main() -> None:
     np.random.seed(args.seed)
     if args.validate:
         raise SystemExit(0 if _validate() else 1)
-    compare(args.results)
+    if args.integer:
+        integer_mixture(args.results)
+    else:
+        compare(args.results)
 
 
 if __name__ == '__main__':
