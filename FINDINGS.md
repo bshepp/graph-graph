@@ -1871,9 +1871,9 @@ results/sheet_cross_b2_s3*_N4194304.npz --crossover`; `python blocked_closure.py
 *Pre-registration `docs/superpowers/specs/2026-10-17-wave1-preregistration.md` (committed
 before any number below was computed); plan `2026-10-17-literature-paths-plan.md`; the
 paths come from `reports/Local graph growth literature survey.md` (A1, A2, A3, A6, A7).
-Three of the four parts are complete. The fourth, the direct hazard scan, was killed by
-the harness for low system memory after 14 of its 160 growths and has not been restarted
-(see W1-d).*
+All four parts are complete. The fourth, the direct hazard scan, was killed by the
+harness for low system memory after 14 of its 160 growths and was resumed on jaga on the
+owner's go the same afternoon (see W1-d for the deviation).*
 
 **Summary.**
 
@@ -1882,7 +1882,7 @@ the harness for low system memory after 14 of its 160 growths and has not been r
 | W1-a throat onset as integers | **INTEGER MIXTURE, FRACTION UNIVERSAL**; m = 2 in 91-98% of draws | held (75%, 50%); survey's 40/60 guess wrong | the banked "~2.6-strand onset core" was an estimator artifact; the onset is the two-strand triangle |
 | W1-b curvature and failure modes | **DEGREE GUARD**, 9/9; all 474 dead corners fail (iv) only | held (75%, 65%) | the dead corner is the cap and nothing else; the edge's local make-up never changes |
 | W1-c still a disc? | **DISC WITH A STALLED RADIUS** (audit 2D on 8/9, eccentricity exponent 0.23-0.30 after the defect) | missed (STILL A DISC, 60%) | past N* the sheet is locally flat and globally ruffled: excess area in the outer annulus, not a tree |
-| W1-d direct hazard scan | not read (interrupted at 14/160) | | restart needs the owner; 14 interim seeds all show the predicted lost race |
+| W1-d direct hazard scan | **PER-NODE HAZARD** (pooled k 1.07 [0.95, 1.21]); **ARRHENIUS, RATE LAW DIFFERS** (slope 6.44 vs 5.38); **LOST RACE** 160/160 | held (65%), held / missed (70% / 55%), held (75%) | the first dead corner is a constant-rate-per-node event, lambda ~ 0.15 exp(-6.44 beta); the lost race is the only birth route in the default rule |
 
 ### W1-a. The throat onset is the two-strand triangle, not a 2.6-strand motif
 
@@ -2048,34 +2048,57 @@ scale, starting at the first dead corner"**. The 2026-09-29 diameter exponent of
 explained: the centre's eccentricity itself grows as N^0.23-0.30 after the defect, so the
 double-sweep reading was right, not an artifact.
 
-### W1-d. The direct hazard scan: interrupted, not read
+### W1-d. The direct hazard scan: a constant per-node clock, Arrhenius at slope 6.4, and the lost race every time
 
 *Tool: `dead_corner_hazard.py` (validated: the `on_event` hook leaves growth bit-identical;
 the incremental dead set equals the static census; prefix bisection never fires after the
 exact history, gap 0 on three seeds; interval coverage 0.93-0.95 on synthetic data). The
-frozen scan (beta 1.0, 1.25, 1.5, 1.75 x seeds 500-539, ten workers) started 00:49 and was
-**killed by the harness for low system memory** some time after 01:17 (the last saved row), with the desktop also
-running this wave's census and disc audit and other projects' jobs. Per the harness rule it
-has not been restarted; `--resume results/dead_corner_hazard_20261017_004912.csv` continues
-it (skips the finished growths, appends the rest).*
+frozen scan (beta 1.0, 1.25, 1.5, 1.75 x seeds 500-539) started on the desktop 00:49 with
+ten workers and was **killed by the harness for low system memory** after 14 growths (beta
+1.75, seeds 500-513). **Deviation from the pre-registration, disclosed:** on the owner's go
+it was resumed on jaga (`--resume`, 24 workers, 15:07-15:33 PDT) instead of the desktop;
+`--resume` skips the finished (beta, seed) pairs and appends the rest, every growth is
+independently seeded, and a seeded test growth was checked bit-identical on both machines
+before the launch, so the CSV is the one the desktop would have written. The 14 desktop rows
+are unchanged in the merged file. Log: `results/wave1_logs/w1d_jaga.log`. The twelve beta = 2
+seeds the pre-registration promised as a fifth, non-confirmatory point were not added (the
+analysis does not produce them); omitted.*
 
-Saved: 14 growths, all at beta = 1.75 (seeds 500-513). **No frozen reading is attached to
-them, and they are not a fair sample**: results are written in submission order, so the
-first unfinished growth (seed 514) blocked every later row, and a growth is unfinished
-after ~28 minutes precisely when its first dead corner comes late. The saved subset is
-therefore cut off at the long end. Disclosed because it was seen while testing the resume
-option, before any restart: on these 14 alone the Weibull shape reads 2.4 (95% interval
-1.5-3.4; no first dead corner before 158 k nodes, all by 788 k), an estimate biased upward
-by exactly that truncation. It does not decide P1, which needs all four betas and all 40
-seeds each, and the frozen rules are unchanged.
+All 160 growths reached a dead corner; none was censored.
 
-Descriptively, every one of the 14 first dead corners has exactly the predicted shape: an
-adjacent pair of degree-6 boundary nodes, each failing (iv) only, created by a single
-attachment whose endpoints went from degree (5, 3) or (5, 4) to (6, 4) or (6, 5) (10 and 4
-seeds). That is the lost race stated in the pre-registration: a capped node waits to close
-while its degree-5 neighbour receives an attachment on its other boundary edge, and both
-are then capped forever. The rate gap of the winning attachment against the closure is
-12 - (5 + 3) = 4 or 12 - (5 + 4) = 3 units of beta.
+| beta | n | first dead corner seen | hazard per node (95% CI) | mean N_first | Weibull shape k (95% CI) | Nelson-Aalen late/early slope |
+|---|---|---|---|---|---|---|
+| 1.00 | 40 | 40 | 2.18e-4 [1.55e-4, 2.96e-4] | 4,596 | 1.31 [1.01, 1.65] | 1.74 |
+| 1.25 | 40 | 40 | 5.47e-5 [3.90e-5, 7.44e-5] | 18,300 | 1.03 [0.81, 1.27] | 0.60 |
+| 1.50 | 40 | 40 | 9.65e-6 [6.89e-6, 1.31e-5] | 103,647 | 0.85 [0.65, 1.08] | 1.34 |
+| 1.75 | 40 | 40 | 1.80e-6 [1.29e-6, 2.46e-6] | 554,467 | 1.25 [0.97, 1.57] | 1.44 |
+
+Pooled common shape k = 1.07 [0.95, 1.21].
+
+- **P1: PER-NODE HAZARD** (held, 65%). The shape interval covers 1 at three of the four
+  betas (beta 1.0 misses it by 0.01) and the pooled interval covers 1. The first dead corner
+  arrives on a constant per-node clock: one chance per node grown, not one per boundary site
+  (that would give k near 1.5, which the pooled interval excludes). The interim shape of 2.4
+  on the 14 desktop seeds was the truncation bias disclosed at the time: with all 40 seeds,
+  beta 1.75 reads 1.25.
+- **P2: ARRHENIUS** (held, 70%), **RATE LAW DIFFERS** (SAME LAW missed, 55%). ln lambda =
+  -1.89 - 6.44 beta (slope se 0.28); the quadratic term's interval [-17, 15] covers 0. The
+  slope 6.44 is 1.06 from the N*_B law's 5.38, just over the frozen 1.0 allowance. In rate
+  units the law is **lambda(beta) ~ 0.15 exp(-6.44 beta) per node**. The miss is narrow and
+  the two laws measure different things (the first dead corner, against the boundary
+  exponent's departure on other seeds); mean N_first sits close to N*_B at beta 1.5 (104 k vs
+  117 k) and below it at beta 1.0 (4.6 k vs 7.3 k).
+- **P3: LOST RACE** (held, 75%), **160/160**: every first dead corner is an adjacent pair of
+  degree-6 boundary nodes failing (iv) only, created by a single attachment.
+
+Decomposition of the slope, as the pre-registration asked (descriptive). The attachment
+endpoints' degrees after the creating event were (4, 6) in 91 seeds, (5, 6) in 40, (3, 6) in
+25 and (6, 6) in 4. The capped node x went 5 -> 6 and its partner q went from deg q - 1, so
+the attachment beat the waiting closure by a rate gap of 12 - (5 + deg q before) = 4, 3, 5 and
+2 units of beta; the mean is 3.9. The single race therefore costs about exp(-3.9 beta), and the
+remaining ~2.6 units of the measured 6.44 belong to how often the precursor (a capped boundary
+node waiting next to a degree-5 one) is present. The pre-registration guessed ~3 for that
+factor against the old slope 5.4.
 
 ### What wave 1 revises in the banked text
 
@@ -2089,11 +2112,11 @@ are then capped forever. The rate gap of the winning attachment against the clos
   artifact.
 - **The dead corner** (follow-up of 2026-10-13/14): its mechanism is now fixed in the rule's
   own terms and in curvature terms. It is always the degree guard (474 of 474), always born
-  as an adjacent capped pair (9 of 9 saved graphs, 14 of 14 interim fresh seeds), created by
+  as an adjacent capped pair (9 of 9 saved graphs, 160 of 160 fresh seeds), created by
   an attachment that beats a waiting closure.
 
-Still open from this wave: P1 and P2 (is the hazard constant per node, and does its rate
-follow exp(-a beta) with a near 5.4?), which need the interrupted scan finished.
+Closed later the same day (W1-d, resumed on jaga): the hazard is constant per node, and its
+rate follows exp(-a beta) with a = 6.44, not 5.4 (a narrow miss of the frozen allowance).
 
 Reproduce: `python throat_compare.py --integer`; `python curvature_census.py
 results/sheet_cross_b2_s3*_N4194304.npz`; the same with `--disc`; `python
