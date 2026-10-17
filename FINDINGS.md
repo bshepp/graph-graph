@@ -2533,6 +2533,118 @@ Reproduce: `python fixed_rules.py --majority | --triadic | --br | --ricci | --sq
 --ollivier`.
 
 
+## Literature paths, wave 5 (2026-10-17): rule variants of `sheet` -- relief brings the crossover back without dead corners; veto stays a plane wherever no dead corner forms
+
+*Pre-registration `docs/superpowers/specs/2026-10-17-wave5-preregistration.md` (committed
+before any variant was grown). Variants are labelled, default-off options of
+`sheet_growth.grow_sheet(variant=...)`; the default `sheet` is bit-identical (checked by
+`python sheet_variants.py --validate`, which also checks Gauss-Bonnet with interior degree-7
+nodes on both variants), and no variant is reported as `sheet`. Tool `sheet_variants.py`.
+48 growths to 2^20 = 1,048,576 nodes, on 4 workers, about 3.5 h. Interim rows were looked
+at while the scan ran; none changed anything, and all numbers below come from that one
+frozen run.*
+
+**Summary.**
+
+| part | frozen reading | prediction | what it says |
+|---|---|---|---|
+| `sheet` (reference) | **CROSSOVER** 16/16 | held (95%) | the reference reproduces |
+| `relief` (C1) | **CROSSOVER** 16/16; **HYPERBOLIC INTERIOR** 15/16; zero dead corners 16/16 | held (60%, 50%, 80%) | remove the dead corners by putting their curvature in the interior and the crossover comes back, milder: BRANCHES' "a plane at every beta" was wrong, the curvature theorems were right |
+| `veto` (C3) | **UNDECIDED** (flat in 11-12/16, crossed in 4/16); zero dead corners only 10/16 | missed (65%, 75%) | the veto cuts the dead-corner rate by one and a half to three decades but not to zero; **every veto growth with no dead corner is a flat disc (10/10), every one that crossed had dead corners** |
+| C6 cap 7 | **BOUND RESPECTED** (mu 0.48-0.49 >= 0.405 on 3/3) | held (65%) | the cap-7 sheets grow exponentially, above the Keller-Peyerimhoff bound |
+
+### W5-a. `relief`: the crossover returns as interior negative curvature
+
+| beta | B / sqrt(N) at 2^20 (sheet) | ecc exponent, last octave (sheet) | dead corners | interior degree-7 nodes (2^19 -> 2^20) | V(r) local slope around node 0, max | audit |
+|---|---|---|---|---|---|---|
+| 1.0 | 19.8-21.0 (54.7-58.0) | 0.21-0.24 (0.11-0.16) | 0 (all 8) | 142-164 -> 300-320 | 3.60-3.93 (at r = 200) | MIXED 7, DIMENSION DEFINED 1; d 1.78-1.88 |
+| 1.25 | 8.9-10.1 (28.7-33.6) | 0.31-0.32 (0.16-0.19) | 0 (all 8) | 24-39 -> 56-66 | 2.62-2.99 (at r = 300) | MIXED 7, DIMENSION DEFINED 1; d 1.72-1.99 |
+
+(The flat-disc reference is B / sqrt(N) = 3.85 and ecc exponent 0.5.) **CROSSOVER** (held,
+60%): all 16 relief growths leave the plane, by both clauses. **Zero dead corners 16/16**
+(held, 80%). **HYPERBOLIC INTERIOR in 15/16** crossed growths (held, 50%); the one miss
+(beta 1.25, seed 600) meets every clause but the degree-7 ratio, 61/25 = 2.44 against the
+[1.6, 2.4] window. Elsewhere the degree-7 count doubles per octave (ratios 1.67-2.33): cone
+points arrive at a constant areal density, as the pre-registration argued.
+
+Same-seed check of the mechanism (not registered, read off the CSV): `sheet` and `relief`
+share their random stream until the first event at which they differ, and relief's first
+interior degree-7 node appears within 0-3 nodes of the size at which `sheet` makes its first
+dead corner on the same seed, in all 16 pairs (e.g. beta 1.0 seed 601: 11,449 vs 11,447).
+Each would-be dead pair is converted into a cone point, as designed.
+
+The crossover is milder: B / sqrt(N) is 2.7-3.3 times smaller than `sheet`'s, and the
+eccentricity exponent lies between `sheet`'s and a disc's. A rough post hoc density check:
+about 300 cone points per 10^6 nodes at beta 1.0 gives lambda ~ 3e-4, so the
+pre-registration's onset estimate is N ~ 6 / lambda ~ 2e4; relief's B / sqrt(N) leaves 4.0
+between 16k and 64k on all eight beta-1.0 seeds (profiles in the CSV). Consistent, not a test.
+
+Caveat on "hyperbolic": the reading as frozen is met, but a local slope of 3-4 in the ball
+volume around node 0 does not by itself separate exponential growth from a steeper power or
+from a ruffled annulus (W1-c's reading of `sheet`); the window audit reads MIXED, d ~ 1.8, on
+14 of 16. What is established is the theorem's qualitative prediction: a constant density of
+negative cone points, with no defect on the boundary, is enough to end the plane. Whether
+relief has fjords was not measured.
+
+### W5-b. `veto`: no dead corner, no crossover -- but the veto leaks
+
+| beta | growths with zero dead corners at 2^20 | their B / sqrt(N), ecc exponent, V(r) slope r = 50-400 | growths with dead corners (first at N) | their B / sqrt(N), ecc exponent |
+|---|---|---|---|---|
+| 1.0 | 3 (600, 605, 606) | 3.98-4.01, 0.49-0.50, 1.94-2.00 | 5: 607 (36,730), 603 (367,516), 602 (369,738), 604 (388,423), 601 (1,030,566) | 607: 16.0, 0.23; 602-604: 8.3-10.2, 0.29-0.34; 601: 4.01, 0.49 |
+| 1.25 | 7 | 3.89-3.92, 0.50-0.51, 1.94-2.00 | 1: 605 (838,427) | 4.56, 0.50 |
+
+**UNDECIDED** as frozen (prediction NO CROSSOVER, 65%: missed): 11/16 within 10% of 3.85 and
+12/16 with a disc's eccentricity exponent, short of 14; 4/16 crossed. **Zero dead corners in
+10/16** (prediction at least 14/16, 75%: missed). The veto removes the race it was written
+for but not every birth route. On the same seeds `sheet` makes its first dead corner between
+1,002 and 24,344 nodes; under `veto` the first comes at 36,730 at the earliest, and not at
+all by 2^20 in ten growths: a rate reduction of one and a half to three decades.
+
+The useful content is the conditional split, which the frozen reading pools: **all ten veto
+growths that never form a dead corner are flat discs** (B / sqrt(N) 3.89-4.01, ecc exponent
+0.49-0.51, ball-volume slope 2.00 out to r = 400, against `sheet`'s 29-58 on the same seeds),
+and **every veto growth that crossed had dead corners, by an amount that follows how early
+they came**: seed 607 (first at 36,730, 78 by 2^20) is the most crossed, the three born near
+370,000 are about twice the disc's B / sqrt(N), and the two born after 800,000 have barely
+begun (4.0 and 4.6). This is the cleanest evidence yet that, in this rule, a dead corner is
+necessary for the crossover as well as sufficient.
+
+How the leak happens (diagnostic, not registered; one growth): on seed 607 at beta 1.0 the
+first dead pair is born by a **closure**, not an attachment. Closing the wheel of node 35779
+adds the edge 36717-35414, raising 35414 to degree 6 next to its boundary neighbour 36448,
+already at 6; the two block each other by the degree guard (mode iv). The veto reads only
+attachments, so this second route stays open. Whether it is the only leak was not checked on
+the other five growths.
+
+### W5-c. C6: cap 7 sits above the Keller-Peyerimhoff bound
+
+On the three saved c = 7, beta = 2, 512,000-node sheets (34.3% of nodes at degree 7, max 7),
+the growth rate of balls around 30 core sources is mu = 0.482 / 0.490 / 0.491 per hop (13-16
+radii with V < 0.1 N), all above ln 1.5 = 0.405: **BOUND RESPECTED** (held, 65%). The bound is
+proved for a tessellation with every vertex at degree 7 and no boundary; these sheets have
+a third of their nodes at 7, so the agreement is consistent with the theorem's constant, not
+a test of it.
+
+### Not run (as pre-registered)
+
+C2 (fjord-mouth bridging) would never fire: W2-b found no fjord mouth on any graph. C5
+(motif-size programming) has no counterpart in this rule. **C4 (reversible attachment) is
+deferred, not dropped**: detaching nodes breaks the birth-order node ids every prefix tool
+relies on, so it needs its own bookkeeping and pre-registration; flagged for the owner.
+
+**What wave 5 adds.** The dead-corner reading survives its sharpest test in both directions.
+With no dead corners and nothing in their place (`veto`, ten growths), the sheet is a plane to
+2^20 at beta 1.0 and 1.25, where `sheet` crosses by 10^4-10^5. With the dead corners replaced
+by the same events turned into interior negative curvature (`relief`), it crosses again. What
+ends the plane is the negative curvature the lost race deposits, wherever it sits; the dead
+corner is how `sheet` deposits it on the boundary. BRANCHES' prediction that a variant without
+dead corners would be a plane at every beta was half wrong; the pre-registration's
+curvature-theorem prediction held. The veto's leak (a closure can also make a dead pair) is a
+measured miss.
+
+Reproduce: `python sheet_variants.py --validate`; `--scan --jobs 4` (writes
+results/sheet_variants_*.csv); `--cap7`.
+
 ## Scaling directions: what more compute could (and couldn't) unlock
 
 A standing question is whether *scaling up* -- to the largest graphs a private
