@@ -52,10 +52,14 @@ from shortcuts import inject_shortcuts, mean_pair_distance
 def measure_tolerance(n_nodes: int, topology: str, cap: int,
                       counts: List[int], seed: int,
                       n_perm: int = 199,
-                      min_distance_factor: float = 2.0) -> List[Dict]:
+                      min_distance_factor: float = 2.0,
+                      max_radius: int | None = None) -> List[Dict]:
     """
     Survival curve for one (N, topology, seed): inject k shortcuts for each
     k in `counts` (fresh base graph each time) and measure the field.
+
+    `max_radius` fixes the measurement radius r0 (default None: calibrated on
+    the k = 0 base graph, the banked behaviour).
     """
     rows = []
 
@@ -65,7 +69,7 @@ def measure_tolerance(n_nodes: int, topology: str, cap: int,
     base = create_initial_graph(n_nodes, topology=topology, k=cap, seed=seed)
     A0 = nx.to_scipy_sparse_array(base, weight=None, format='csr',
                                   dtype=np.float32)
-    r0 = _estimate_max_radius_sparse(A0)
+    r0 = int(max_radius) if max_radius else _estimate_max_radius_sparse(A0)
     min_dist = int(np.ceil(min_distance_factor * r0)) + 1
 
     # Mean ball volume at r0 on the base graph (for the damage model),
