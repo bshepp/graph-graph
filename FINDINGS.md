@@ -2372,6 +2372,167 @@ frozen fit voided its verdict.
 Reproduce: `python instruments.py --gap | --reff | --nw | --triang | --boxes | --spectral`.
 
 
+## Literature paths, wave 4 (2026-10-17): the fixed-N rules -- the tie rule decides `majority`, `triadic` collapses, curvature finds every dead corner
+
+*Pre-registration `docs/superpowers/specs/2026-10-17-wave4-preregistration.md` (committed
+before any number below; it drops the survey's D4 because the banked barrier is not a
+bootstrap threshold). Tool `fixed_rules.py` (validated: majority conventions; Ollivier
+curvature exact on K5, a cycle and a star; the square graph stays 4-regular and
+triangle-free; a torus has two squares on every edge; the dynamic graph's bookkeeping matches
+a set model). No variant is registered in `rules.py`; both backends are unchanged.*
+
+**Summary.**
+
+| part | frozen reading | prediction | what it says |
+|---|---|---|---|
+| W4-a majority tie rule | gate FAIL as frozen (only the stochastic `random` tie rule); BIAS TAKES OVER not met (its `keep` clause) | missed (55%) | with the project's argmax tie rule, state 0 takes the whole torus from any start (with 1% noise, even from 10% zeros); banked majority runs on even-degree graphs measured the tie rule |
+| W4-b triadic long run; closure with decay | **COLLAPSE** (6/6, diameter -> 3, clustering 0.98); **HYSTERESIS** | held (70%, 55%) | fixed-N triadic closure ends in a dense clump; with a loss term it is bistable |
+| W4-c anti-Hebbian rewiring | **SELF-ORGANIZED** (K -> 2.6-2.8 from K0 = 1 and 4) | held (60%) | a local rewiring rule can tune itself to criticality |
+| W4-d Ricci flow with surgery | SHORTCUT SURGERY not met (32/32 shortcuts cut, but 7% of lattice edges too); random graph: nothing cut | missed (65%) | a sharp shortcut detector on a plane; inert on an expander |
+| W4-e hard-core squares, anneal vs quench | **UNDECIDED** (both stop at phi 0.73, still expanders) | modal (40%) | a thermal ingredient does not cross the barrier at this size and schedule |
+| W4-f Ollivier curvature of dead corners | **DEAD CORNERS ARE THE MOST NEGATIVE** (69/69 at -2/3, unique) | held (70%) | a local curvature identifies every dead corner and nothing else |
+
+### W4-a. The majority tie rule decides the outcome on even-degree graphs
+
+2D torus 100 x 100 (degree 4), 4 seeds per cell. Final fraction of state 0:
+
+| start (zeros) | keep, sync, noise 0 | bias0 (the project's), sync, noise 0 | random, sync, noise 0 | keep, noise 0.01 | bias0, noise 0.01 |
+|---|---|---|---|---|---|
+| 0.50 | 0.48-0.52 | **1.000** | 0.44-0.60 | 0.46-0.54 | **0.994-0.996** |
+| 0.40 | 0.20-0.23 | **1.000** | 0.000-0.002 | 0.08-0.12 | **0.994-0.996** |
+| 0.30 | 0.05-0.07 | **1.000** | 0.000-0.002 | 0.01-0.02 | **0.994-0.996** |
+| 0.20 | 0.006-0.013 | **1.000** | 0 | 0.004-0.006 | **0.994-0.996** |
+| 0.10 | 0 | 0.05-0.07 | 0 | 0.004-0.006 | **0.994-0.996** |
+
+(Sequential updating gives the same picture.) **Gate as frozen: FAIL**, because the gate
+required every noise-0 run to end in a fixed point (sequential) or a 2-cycle (synchronous),
+and the `random` tie rule is stochastic, outside the Goles-Olivos theorem; restricted to the
+deterministic rules (`keep`, `bias0`) the gate passes in every run. The gate was
+mis-specified for `random`. **Frozen reading: not met** (BIAS TAKES OVER required `keep` to
+stay within 0.1 of its start; under `keep` the initial majority wins instead, 0.30 -> 0.06),
+so the prediction (55%) missed on its second clause. The first clause held completely and is
+the finding: with the argmax tie rule, **state 0 takes the whole torus from any start up to
+80% ones without noise, and from every start, even 10% zeros, with 1% noise** (final
+0.994-0.996). The banked setting (half-and-half start, noise 0.01) gives 0.995 zeros with
+`bias0` against 0.501 with `keep`. Every banked `majority` run on an even-degree graph was
+driven to state-0 consensus by the tie rule, not by the vote. (The memory note on this bias
+said it existed; this is its size.)
+
+### W4-b. `triadic` in the long run; closure with a loss term
+
+(1) The registered rule from a random graph (mean degree 6), 5000 sweeps:
+
+| N | seed | diameter: start -> peak (sweep) -> 5000 | clustering start -> 5000 | largest component at 5000 |
+|---|---|---|---|---|
+| 4000 | 0 / 1 / 2 | 9 -> 21 (400) -> 3; 8 -> 13 (200) -> 3; 8 -> 16 (400) -> 3 | 0.001-0.002 -> 0.979-0.983 | 0.958-0.968 |
+| 1000 | 0 / 1 / 2 | 7 -> 9 (200) -> 3; 8 -> 10 (200) -> 3; 9 -> 11 (100) -> 3 | 0.006-0.007 -> 0.977-0.980 | 0.971-0.979 |
+
+**COLLAPSE** (predicted, 70%), in all six runs: the extent rises for a few hundred sweeps,
+then the graph folds into a clump of diameter 3 with clustering 0.98 while keeping 96-98% of
+its nodes connected. The rule conserves edges but hands each rewired edge to the node it
+closes on, so degree concentrates and the end state is a dense, hub-dominated core. The
+banked 200-step alpha was a transient on the way up; the long-run fate of fixed-N triadic
+closure is collapse (Jin-Girvan-Newman: closure without a loss term). This closes the
+BRANCHES row "long-run collapse of extent under `triadic`".
+
+(2) Closure with decay (Marsili-Vega-Redondo-Slanina variant), N = 1000, lambda = 0.01,
+eta = 0.0005, 300 sweeps per step:
+
+| xi | up-sweep mean degree (seeds 0 / 1) | down-sweep mean degree |
+|---|---|---|
+| 0.05 | 0.16 / 0.16 | 9.26 / 9.30 |
+| 0.25 | 2.91 / 1.76 | 46.9 / 46.5 |
+| 0.45 | 39.2 / 32.1 | 81.7 / 81.6 |
+| 0.50 | 50.9 / 46.4 | 90.1 / 89.4 |
+| 0.95 | 154.5 / 150.4 | 156.6 / 154.2 |
+
+**HYSTERESIS** (predicted, 55%): for xi <= 0.45 the two branches differ by a factor 2 to 60.
+The dense branch sits at its own balance (per sweep each node closes a triad with probability
+xi, so the mean degree gains 2 xi while decay removes lambda k: k ~ 2 xi / lambda = 10 at
+xi = 0.05, measured 9.3), and the sparse branch
+survives because closure needs an existing triad: a bistable, first-order picture, as
+Marsili et al. found.
+
+### W4-c. Anti-Hebbian rewiring self-organizes
+
+Bornholdt-Rohlf threshold network, N = 500, 5000 epochs:
+
+| start K0 | seed | mean in-degree over the last 1000 epochs |
+|---|---|---|
+| 1 | 0, 1 | (mean of both) **2.62** |
+| 4 | 0, 1 | (mean of both) **2.79** |
+
+**SELF-ORGANIZED** (predicted, 60%): from either side the network walks to the same
+connectivity, about 2.7 at N = 500 (Bornholdt-Rohlf report convergence toward K_c = 2 as N
+grows). A local rule with an anti-Hebbian half tunes itself to a critical point instead of
+the bistability the project's Hebbian `reinforcement` shows. No dimension is involved (this
+is a directed random network); the result is a positive control for self-organization by a
+local rewiring rule.
+
+### W4-d. Ricci flow with surgery cuts every shortcut, and some lattice too
+
+Ni-Lin-Luo-Gao flow (Ollivier, idleness 0.5, 20 iterations, cut at twice the median weight):
+
+| graph | seed | shortcuts cut | lattice edges cut |
+|---|---|---|---|
+| `triangular` 2000 + shortcuts (32 placed) | 0 / 1 / 2 | **32/32** each | 383 / 394 / 397 of 5633 (6.8-7.0%) |
+| random, N = 1000 | 0 / 1 / 2 | (no shortcuts) | 0 of ~3000 cut |
+
+**Frozen reading: SHORTCUT SURGERY not met** (prediction 65%): every shortcut is cut in every
+seed, but 7% of lattice edges go with them, over the 2% allowance. Which lattice edges the
+flow stretches was not measured (the patch's own perimeter, whose edges have one triangle,
+is the obvious candidate; untested). On the random graph the flow evens out the weights so
+completely that nothing exceeds twice the median: **surgery cuts nothing and the graph does
+not fragment**. The frozen label FRAGMENTS, NO DIMENSION is formally met only through its
+"no dimension" clause (the audit reads INSUFFICIENT RANGE on a 1000-node expander), and should
+not be read as fragmentation. Curvature flow is a sharp shortcut detector on a plane and does
+nothing at all to an expander: no geometry is created, consistent with the banked barrier.
+
+### W4-e. A thermal ingredient does not cross the barrier at this size
+
+Hard-core square energy on 4-regular triangle-free graphs, N = 900, 1000 sweeps:
+
+| run | E per edge | phi (edges with exactly 2 squares) | ball volume at r = 4 / 6 / 8 (torus: 41 / 85 / 145) |
+|---|---|---|---|
+| annealed, 4 seeds | 0.42-0.44 | 0.72-0.74 | 75 / 315-325 / 779-799 |
+| quench, 4 seeds | 0.41-0.43 | 0.72-0.74 | 73-74 / 301-308 / 765-773 |
+
+**UNDECIDED** (the modal prediction, 40%): annealing reaches no better than the zero-temperature
+quench, both stop near phi = 0.73, and globally both remain expanders (balls 4 times the
+torus's at r = 6). The square motif forms locally on three quarters of the edges without any
+global geometry: the same crumpling the banked barrier describes for `triadic`, `geometrize`
+and `ricci`, now with a thermal ingredient and the flatness motif of Kelly-Trugenberger-
+Biancalana. Their equilibrium result is not reproduced by this anneal (1000 sweeps,
+N = 900); a much slower schedule is the open variable.
+
+### W4-f. Ollivier curvature finds the dead corners exactly
+
+Ollivier curvature (idleness 0, hop distances) on every edge of two 50,000-node sheets:
+
+| sheet | edges | interior-edge value | most negative edge | dead pairs | their curvature |
+|---|---|---|---|---|---|
+| beta = 1.0 (crossed) | 147,208 | 0 (all 138,980 interior edges) | -2/3 | 69 | **-2/3, every one** |
+| beta = 3.0 (compact) | 149,157 | 0 (all 146,647) | -0.40 | 0 | |
+
+Instrument check PASS (one interior value, exactly 0: the flat triangular lattice).
+**DEAD CORNERS ARE THE MOST NEGATIVE** (predicted, 70%): all 69 dead-pair edges sit at -2/3,
+the minimum, and no other edge in either sheet takes that value (the next values on the
+crossed sheet's boundary are -0.57 and -0.42; the compact sheet never goes below -0.40). A
+coordinate-free, strictly local curvature identifies every dead corner and nothing else.
+Against Kelly-Trugenberger-Biancalana's claim that defects are suppressed macroscopically:
+in this growth rule the defect is not suppressed, it is permanent, and it is the most
+curved object in the graph.
+
+**What wave 4 adds.** Two corrections to banked material (the `majority` tie bias is total,
+not slight; the banked `triadic` exponent was a transient before collapse), one strong
+positive identification (Ollivier curvature singles out exactly the dead corners), and the
+barrier stands against two literature remedies (curvature flow does nothing to an expander;
+a square-motif anneal crumples like the zero-temperature rules).
+
+Reproduce: `python fixed_rules.py --majority | --triadic | --br | --ricci | --squares |
+--ollivier`.
+
+
 ## Scaling directions: what more compute could (and couldn't) unlock
 
 A standing question is whether *scaling up* -- to the largest graphs a private
