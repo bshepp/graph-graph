@@ -2637,7 +2637,10 @@ and **every veto growth that crossed had dead corners, by an amount that follows
 they came**: seed 607 (first at 36,730, 78 by 2^20) is the most crossed, the three born near
 370,000 are about twice the disc's B / sqrt(N), and the two born after 800,000 have barely
 begun (4.0 and 4.6). This is the cleanest evidence yet that, in this rule, a dead corner is
-necessary for the crossover as well as sufficient.
+necessary for the crossover as well as sufficient. *[Revised by wave 6 (2026-10-18): too
+narrow. Under `strict` no dead corner ever forms and the sheet still crosses at beta <= 1.0,
+through frozen corners (capped boundary nodes whose closure the veto refuses); what is
+necessary is a permanently unclosed capped boundary node, of which a dead corner is one kind.]*
 
 How the leak happens (diagnostic, not registered; one growth): on seed 607 at beta 1.0 the
 first dead pair is born by a **closure**, not an attachment. Closing the wheel of node 35779
@@ -2662,7 +2665,7 @@ C2 (fjord-mouth bridging) would never fire: W2-b found no fjord mouth on any gra
 deferred, not dropped**: detaching nodes breaks the birth-order node ids every prefix tool
 relies on, so it needs its own bookkeeping and pre-registration; flagged for the owner.
 
-**What wave 5 adds.** The dead-corner reading survives its sharpest test in both directions.
+**What wave 5 adds.** *[Qualified by wave 6: read "dead corner" below as "permanently unclosed capped boundary node"; see wave 6.]* The dead-corner reading survives its sharpest test in both directions.
 With no dead corners and nothing in their place (`veto`, ten growths), the sheet is a plane to
 2^20 at beta 1.0 and 1.25, where `sheet` crosses by 10^4-10^5. With the dead corners replaced
 by the same events turned into interior negative curvature (`relief`), it crosses again. What
@@ -2674,6 +2677,99 @@ measured miss.
 
 Reproduce: `python sheet_variants.py --validate`; `--scan --jobs 4` (writes
 results/sheet_variants_*.csv); `--cap7`.
+
+## Wave 6 (2026-10-18): relief is a hyperbolic disc to the curvature its cone points carry; a strict veto removes every dead corner and the sheet still crosses, through frozen corners
+
+*Pre-registration `docs/superpowers/specs/2026-10-17-wave6-preregistration.md` (committed
+before any registered growth; it discloses that the W6-a law was found post hoc on wave 5's
+relief data, 38 of 40 pairs within 10%, and one unregistered feasibility growth of `strict`).
+Owner's standing approval for overnight research (2026-10-17). New labelled, default-off
+variant `strict` in `sheet_growth.grow_sheet`; default bit-identical (`python
+sheet_variants.py --validate`). 72 growths on jaga, 24 workers, 00:02-01:07 PDT; CSV
+`results/sheet_variants_w6_20261018_000226.csv` (md5-verified copy), re-read locally with
+`--read6` to the same verdicts.*
+
+**Summary.**
+
+| part | frozen reading | prediction | what it says |
+|---|---|---|---|
+| W6-a relief vs the hyperbolic-disc law | **HYPERBOLIC DISC LAW** (129/134 pairs within 10%; largest radius within 10% in 21/24) | held (65%) | relief's ball growth is that of a hyperbolic disc whose curvature is the cone points' density times pi/3, with no fitted parameter |
+| W6-b strict, gate | **PASS** (no dead corner in any of 32 growths) | held (95%) | |
+| W6-b strict, beta 1.25 | **FLAT** (7/8) | held (75%) | |
+| W6-b strict, beta 1.0 | **CROSSOVER** (6/8) | missed (FLAT, 75%) | |
+| W6-b strict, beta 0.75 | **CROSSOVER** (8/8) | missed (FLAT, 60%) | |
+| W6-b strict, beta 0.5 | **CROSSOVER** (8/8) | missed (FLAT 45%; my named alternative was UNDECIDED) | |
+| W6-b sheet reference, beta 0.5 / 0.75 | **CROSSOVER** 8/8, 8/8 | held (95%) | |
+
+### W6-a. relief follows the hyperbolic-disc law
+
+Prediction for the local slope of V(r) around node 0: s(r) = x sinh x / (cosh x - 1),
+x = r sqrt(2 pi lambda / (3 sqrt 3)), times the flat estimator's slope / 2; lambda = interior
+degree-7 nodes per node, measured on each graph.
+
+| beta | lambda (8 seeds) | eligible radii | measured / predicted, mean (range) | pairs outside 10% |
+|---|---|---|---|---|
+| 1.0 | 2.70-3.05e-4 | 50-200 | 0.956 (0.880-1.031) | 4 of 32 (all low, 0.88-0.89) |
+| 1.25 | 5.0-6.7e-5 | 50-300 | 0.971 (0.898-1.040) | 1 of 48 (0.898) |
+| 1.5 | 0.67-1.24e-5 | 50-400 | 0.996 (0.946-1.055) | 0 of 54 |
+
+Example, beta 1.0 seed 704: measured 2.14 / 2.61 / 3.18 / 3.87 at r = 50 / 100 / 150 / 200
+against 2.08 / 2.54 / 3.15 / 3.90. **HYPERBOLIC DISC LAW** (held, 65%). The misses all lie on
+the low side, and the mean ratio falls below 1 as the curvature grows (0.996, 0.971, 0.956):
+the failure direction the pre-registration named, a ball that lags the continuum law where it
+is most curved, by 3-4% on average. As registered, beta 1.5 is a weak cell (predicted slopes
+2.0-2.4). The radii above 200 at beta 1.0 were not eligible (the ball reaches half the graph),
+so the steepest part of the law (slopes 4.5-6) remains untested.
+
+A consequence, descriptive: relief's cone density is close to the default rule's
+dead-corner hazard per node from W1-d (2.9e-4 vs 2.2e-4 at beta 1.0; 5.6e-5 vs 5.5e-5 at
+1.25; 1.0e-5 vs 9.6e-6 at 1.5), as it should be if each relief cone point is one would-be lost
+race. Combined with W1-d's Arrhenius law, relief's curvature is predicted in closed form,
+|K(beta)| ~ 1.21 x 0.15 exp(-6.44 beta) per unit lattice area, from two local measurements.
+
+### W6-b. strict: no dead corner, but frozen corners, and the crossover returns
+
+`strict` refuses any attachment or closure that would leave a dead corner within one hop.
+The gate held in all 32 growths: **no dead corner ever formed**. The sheet still crossed at
+every beta below 1.25:
+
+| beta | strict: B/sqrtN at 2^20 (factor since 2^16) | ecc exponent | capped boundary nodes at 2^20 | default `sheet`, same seeds: B/sqrtN, dead corners |
+|---|---|---|---|---|
+| 0.5 | 56.5-60.7 (x3.4-5.7) | 0.12-0.16 | 4,122-4,404 | 194-197, ~15,600 |
+| 0.75 | 16.5-25.2 (x2.3-5.8) | 0.17-0.26 | 574-877 | 102-105, ~5,000 |
+| 1.0 | 4.03-13.29 (x1.02-3.31) | 0.26-0.50 | 69-195 | (wave 5, other seeds: 55-58, ~1,550) |
+| 1.25 | 3.91-4.05 in 7, 8.46 in one (x1.00-1.03; x2.15) | 0.49-0.50; 0.32 | 16-23; 68 | (wave 5: 29-34, ~470) |
+
+So the frozen readings: FLAT at 1.25 (held), CROSSOVER at 1.0, 0.75 and 0.5 (three misses;
+I predicted FLAT, with UNDECIDED as the named alternative at 0.5). `strict` delays and weakens
+the crossover (3-4 times less excess boundary than `sheet` at 0.5 and 0.75) but does not
+remove it.
+
+**What crosses instead (diagnostic, not registered; one unregistered growth, beta 0.5,
+seed 1, to 2^18).** At each checkpoint I classified every capped boundary node: either its
+closure is allowed and simply has not fired yet, or `strict` refuses it because closing would
+make a dead corner next door. The refused ones are **frozen corners**: a degree-6 boundary node
+whose wheel can never close. Every frozen corner persisted to the next checkpoint (20 of 20,
+45 of 45, 103 of 103; 230 at 2^18), and every persisting capped boundary node was one; the
+waiting ones were all gone a checkpoint later. A frozen corner has the dead corner's
+boundary curvature, (4 - 6) / 6 = -1/3. The veto relabels the defect instead of removing it:
+the lost-race configuration still forms, and `strict` freezes the closure that would have
+turned it into a dead pair. (At beta 0.75, seed 1, to 2^17, no frozen corner had formed and
+every capped node was transient.)
+
+**What waves 5 and 6 together say.** The crossover is triggered by permanent negative
+curvature deposited by the lost race, in whatever form the rule leaves it: a dead pair on the
+boundary (`sheet`), a frozen corner on the boundary (`strict`), an interior cone point
+(`relief`), and quantitatively so for the last one (W6-a). Wave 5's `veto` growths that stayed
+flat were the ones in which neither a dead nor (untested) a frozen configuration had formed by
+2^20. "A dead corner is necessary" (wave 5) was too narrow and is revised: **a permanently
+unclosed capped boundary node is what is needed**, and a dead corner is one kind. The curvature
+statement is unchanged and stronger. Untested: a frozen-corner count on the registered
+strict growths (the CSV has only the total capped boundary count, which mixes in waiting
+nodes; it does rank the beta 1.0 growths: the two flat ones have 69-74, the crossed ones
+86-195).
+
+Reproduce: `python sheet_variants.py --validate`; `--scan6 --jobs 24`; `--read6 CSV`.
 
 ## Scaling directions: what more compute could (and couldn't) unlock
 
