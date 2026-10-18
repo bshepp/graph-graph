@@ -2061,8 +2061,8 @@ it was resumed on jaga (`--resume`, 24 workers, 15:07-15:33 PDT) instead of the 
 independently seeded, and a seeded test growth was checked bit-identical on both machines
 before the launch, so the CSV is the one the desktop would have written. The 14 desktop rows
 are unchanged in the merged file. Log: `results/wave1_logs/w1d_jaga.log`. The twelve beta = 2
-seeds the pre-registration promised as a fifth, non-confirmatory point were not added (the
-analysis does not produce them); omitted.*
+seeds the pre-registration promised as a fifth, non-confirmatory point are added below by
+hand (the analysis does not produce them).*
 
 All 160 growths reached a dead corner; none was censored.
 
@@ -2088,6 +2088,13 @@ Pooled common shape k = 1.07 [0.95, 1.21].
   the two laws measure different things (the first dead corner, against the boundary
   exponent's departure on other seeds); mean N_first sits close to N*_B at beta 1.5 (104 k vs
   117 k) and below it at beta 1.0 (4.6 k vs 7.3 k).
+- **Fifth point, beta = 2 (non-confirmatory, all twelve seeds seen before):** the twelve saved
+  4.19 M-node graphs of the trigger follow-up have their first dead corner at the sizes in
+  that table (nine seeds; three compact seeds censored at 4,194,304). Exposure MLE: 9 events
+  in 27.3 M node-steps, lambda = 3.3e-7 per node [1.5e-7, 6.3e-7]. The Arrhenius fit above
+  extrapolates to 3.85e-7 at beta 2 (ratio 0.86); a slope of 5.38 through the beta 1.75 point
+  would give 4.7e-7. Both lie inside the interval: the fifth point is consistent with the law
+  and too wide to choose between the two slopes.
 - **P3: LOST RACE** (held, 75%), **160/160**: every first dead corner is an adjacent pair of
   degree-6 boundary nodes failing (iv) only, created by a single attachment.
 
