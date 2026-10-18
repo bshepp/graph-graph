@@ -88,7 +88,7 @@ growths where `veto` happened not to leak; `strict` asks whether that holds at e
 
 ## Run
 
-`python sheet_variants.py --scan6 --jobs 24` on jaga (64 growths; 24 relief growths to 2^21
+`python sheet_variants.py --scan6 --jobs 24` on jaga (72 growths; the 24 relief growths to 2^21
 are the long ones), with the usual usage-log CHECK-IN/CHECK-OUT. `--read6 CSV` re-reads a
 saved CSV with the same frozen code. Results go into a FINDINGS section, each verdict as
 frozen here.
