@@ -2771,6 +2771,52 @@ nodes; it does rank the beta 1.0 growths: the two flat ones have 69-74, the cros
 
 Reproduce: `python sheet_variants.py --validate`; `--scan6 --jobs 24`; `--read6 CSV`.
 
+## Wave 7 (2026-10-18): frozen corners decide the crossover growth by growth
+
+*Pre-registration `docs/superpowers/specs/2026-10-18-wave7-preregistration.md` (committed
+before any registered growth). Instrument `sheet_variants.frozen_set` at every octave
+checkpoint (closure tentatively applied, checked, reverted; growth untouched). 32 `strict`
+growths (beta 1.0 and 1.125, seeds 800-815, to 2^20) on jaga, 01:15-01:45 PDT; CSV
+`results/sheet_variants_w7_20261018_011531.csv` (md5-verified copy), re-read locally with
+`--read7` to the same verdicts.*
+
+| reading | result | prediction |
+|---|---|---|
+| gate: no dead corner | **PASS** (32/32) | held (95%) |
+| P1: no frozen corner at 2^19 -> flat at 2^20 | **18/19** | held (75%) |
+| P2: first frozen corner by 2^18 -> crossed at 2^20 | **8/8** | held (70%) |
+| verdict | **FROZEN CORNERS DECIDE** | held (55%) |
+| persistence (frozen at one checkpoint, still frozen at the next) | **264/264** | held (85%) |
+
+The one P1 exception (beta 1.0, seed 809) had no frozen corner at 2^19, acquired 16 in the
+last octave, and crossed (B/sqrtN x1.72, ecc exponent 0.42), which the reading itself allows
+for (its first frozen corner came inside the octave it was judged on).
+
+Grouped by the frozen count at 2^20 (descriptive):
+
+| frozen corners at 2^20 | growths | flat | crossed | B/sqrtN at 2^20 |
+|---|---|---|---|---|
+| 0 | 17 (beta 1.0: 7; 1.125: 10) | 17 | 0 | 3.93-4.00 |
+| 2 (first in the last octave) | 1 (1.125 seed 811) | 1 | 0 | 3.98 |
+| 16-36 | 14 (beta 1.0: 9; 1.125: 5) | 0 | 14 | 6.80-12.47 |
+
+The earlier the first frozen corner, the larger the excess: first seen by 2^17 (four
+growths) gives B/sqrtN 11.7-12.5, at 2^18 (four) 9.4-11.2, at 2^19 (five) 6.9-8.7, at 2^20
+(two) 6.8 and 4.0. No growth with
+frozen corners in more than one checkpoint stayed flat, and no flat growth had more than two.
+
+**What this settles.** Wave 6's revision holds per growth: under `strict`, which never makes a
+dead corner, whether a sheet stays a disc to a million nodes is decided by whether it has
+acquired permanently unclosed capped boundary nodes, and how far it departs follows how early
+they came. With wave 5 (`relief`: the same events deposited as interior cone points, and the
+crossover follows a hyperbolic-disc law, W6-a) the trigger now reads in one line: **the
+`sheet` crossover is the deposition of permanent negative curvature by the lost race --
+on the boundary as a dead or frozen corner, or in the interior as a cone point.** A rule that
+removes the configuration rather than relabelling it remains untested; that would be the
+next variant (e.g. a closure that is allowed to proceed and flip a neighbouring triangle).
+
+Reproduce: `python sheet_variants.py --scan7 --jobs 24`; `--read7 CSV`.
+
 ## Scaling directions: what more compute could (and couldn't) unlock
 
 A standing question is whether *scaling up* -- to the largest graphs a private
