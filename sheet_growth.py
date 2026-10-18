@@ -72,7 +72,20 @@ def _closable(adj: Adj, x: int, c: int, guard: Optional[int] = None
     return a, b
 
 
-VARIANTS = ('sheet', 'relief', 'veto')
+VARIANTS = ('sheet', 'relief', 'veto', 'strict')
+
+
+def _makes_dead(adj: Adj, nodes: Tuple[int, ...], c: int) -> bool:
+    """`strict` variant: after a tentative event touching `nodes`, is any of
+    them or their neighbours a boundary node at the cap that cannot close (a
+    dead corner)? Reads at most two hops from the event."""
+    cand = set(nodes)
+    for y in nodes:
+        cand |= adj[y]
+    for y in cand:
+        if len(adj[y]) >= c and any(_is_boundary(adj, y, z) for z in adj[y])                 and _closable(adj, y, c) is None:
+            return True
+    return False
 
 
 def _vetoed(adj: Adj, u: int, v: int, c: int) -> bool:
@@ -118,7 +131,9 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
     rule variants of the 2026-10-17 wave 5 pre-registration, never reported as
     `sheet`. 'relief': a closure is admitted when a link end is at the cap,
     which rises to c + 1. 'veto': an attachment that would cap a node whose
-    other boundary neighbour is already capped is refused.
+    other boundary neighbour is already capped is refused. 'strict' (wave 6):
+    any event, attachment or closure, after which a node within one hop of the
+    event would be a dead corner is refused (applied, checked, reverted).
     """
     if variant not in VARIANTS:
         raise ValueError(f"unknown variant {variant!r}")
@@ -182,6 +197,10 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
             a, bb = _closable(adj, x, c, guard)
             adj[a].add(bb)
             adj[bb].add(a)
+            if variant == 'strict' and _makes_dead(adj, (x, a, bb), c):
+                adj[a].discard(bb)
+                adj[bb].discard(a)
+                continue                  # refused; re-offered when a degree changes
             refresh(a)
             refresh(bb)
             if on_event is not None and on_event('close', (x, a, bb), adj):
@@ -193,6 +212,11 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
             adj.append({u, v})
             adj[u].add(w)
             adj[v].add(w)
+            if variant == 'strict' and _makes_dead(adj, (u, v, w), c):
+                adj.pop()
+                adj[u].discard(w)
+                adj[v].discard(w)
+                continue                  # refused; re-offered when a degree changes
             refresh(u)
             refresh(v)
             if marks and len(adj) == marks[0]:

@@ -15,10 +15,21 @@ Usage:
     python sheet_variants.py --validate
     python sheet_variants.py --scan [--jobs 6]
     python sheet_variants.py --cap7
+    python sheet_variants.py --scan6 [--jobs 24]     (wave 6)
+    python sheet_variants.py --read6 CSV
+
+Wave 6 (docs/superpowers/specs/2026-10-17-wave6-preregistration.md):
+  strict  any event after which a node within one hop of it would be a dead
+          corner is refused (applied, checked, reverted)
+  relief  the hyperbolic-disc law: local slope of V(r) around node 0 against
+          s(r) = x sinh x / (cosh x - 1), x = r sqrt(K), K = 2 pi lambda / (3 sqrt 3),
+          lambda = interior degree-7 nodes per node, times the flat estimator's
+          own slope / 2
 """
 
 import argparse
 import csv
+import math
 import random
 import time
 from concurrent.futures import ProcessPoolExecutor
@@ -38,6 +49,14 @@ SCAN_SEEDS = tuple(range(600, 608))
 N_MAX = 2 ** 20
 MARKS = [2 ** k for k in range(12, 21)]
 COMPACT_B = 3.85
+RADII = (50, 100, 150, 200, 250, 300, 400, 500)
+# wave 6: the flat estimator's slope (wave 5 veto growths with no dead corner,
+# V(1.25 r) / V(r / 1.25) on a disc), fixed before any wave 6 growth
+FLAT_SLOPE = {50: 1.94, 100: 1.99, 150: 1.99, 200: 1.99, 250: 2.00, 300: 2.00,
+              400: 2.00, 500: 2.00}
+W6_SPECS = ([('relief', b, s, 2 ** 21) for b in (1.0, 1.25, 1.5) for s in range(700, 708)] +
+            [('strict', b, s, 2 ** 20) for b in (0.5, 0.75, 1.0, 1.25) for s in range(700, 708)] +
+            [('sheet', b, s, 2 ** 20) for b in (0.5, 0.75) for s in range(700, 708)])
 
 
 def checkpoint_stats(adj, guard: int) -> Dict[str, float]:
@@ -51,6 +70,7 @@ def checkpoint_stats(adj, guard: int) -> Dict[str, float]:
                 on_b[u] = on_b[v] = True
     deg = np.fromiter((len(s) for s in adj), dtype=np.int64, count=n)
     interior = ~on_b
+    capped_b = int((on_b & (deg >= CAP)).sum())
     dead = sum(1 for x in np.nonzero(on_b & (deg >= CAP))[0].tolist()
                if _closable(adj, x, CAP, guard) is None)
     A = to_csr(adj)
@@ -58,11 +78,23 @@ def checkpoint_stats(adj, guard: int) -> Dict[str, float]:
     return {'N': n, 'B': b_edges, 'B_sqrtN': b_edges / np.sqrt(n),
             'deg7_interior': int((interior & (deg == CAP + 1)).sum()),
             'deg7_all': int((deg == CAP + 1).sum()), 'max_deg': int(deg.max()),
-            'dead': dead, 'ecc0': float(d0[np.isfinite(d0)].max())}
+            'dead': dead, 'capped_b': capped_b, 'ecc0': float(d0[np.isfinite(d0)].max())}
+
+
+def hyperbolic_slope(r: float, lam: float) -> float:
+    """Local log-log slope of a hyperbolic disc's area with curvature from a
+    density lam of degree-7 cone points per node (angle excess pi/3 each,
+    area sqrt(3)/2 per node); 2 in the flat limit."""
+    x = r * math.sqrt(2 * math.pi * lam / (3 * math.sqrt(3)))
+    if x < 1e-6:
+        return 2.0
+    return x * math.sinh(x) / (math.cosh(x) - 1)
 
 
 def grow_one(spec) -> Dict:
-    variant, beta, seed = spec
+    variant, beta, seed = spec[:3]
+    n_max = spec[3] if len(spec) > 3 else N_MAX
+    marks = [2 ** k for k in range(12, 30) if 2 ** k <= n_max]
     random.seed(seed)
     np.random.seed(seed)
     guard = CAP + 1 if variant == 'relief' else CAP
@@ -81,22 +113,23 @@ def grow_one(spec) -> Dict:
         rows.append(checkpoint_stats(adj, guard))
 
     t0 = time.time()
-    adj = grow_sheet(N_MAX, CAP, beta, seed, checkpoints=MARKS, on_checkpoint=on_ck,
+    adj = grow_sheet(n_max, CAP, beta, seed, checkpoints=marks, on_checkpoint=on_ck,
                      on_event=on_event, variant=variant)
     A = to_csr(adj)
     d0 = dijkstra(A, indices=0, unweighted=True)
     h = np.bincount(d0[np.isfinite(d0)].astype(int))
     V = np.cumsum(h)
-    slopes = {}
-    for r in (50, 100, 200, 300, 400):
+    slopes, fill = {}, {}
+    for r in RADII:
         if int(r * 1.25) < len(V):
             slopes[r] = float(np.log(V[int(r * 1.25)] / V[int(r / 1.25)]) / np.log(1.5625))
+            fill[r] = float(V[int(r * 1.25)] / len(adj))
     from curvature_census import disc_audit
     au = disc_audit(A, seed)
     last, prev = rows[-1], rows[-2]
     ecc_exp = float(np.log(last['ecc0'] / prev['ecc0']) / np.log(last['N'] / prev['N']))
     return {'variant': variant, 'beta': beta, 'seed': seed, 'n_end': len(adj),
-            'stalled': int(len(adj) < N_MAX),
+            'stalled': int(len(adj) < n_max),
             'first_dead': det.records[0]['N'] if det.records else -1,
             'first_dead_mode': det.records[0]['mode'] if det.records else '',
             'first_deg7': first7['N'], 'ecc_exp_last': ecc_exp,
@@ -104,6 +137,8 @@ def grow_one(spec) -> Dict:
             'deg7_end': last['deg7_interior'], 'deg7_prev': prev['deg7_interior'],
             'max_deg': last['max_deg'],
             'slopes0': ' '.join(f"{r}:{x:.2f}" for r, x in slopes.items()),
+            'slopes_fill': ' '.join(f"{r}:{x:.4f}:{fill[r]:.4f}" for r, x in slopes.items()),
+            'capped_b_end': last['capped_b'],
             'slope_max': max(slopes.values()) if slopes else float('nan'),
             'audit': au['verdict'], 'audit_d': au['d_last'],
             'profile': ' '.join(f"{r['N']}:{r['B_sqrtN']:.2f}/{r['dead']}/{r['deg7_interior']}"
@@ -163,6 +198,96 @@ def scan(jobs: int) -> None:
     read(rows)
 
 
+def read6(rows: List[Dict]) -> None:
+    """Wave 6 frozen readings."""
+    rel = [r for r in rows if r['variant'] == 'relief']
+    if rel:
+        pairs, last_ok, n_g = [], 0, 0
+        print("W6-a relief, hyperbolic-disc law (measured / predicted local slope of V(r)):")
+        for r in rel:
+            lam = r['deg7_end'] / r['n_end']
+            el = []
+            for t in r['slopes_fill'].split():
+                rr, sl, fr = t.split(':')
+                rr, sl, fr = int(rr), float(sl), float(fr)
+                if fr <= 0.5:
+                    el.append((rr, sl, hyperbolic_slope(rr, lam) * FLAT_SLOPE[rr] / 2))
+            ok = [abs(sl / pr - 1) <= 0.10 for _, sl, pr in el]
+            pairs += ok
+            if el:
+                n_g += 1
+                last_ok += int(ok[-1])
+            print(f"    beta {r['beta']} seed {r['seed']}: lambda {lam:.2e}; " +
+                  ' '.join(f"{rr}:{sl:.2f}/{pr:.2f}" for rr, sl, pr in el))
+        frac = sum(pairs) / max(len(pairs), 1)
+        v = ('HYPERBOLIC DISC LAW' if frac >= 0.90 and last_ok >= math.ceil(20 / 24 * n_g)
+             else 'LAW MISSED')
+        print(f"  W6-a: {v}  ({sum(pairs)}/{len(pairs)} eligible pairs within 10% = {frac:.2f}; "
+              f"largest eligible r within 10% in {last_ok}/{n_g} growths)")
+        for b in sorted({r['beta'] for r in rel}):
+            rb = [r for r in rel if r['beta'] == b]
+            print(f"    beta {b}: B/sqrtN {min(x['B_sqrtN_end'] for x in rb):.2f}-"
+                  f"{max(x['B_sqrtN_end'] for x in rb):.2f}, dead {sum(x['dead_end'] for x in rb)}, "
+                  f"ecc exp {min(x['ecc_exp_last'] for x in rb):.2f}-"
+                  f"{max(x['ecc_exp_last'] for x in rb):.2f}")
+    for v in ('strict', 'sheet'):
+        rs = [r for r in rows if r['variant'] == v]
+        if not rs:
+            continue
+        print(f"W6-b {v}:")
+        if v == 'strict':
+            dead = sum(1 for r in rs if r['first_dead'] >= 0 or r['dead_end'] > 0)
+            print(f"  gate (no dead corner ever, in every growth): {'PASS' if dead == 0 else 'FAIL'} "
+                  f"({dead} growths with a dead corner)")
+        for b in sorted({r['beta'] for r in rs}):
+            rb = [r for r in rs if r['beta'] == b]
+            flat = cross = stall = 0
+            for r in rb:
+                prof = {int(t.split(':')[0]): float(t.split(':')[1].split('/')[0])
+                        for t in r['profile'].split()}
+                ratio = r['B_sqrtN_end'] / prof.get(2 ** 16, float('nan'))
+                r['_ratio'] = ratio
+                stall += r['stalled']
+                if 0.85 <= ratio <= 1.15 and 0.40 <= r['ecc_exp_last'] <= 0.60:
+                    flat += 1
+                if ratio > 1.3 or r['ecc_exp_last'] < 0.35:
+                    cross += 1
+            if stall >= 4:
+                verdict = 'STALLED'
+            elif flat >= 7:
+                verdict = 'FLAT'
+            elif cross >= 6:
+                verdict = 'CROSSOVER'
+            else:
+                verdict = 'UNDECIDED'
+            print(f"  beta {b}: {verdict}  (flat {flat}/8, crossed {cross}/8, stalled {stall}/8)")
+            for r in rb:
+                print(f"      seed {r['seed']}: N {r['n_end']}, B/sqrtN {r['B_sqrtN_end']:.2f} "
+                      f"(x{r['_ratio']:.2f} since 2^16), ecc exp {r['ecc_exp_last']:.2f}, dead "
+                      f"{r['dead_end']} (first {r['first_dead']}), capped boundary "
+                      f"{r['capped_b_end']}, V(r) slopes {r['slopes0']}, audit {r['audit']} "
+                      f"{r['audit_d']:.2f}")
+
+
+def scan6(jobs: int) -> None:
+    out = f"results/sheet_variants_w6_{time.strftime('%Y%m%d_%H%M%S')}.csv"
+    rows: List[Dict] = []
+    with ProcessPoolExecutor(jobs) as ex, open(out, 'w', newline='') as f:
+        w = None
+        for r in ex.map(grow_one, W6_SPECS):
+            if w is None:
+                w = csv.DictWriter(f, fieldnames=list(r.keys()))
+                w.writeheader()
+            w.writerow(r)
+            f.flush()
+            rows.append(r)
+            print(f"{r['variant']:>6} beta {r['beta']} seed {r['seed']}: N {r['n_end']} B/sqrtN "
+                  f"{r['B_sqrtN_end']:.2f} ecc exp {r['ecc_exp_last']:.2f} dead {r['dead_end']} "
+                  f"deg7 {r['deg7_end']} [{r['seconds']} s]", flush=True)
+    print(f"saved: {out}")
+    read6(rows)
+
+
 def cap7() -> None:
     """C6: growth rate of cap-7 sheets against ln 1.5 (Keller-Peyerimhoff)."""
     bound = float(np.log(1.5))
@@ -199,7 +324,18 @@ def _validate() -> bool:
     good = len(a) == len(b) and all(x == y for x, y in zip(a, b))
     print(f"[{'PASS' if good else 'FAIL'}] default variant is bit-identical to the generator")
     ok &= good
-    for v, cap_max in (('relief', CAP + 1), ('veto', CAP)):
+    # wave 6: the flat limit of the hyperbolic-disc slope is 2
+    good = (abs(hyperbolic_slope(100, 0.0) - 2) < 1e-9 and
+            abs(hyperbolic_slope(1e-3, 3e-4) - 2) < 1e-3)
+    print(f"[{'PASS' if good else 'FAIL'}] hyperbolic slope -> 2 in the flat limit")
+    ok &= good
+    det = DeadDetector(CAP)
+    adj = grow_sheet(40000, CAP, 0.75, 12, on_event=det, variant='strict')
+    good = not det.records
+    print(f"[{'PASS' if good else 'FAIL'}] strict: no dead corner ever appears (beta 0.75, "
+          f"{len(adj)} nodes; detector saw {len(det.records)})")
+    ok &= good
+    for v, cap_max in (('relief', CAP + 1), ('veto', CAP), ('strict', CAP)):
         adj = grow_sheet(40000, CAP, 1.0, 11, variant=v)
         st = checkpoint_stats(adj, CAP + 1 if v == 'relief' else CAP)
         # Gauss-Bonnet with interior degree-7 cone points:
@@ -226,6 +362,8 @@ def main() -> None:
     m.add_argument('--validate', action='store_true')
     m.add_argument('--scan', action='store_true')
     m.add_argument('--cap7', action='store_true')
+    m.add_argument('--scan6', action='store_true')
+    m.add_argument('--read6', type=str, metavar='CSV')
     ap.add_argument('--jobs', type=int, default=6)
     ap.add_argument('--seed', type=int, default=0)
     args = ap.parse_args()
@@ -235,6 +373,18 @@ def main() -> None:
         raise SystemExit(0 if _validate() else 1)
     if args.scan:
         scan(args.jobs)
+    elif args.scan6:
+        scan6(args.jobs)
+    elif args.read6:
+        rows = []
+        for r in csv.DictReader(open(args.read6)):
+            for k in ('beta', 'B_sqrtN_end', 'ecc_exp_last', 'audit_d'):
+                r[k] = float(r[k])
+            for k in ('seed', 'n_end', 'stalled', 'first_dead', 'dead_end', 'deg7_end',
+                      'capped_b_end'):
+                r[k] = int(r[k])
+            rows.append(r)
+        read6(rows)
     else:
         cap7()
 
