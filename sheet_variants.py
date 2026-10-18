@@ -17,6 +17,8 @@ Usage:
     python sheet_variants.py --cap7
     python sheet_variants.py --scan6 [--jobs 24]     (wave 6)
     python sheet_variants.py --read6 CSV
+    python sheet_variants.py --scan7 [--jobs 24]     (wave 7)
+    python sheet_variants.py --read7 CSV
 
 Wave 6 (docs/superpowers/specs/2026-10-17-wave6-preregistration.md):
   strict  any event after which a node within one hop of it would be a dead
@@ -39,7 +41,7 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.sparse.csgraph import dijkstra
 
-from sheet_growth import grow_sheet, to_csr, _closable, _is_boundary, load_csr
+from sheet_growth import grow_sheet, to_csr, _closable, _is_boundary, load_csr, _makes_dead
 from dead_corner_hazard import DeadDetector
 
 CAP = 6
@@ -54,6 +56,7 @@ RADII = (50, 100, 150, 200, 250, 300, 400, 500)
 # V(1.25 r) / V(r / 1.25) on a disc), fixed before any wave 6 growth
 FLAT_SLOPE = {50: 1.94, 100: 1.99, 150: 1.99, 200: 1.99, 250: 2.00, 300: 2.00,
               400: 2.00, 500: 2.00}
+W7_SPECS = [('strict', b, s, 2 ** 20) for b in (1.0, 1.125) for s in range(800, 816)]
 W6_SPECS = ([('relief', b, s, 2 ** 21) for b in (1.0, 1.25, 1.5) for s in range(700, 708)] +
             [('strict', b, s, 2 ** 20) for b in (0.5, 0.75, 1.0, 1.25) for s in range(700, 708)] +
             [('sheet', b, s, 2 ** 20) for b in (0.5, 0.75) for s in range(700, 708)])
@@ -91,6 +94,27 @@ def hyperbolic_slope(r: float, lam: float) -> float:
     return x * math.sinh(x) / (math.cosh(x) - 1)
 
 
+def frozen_set(adj) -> set:
+    """`strict`: capped boundary nodes whose closure is allowed by `_closable`
+    but refused by the strict veto (closing would leave a dead corner)."""
+    out = set()
+    for x in range(len(adj)):
+        if len(adj[x]) < CAP or not any(_is_boundary(adj, x, z) for z in adj[x]):
+            continue
+        ab = _closable(adj, x, CAP)
+        if ab is None:
+            continue
+        a, b = ab
+        adj[a].add(b)
+        adj[b].add(a)
+        bad = _makes_dead(adj, (x, a, b), CAP)
+        adj[a].discard(b)
+        adj[b].discard(a)
+        if bad:
+            out.add(x)
+    return out
+
+
 def grow_one(spec) -> Dict:
     variant, beta, seed = spec[:3]
     n_max = spec[3] if len(spec) > 3 else N_MAX
@@ -109,8 +133,18 @@ def grow_one(spec) -> Dict:
 
     rows: List[Dict] = []
 
+    prev_frozen: Dict[str, set] = {'s': set()}
+    persist = [0, 0]
+
     def on_ck(n, adj):
-        rows.append(checkpoint_stats(adj, guard))
+        st = checkpoint_stats(adj, guard)
+        if variant == 'strict':
+            fz = frozen_set(adj)
+            persist[0] += len(prev_frozen['s'])
+            persist[1] += len(prev_frozen['s'] & fz)
+            prev_frozen['s'] = fz
+            st['frozen'] = len(fz)
+        rows.append(st)
 
     t0 = time.time()
     adj = grow_sheet(n_max, CAP, beta, seed, checkpoints=marks, on_checkpoint=on_ck,
@@ -139,6 +173,8 @@ def grow_one(spec) -> Dict:
             'slopes0': ' '.join(f"{r}:{x:.2f}" for r, x in slopes.items()),
             'slopes_fill': ' '.join(f"{r}:{x:.4f}:{fill[r]:.4f}" for r, x in slopes.items()),
             'capped_b_end': last['capped_b'],
+            'frozen_profile': ' '.join(f"{r['N']}:{r.get('frozen', -1)}" for r in rows),
+            'frozen_persist': f"{persist[1]}/{persist[0]}",
             'slope_max': max(slopes.values()) if slopes else float('nan'),
             'audit': au['verdict'], 'audit_d': au['d_last'],
             'profile': ' '.join(f"{r['N']}:{r['B_sqrtN']:.2f}/{r['dead']}/{r['deg7_interior']}"
@@ -288,6 +324,65 @@ def scan6(jobs: int) -> None:
     read6(rows)
 
 
+def read7(rows: List[Dict]) -> None:
+    """Wave 7 frozen readings: per growth, frozen corners vs crossing."""
+    a_n = a_flat = b_n = b_cross = 0
+    tot_p = tot_d = 0
+    for r in rows:
+        fp = {int(t.split(':')[0]): int(t.split(':')[1]) for t in r['frozen_profile'].split()}
+        prof = {int(t.split(':')[0]): float(t.split(':')[1].split('/')[0])
+                for t in r['profile'].split()}
+        ratio = r['B_sqrtN_end'] / prof[2 ** 16]
+        flat = 0.85 <= ratio <= 1.15 and 0.40 <= r['ecc_exp_last'] <= 0.60
+        crossed = ratio > 1.3 or r['ecc_exp_last'] < 0.35
+        first = min([n for n, k in fp.items() if k > 0], default=-1)
+        if fp.get(2 ** 19, 0) == 0:
+            a_n += 1
+            a_flat += int(flat)
+        if 0 < first <= 2 ** 18:
+            b_n += 1
+            b_cross += int(crossed)
+        p, d = map(int, r['frozen_persist'].split('/'))
+        tot_p += p
+        tot_d += d
+        print(f"    beta {r['beta']} seed {r['seed']}: first frozen at <= {first}, frozen at 2^19 "
+              f"{fp.get(2 ** 19, 0)}, at 2^20 {fp.get(2 ** 20, 0)}; B/sqrtN {r['B_sqrtN_end']:.2f} "
+              f"(x{ratio:.2f}), ecc exp {r['ecc_exp_last']:.2f} -> "
+              f"{'FLAT' if flat else 'CROSSED' if crossed else 'neither'}; dead {r['dead_end']}")
+    print(f"  P1 (no frozen corner by 2^19 -> flat at 2^20): {a_flat}/{a_n}")
+    print(f"  P2 (first frozen corner by 2^18 -> crossed at 2^20): {b_cross}/{b_n}")
+    print(f"  persistence (frozen at one checkpoint, still frozen at the next): {tot_d}/{tot_p}")
+    ok1 = a_n >= 4 and a_flat >= 0.9 * a_n
+    ok2 = b_n >= 4 and b_cross >= 0.9 * b_n
+    gate = all(r['dead_end'] == 0 and r['first_dead'] < 0 for r in rows)
+    print(f"  gate (no dead corner): {'PASS' if gate else 'FAIL'}")
+    if ok1 and ok2:
+        v = 'FROZEN CORNERS DECIDE'
+    elif a_n < 4 or b_n < 4:
+        v = 'UNDERPOWERED'
+    else:
+        v = 'NOT DECISIVE'
+    print(f"  W7: {v}")
+
+
+def scan7(jobs: int) -> None:
+    out = f"results/sheet_variants_w7_{time.strftime('%Y%m%d_%H%M%S')}.csv"
+    rows: List[Dict] = []
+    with ProcessPoolExecutor(jobs) as ex, open(out, 'w', newline='') as f:
+        w = None
+        for r in ex.map(grow_one, W7_SPECS):
+            if w is None:
+                w = csv.DictWriter(f, fieldnames=list(r.keys()))
+                w.writeheader()
+            w.writerow(r)
+            f.flush()
+            rows.append(r)
+            print(f"strict beta {r['beta']} seed {r['seed']}: B/sqrtN {r['B_sqrtN_end']:.2f} "
+                  f"frozen {r['frozen_profile'].split()[-1]} [{r['seconds']} s]", flush=True)
+    print(f"saved: {out}")
+    read7(rows)
+
+
 def cap7() -> None:
     """C6: growth rate of cap-7 sheets against ln 1.5 (Keller-Peyerimhoff)."""
     bound = float(np.log(1.5))
@@ -364,6 +459,8 @@ def main() -> None:
     m.add_argument('--cap7', action='store_true')
     m.add_argument('--scan6', action='store_true')
     m.add_argument('--read6', type=str, metavar='CSV')
+    m.add_argument('--scan7', action='store_true')
+    m.add_argument('--read7', type=str, metavar='CSV')
     ap.add_argument('--jobs', type=int, default=6)
     ap.add_argument('--seed', type=int, default=0)
     args = ap.parse_args()
@@ -375,6 +472,17 @@ def main() -> None:
         scan(args.jobs)
     elif args.scan6:
         scan6(args.jobs)
+    elif args.scan7:
+        scan7(args.jobs)
+    elif args.read7:
+        rows = []
+        for r in csv.DictReader(open(args.read7)):
+            for k in ('beta', 'B_sqrtN_end', 'ecc_exp_last'):
+                r[k] = float(r[k])
+            for k in ('seed', 'first_dead', 'dead_end'):
+                r[k] = int(r[k])
+            rows.append(r)
+        read7(rows)
     elif args.read6:
         rows = []
         for r in csv.DictReader(open(args.read6)):
