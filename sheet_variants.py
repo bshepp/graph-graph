@@ -19,6 +19,8 @@ Usage:
     python sheet_variants.py --read6 CSV
     python sheet_variants.py --scan7 [--jobs 24]     (wave 7)
     python sheet_variants.py --read7 CSV
+    python sheet_variants.py --scan8 [--jobs 24]     (wave 8)
+    python sheet_variants.py --read8 CSV
 
 Wave 6 (docs/superpowers/specs/2026-10-17-wave6-preregistration.md):
   strict  any event after which a node within one hop of it would be a dead
@@ -27,6 +29,10 @@ Wave 6 (docs/superpowers/specs/2026-10-17-wave6-preregistration.md):
           s(r) = x sinh x / (cosh x - 1), x = r sqrt(K), K = 2 pi lambda / (3 sqrt 3),
           lambda = interior degree-7 nodes per node, times the flat estimator's
           own slope / 2
+
+Wave 8 (docs/superpowers/specs/2026-10-18-wave8-preregistration.md):
+  relief  the same law with the graph ball read as a hexagon of equal area
+          (x = HEX_AREA r sqrt(K)), flat slope from the exact triangular lattice
 """
 
 import argparse
@@ -51,11 +57,16 @@ SCAN_SEEDS = tuple(range(600, 608))
 N_MAX = 2 ** 20
 MARKS = [2 ** k for k in range(12, 21)]
 COMPACT_B = 3.85
-RADII = (50, 100, 150, 200, 250, 300, 400, 500)
+# 25 / 75 / 125 / 175 added in wave 8; read6 reads only the FLAT_SLOPE radii
+RADII = (25, 50, 75, 100, 125, 150, 175, 200, 250, 300, 400, 500)
+# a graph ball on the triangular lattice is a hexagon of circumradius r; the disc of
+# equal area has radius HEX_AREA * r (wave 8)
+HEX_AREA = math.sqrt(3 * math.sqrt(3) / (2 * math.pi))
 # wave 6: the flat estimator's slope (wave 5 veto growths with no dead corner,
 # V(1.25 r) / V(r / 1.25) on a disc), fixed before any wave 6 growth
 FLAT_SLOPE = {50: 1.94, 100: 1.99, 150: 1.99, 200: 1.99, 250: 2.00, 300: 2.00,
               400: 2.00, 500: 2.00}
+W8_SPECS = [('relief', b, s, 2 ** 21) for b in (0.75, 0.875, 1.0) for s in range(900, 908)]
 W7_SPECS = [('strict', b, s, 2 ** 20) for b in (1.0, 1.125) for s in range(800, 816)]
 W6_SPECS = ([('relief', b, s, 2 ** 21) for b in (1.0, 1.25, 1.5) for s in range(700, 708)] +
             [('strict', b, s, 2 ** 20) for b in (0.5, 0.75, 1.0, 1.25) for s in range(700, 708)] +
@@ -92,6 +103,18 @@ def hyperbolic_slope(r: float, lam: float) -> float:
     if x < 1e-6:
         return 2.0
     return x * math.sinh(x) / (math.cosh(x) - 1)
+
+
+def lattice_slope(r: float) -> float:
+    """The ball-slope estimator on the exact triangular lattice, V = 3r^2 + 3r + 1."""
+    def v(q: int) -> int:
+        return 3 * q * q + 3 * q + 1
+    return math.log(v(int(r * 1.25)) / v(int(r / 1.25))) / math.log(1.5625)
+
+
+def hyperbolic_slope_hex(r: float, lam: float) -> float:
+    """Wave 8: `hyperbolic_slope` with the graph radius read as HEX_AREA * r."""
+    return hyperbolic_slope(HEX_AREA * r, lam)
 
 
 def frozen_set(adj) -> set:
@@ -246,7 +269,7 @@ def read6(rows: List[Dict]) -> None:
             for t in r['slopes_fill'].split():
                 rr, sl, fr = t.split(':')
                 rr, sl, fr = int(rr), float(sl), float(fr)
-                if fr <= 0.5:
+                if fr <= 0.5 and rr in FLAT_SLOPE:
                     el.append((rr, sl, hyperbolic_slope(rr, lam) * FLAT_SLOPE[rr] / 2))
             ok = [abs(sl / pr - 1) <= 0.10 for _, sl, pr in el]
             pairs += ok
@@ -322,6 +345,76 @@ def scan6(jobs: int) -> None:
                   f"deg7 {r['deg7_end']} [{r['seconds']} s]", flush=True)
     print(f"saved: {out}")
     read6(rows)
+
+
+def read8(rows: List[Dict]) -> None:
+    """Wave 8 frozen readings: relief against the hex-corrected hyperbolic-disc law."""
+    ok_g = [r for r in rows if not r['stalled'] and r['dead_end'] == 0 and r['max_deg'] <= CAP + 1]
+    for r in rows:
+        if r not in ok_g:
+            print(f"    GATE FAIL beta {r['beta']} seed {r['seed']}: stalled {r['stalled']} "
+                  f"dead {r['dead_end']} max_deg {r['max_deg']}")
+    print(f"  gate: {len(ok_g)}/{len(rows)} growths pass")
+    allp, steep_h, steep_r = [], [], []
+    per_beta: Dict[float, List[float]] = {}
+    for r in ok_g:
+        lam = r['deg7_end'] / r['n_end']
+        sk = math.sqrt(2 * math.pi * lam / (3 * math.sqrt(3)))
+        out = []
+        for t in r['slopes_fill'].split():
+            rr, sl, fr = t.split(':')
+            rr, sl, fr = int(rr), float(sl), float(fr)
+            if fr > 0.5:
+                continue
+            fs = lattice_slope(rr) / 2
+            h = sl / (hyperbolic_slope_hex(rr, lam) * fs)
+            g = sl / (hyperbolic_slope(rr, lam) * fs)
+            xh = HEX_AREA * rr * sk
+            allp.append(abs(h - 1) <= 0.10)
+            per_beta.setdefault(r['beta'], []).append(h)
+            if xh >= 4:
+                steep_h.append(h)
+                steep_r.append(g)
+            out.append(f"{rr}:x{xh:.2f}:{h:.3f}/{g:.3f}")
+        print(f"    beta {r['beta']} seed {r['seed']}: lambda {lam:.2e} (radius:x:hex/registered) "
+              + ' '.join(out))
+    frac = sum(allp) / max(len(allp), 1)
+    print(f"  pairs within 10% (hex law): {sum(allp)}/{len(allp)} = {frac:.3f}")
+    means_ok = True
+    for b, v in sorted(per_beta.items()):
+        mu = sum(v) / len(v)
+        means_ok &= 0.97 <= mu <= 1.03
+        print(f"  beta {b}: mean hex ratio {mu:.3f} over {len(v)} pairs")
+    mh = sum(steep_h) / len(steep_h) if steep_h else float('nan')
+    mr = sum(steep_r) / len(steep_r) if steep_r else float('nan')
+    print(f"  steep part (x_hex >= 4): {len(steep_h)} pairs, mean hex ratio {mh:.3f}, "
+          f"registered-law ratio {mr:.3f}")
+    base = frac >= 0.90 and means_ok and len(per_beta) > 0
+    if base and len(steep_h) >= 10 and 0.95 <= mh <= 1.05:
+        v = 'HEX LAW HOLDS'
+    elif base and len(steep_h) < 10:
+        v = 'HEX LAW HOLDS (steep part untested)'
+    else:
+        v = 'HEX LAW MISSED'
+    print(f"  W8-a: {v}")
+
+
+def scan8(jobs: int) -> None:
+    out = f"results/sheet_variants_w8_{time.strftime('%Y%m%d_%H%M%S')}.csv"
+    rows: List[Dict] = []
+    with ProcessPoolExecutor(jobs) as ex, open(out, 'w', newline='') as f:
+        w = None
+        for r in ex.map(grow_one, W8_SPECS):
+            if w is None:
+                w = csv.DictWriter(f, fieldnames=list(r.keys()))
+                w.writeheader()
+            w.writerow(r)
+            f.flush()
+            rows.append(r)
+            print(f"relief beta {r['beta']} seed {r['seed']}: N {r['n_end']} dead {r['dead_end']} "
+                  f"max_deg {r['max_deg']} deg7 {r['deg7_end']} [{r['seconds']} s]", flush=True)
+    print(f"saved: {out}")
+    read8(rows)
 
 
 def read7(rows: List[Dict]) -> None:
@@ -461,6 +554,8 @@ def main() -> None:
     m.add_argument('--read6', type=str, metavar='CSV')
     m.add_argument('--scan7', action='store_true')
     m.add_argument('--read7', type=str, metavar='CSV')
+    m.add_argument('--scan8', action='store_true')
+    m.add_argument('--read8', type=str, metavar='CSV')
     ap.add_argument('--jobs', type=int, default=6)
     ap.add_argument('--seed', type=int, default=0)
     args = ap.parse_args()
@@ -474,6 +569,16 @@ def main() -> None:
         scan6(args.jobs)
     elif args.scan7:
         scan7(args.jobs)
+    elif args.scan8:
+        scan8(args.jobs)
+    elif args.read8:
+        rows = []
+        for r in csv.DictReader(open(args.read8)):
+            r['beta'] = float(r['beta'])
+            for k in ('seed', 'n_end', 'stalled', 'dead_end', 'deg7_end', 'max_deg'):
+                r[k] = int(r[k])
+            rows.append(r)
+        read8(rows)
     elif args.read7:
         rows = []
         for r in csv.DictReader(open(args.read7)):
