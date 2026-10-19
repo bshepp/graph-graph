@@ -2178,8 +2178,10 @@ dead corners: it begins exactly where they are, on every graph.
 Not one neck (two boundary nodes within 3 hops, at least 100 apart along the boundary) on
 any of the twelve final graphs or the 14 prefix states, crossed or compact. The frozen
 reading is UNDECIDED (its fraction is 0/0). The finding behind it is definite: the sheet
-grows no minimal-neck "baby universes" of the kind that destroy the dimension of random
-triangulations (Ambjorn-Jain-Thorleifsson). Its fjords, rooted at dead corners 430-1160
+grows no minimal-neck "baby universes" (Ambjorn-Jain-Thorleifsson). *[Corrected 2026-10-18:
+that paper uses minimal necks to measure gamma_string, not as the defect that destroys a
+dimension; pure 2D random triangulations have d_H = 4 anyway. See the survey's verification
+addendum.]* Its fjords, rooted at dead corners 430-1160
 hops from the centre, have walls more than 3 hops apart wherever they are separated by
 more than 100 boundary nodes. A neck census with a wider mouth would be a new,
 post hoc instrument; not run.
