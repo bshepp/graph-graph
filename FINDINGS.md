@@ -2705,6 +2705,8 @@ sheet_variants.py --validate`). 72 growths on jaga, 24 workers, 00:02-01:07 PDT;
 
 ### W6-a. relief follows the hyperbolic-disc law
 
+*[Sharpened by wave 8: the low-side drift below is the graph metric; reading the ball as an equal-area hexagon (x = 0.9094 r sqrt K) removes it, and the corrected law holds on fresh growths into x = 4.5.]*
+
 Prediction for the local slope of V(r) around node 0: s(r) = x sinh x / (cosh x - 1),
 x = r sqrt(2 pi lambda / (3 sqrt 3)), times the flat estimator's slope / 2; lambda = interior
 degree-7 nodes per node, measured on each graph.
@@ -2818,6 +2820,91 @@ removes the configuration rather than relabelling it remains untested; that woul
 next variant (e.g. a closure that is allowed to proceed and flip a neighbouring triangle).
 
 Reproduce: `python sheet_variants.py --scan7 --jobs 24`; `--read7 CSV`.
+
+## Wave 8 (2026-10-18): the hyperbolic-disc law holds with the graph metric read correctly, into the steep part
+
+*Pre-registration `docs/superpowers/specs/2026-10-18-wave8-preregistration.md` (committed
+before any registered growth; it discloses the ring-disc calibration that motivated the
+correction, a post-hoc re-read of wave 6 with it, and one smoke growth). 24 `relief`
+growths (beta 0.75 / 0.875 / 1.0, seeds 900-907, to 2^21) on jaga, 22:37-23:12 PDT; CSV
+`results/sheet_variants_w8_20261018_223657.csv` (md5-verified copy), re-read locally with
+`--read8` to the same verdict. W8-b ran locally (`results/w8b_calibration_seed1.txt`).*
+
+**The correction.** A graph ball on the triangular lattice is a hexagon of circumradius r,
+not a disc. Read as the disc of equal area its radius is HEX_AREA r, HEX_AREA =
+sqrt(3 sqrt 3 / (2 pi)) = 0.9094, a lattice constant with nothing fitted. The wave 6 law
+becomes s(r) = x sinh x / (cosh x - 1) with x = 0.9094 r sqrt(2 pi lambda / (3 sqrt 3)),
+times the exact lattice slope / 2.
+
+| reading | result | prediction |
+|---|---|---|
+| gate (not stalled, no dead corner, max degree 7), per beta | **24/24** (8/8 at each beta) | held (90% / 75% / 55%) |
+| W8-a: pairs within 10% | **144/154 = 0.935** (>= 0.90) | |
+| W8-a: mean ratio per beta | **1.015 / 1.019 / 1.019** (beta 0.75 / 0.875 / 1.0; all in [0.97, 1.03]) | |
+| W8-a: steep part, x_hex >= 4 | **10 pairs (the registered minimum), mean 1.030** | |
+| W8-a verdict | **HEX LAW HOLDS** | held (60%) |
+| registered (uncorrected) law on the steep pairs | **0.945** | held (below 0.95, 75%) |
+| W8-b: ring-disc calibration, fresh seed | **CALIBRATION REPLICATES** (58/58 cells in [0.97, 1.04]; range 0.984-1.038) | held (80%) |
+
+**What it says.** `relief`'s ball growth is that of a hyperbolic disc whose curvature is
+fixed by the density of its cone points, with the graph metric converted by a lattice
+constant. That holds from x = 0.4 to 4.5, for beta from 0.75 to 1.5 (waves 6 and 8), and on
+random cone-point discs built without any growth rule (W8-b). The systematic low side of
+wave 6 (means 0.996 / 0.971 / 0.956) was the metric, not the sheet. Re-read with the
+correction (post hoc, disclosed), wave 6 gives 1.000 / 0.997 / 1.004 and 0 of 134 pairs
+outside 10%. Now the residual leans the other way, about +1.5-2%, and 9 of the 10 pairs outside
+10% are high (1.109-1.144; one low, 0.893): on relief the correction slightly overshoots.
+How far it overshoots varies from ball to ball, with the number of cone points a radius-r
+ball happens to hold (the beta 1.0 seeds wander between 0.95 and 1.14 at the same radius).
+The truth may sit between the two readings (the ring discs centre on 1.00-1.01). Limits: the steep part was reached only to x = 4.5, not the hoped-for 6,
+because at beta 0.75 the ball passes half the graph by r ~ 150. Ten pairs is the bare
+minimum, all but two from one beta.
+
+**A by-product, descriptive.** Over 48 relief growths, beta 0.75-1.5, the cone density is
+lambda = 0.193 exp(-6.55 beta). The default rule's per-node dead-corner hazard (W1-d) is
+0.15 exp(-6.44 beta). Per beta the ratio is 1.02-1.18 across a factor 130 in rate: each
+relief cone point is a would-be lost race, and relief's curvature radius
+1 / sqrt|K| = 1 / sqrt(1.209 lambda) ~ 2.07 exp(3.28 beta) lattice spacings follows from one
+local Arrhenius measurement. This is the Henderson-Taimina hyperbolic-crochet relation ("the
+ratio determines the radius") with the increase rate set by a kinetic barrier.
+
+Reproduce: `python sheet_variants.py --scan8 --jobs 24`; `--read8 CSV`;
+`python cone_lattice.py --calibrate --seed 1`.
+
+## Supporting-literature reproductions (2026-10-18, side quests, not pre-registered)
+
+*The owner asked for "supporting papers we rely on" to be checked or recreated. Citations
+were re-read in full; the corrections are in the survey's verification addendum
+(`reports/Local graph growth literature survey.md`, notes under `research_notes/Supporting
+literature verification/`). Where a published result could be recomputed, it was.*
+
+| published result | reproduction | outcome |
+|---|---|---|
+| {3,7} triangulation: sphere sizes 7, 21, 56, 147, 385, ..., growth (3 + sqrt 5)/2 (Keller-Peyerimhoff Prop. 1.1, after Cannon-Wagreich, Floyd-Plotnick) | `cone_lattice.py --validate` (ring-built disc, target degree 7) | exact: 7, 21, 56, 147, 385, 1008, 2639, 6909; ratio 2.6180339888 |
+| triangular lattice ball V = 3r^2 + 3r + 1 | same, target degree 6 | exact to r = 50; the exact lattice slope estimator reproduces wave 6's measured FLAT_SLOPE to 0.01 at every radius |
+| Angel-Benjamini-Horesh Thm 2: V <= floor((n + 3)^2 / 12) for a disc with interior degrees >= 6 | default `sheet`, beta 1.5 and 0.75, seed 5, four checkpoints to 2^17 | hypothesis holds (interior min degree 6 at every checkpoint), bound holds; V / bound = 1/E is 0.79-0.82 while compact and falls to 0.32 (beta 1.5, after its first dead corner) and 0.009 (beta 0.75): E is bounded below by 1 by theorem |
+| Wu-Menichetti-Rahmede-Bianconi 2015, m = 2, p = 0: P(k) = (1/2)(2/3)^(k - 1), distance ~ log N | `wu_network.py --m 2 --p 0` (N to 256,000, seed 0) | P(k) to the third decimal for k = 2-13 (0.3333 / 0.2224 / 0.1474 vs 0.3333 / 0.2222 / 0.1481 ...); mean distance 1.07-1.18 ln N |
+| same, m = 2, p = 0.9: exponential degree distribution, exponential growth (infinite d_H) | `wu_network.py --m 2 --p 0.9` | exponential degree tail (ratio ~0.72 per degree) and exponential balls around node 0 (x1.7-2.0 per hop to 35,000 nodes); mean distance grows faster than ln N at these sizes (1.35 -> 2.31 ln N from 10^3 to 2.6 x 10^5, one seed): log N not yet visible |
+
+**Two reading notes from the Wu et al. reproduction.** (1) Their process (b), read literally
+("add every triangle the new link closes"), folds the first few triangles into a closed
+tetrahedron at p = 0.9 within a handful of steps (no unsaturated link left); the paper's own
+statement that for m = 2 process (b) adds "only one new link and one new triangle" fixes the
+reading, and that is what `wu_network.py` does for m = 2. (2) With m = 2 their rule is
+`sheet`'s move set without the degree cap and without the bond energetics: attachments on a
+uniformly chosen boundary link, closures of a boundary vertex's two boundary links. Without
+the cap, interior vertices reach any degree (negative curvature everywhere), and the result
+is hyperbolic from the start; the cap is what makes `sheet` a plane, and the lost race is
+what lets curvature in anyway.
+
+**The hyperbolic-disc law, calibrated (`cone_lattice.py --calibrate`).** Ring-built discs with
+random degree-7 cone points at density p = 1e-4 ... 0.1 (32 discs per density) test wave 6's
+law on graphs whose curvature is set by construction. The law as registered in wave 6
+(x = r sqrt K) overshoots the measured slope by up to 8% at x = 4-5 at every density. Reading
+the graph ball as a hexagon of equal area (x = 0.9094 r sqrt K, a lattice constant, nothing
+fitted) brings every cell to 0.987-1.033 (seed 0) and 0.984-1.038 (seed 1, registered as
+W8-b). The {3,7} lattice is the far limit: growth per layer 0.962 against the corrected law's
+1.000. This is what wave 8 tests on `relief`.
 
 ## Scaling directions: what more compute could (and couldn't) unlock
 
