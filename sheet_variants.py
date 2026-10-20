@@ -23,6 +23,8 @@ Usage:
     python sheet_variants.py --read8 CSV
     python sheet_variants.py --scan9 [--jobs 24]     (wave 9)
     python sheet_variants.py --read9 CSV
+    python sheet_variants.py --scan10 [--jobs 16]    (wave 10)
+    python sheet_variants.py --read10 CSV
 
 Wave 6 (docs/superpowers/specs/2026-10-17-wave6-preregistration.md):
   strict  any event after which a node within one hop of it would be a dead
@@ -86,6 +88,7 @@ W9_SPECS = ([('detach', b, s, 2 ** 20, math.exp(b * mu)) for b in (1.0, 1.25) fo
             [('pent', 1.0, s, 2 ** 20, p) for p in (3e-6, 6e-6, 1e-5)
              for s in range(1000, 1008)] +
             [('pent', 1.0, s, 2 ** 18, p) for p in (3e-5, 1e-4) for s in range(1000, 1004)])
+W10_SPECS = [('disloc', b, s, 2 ** 22, 1.0) for b in (0.5, 0.75) for s in range(1100, 1108)]
 W8_SPECS = [('relief', b, s, 2 ** 21) for b in (0.75, 0.875, 1.0) for s in range(900, 908)]
 W7_SPECS = [('strict', b, s, 2 ** 20) for b in (1.0, 1.125) for s in range(800, 816)]
 W6_SPECS = ([('relief', b, s, 2 ** 21) for b in (1.0, 1.25, 1.5) for s in range(700, 708)] +
@@ -111,6 +114,7 @@ def checkpoint_stats(adj, guard: int) -> Dict[str, float]:
     d0 = dijkstra(A, indices=0, unweighted=True)
     return {'N': n, 'B': b_edges, 'B_sqrtN': b_edges / np.sqrt(n),
             'deg7_interior': int((interior & (deg == CAP + 1)).sum()),
+            'deg5_interior': int((interior & (deg == CAP - 1)).sum()),
             'deg7_all': int((deg == CAP + 1).sum()), 'max_deg': int(deg.max()),
             'dead': dead, 'capped_b': capped_b, 'ecc0': float(d0[np.isfinite(d0)].max())}
 
@@ -557,6 +561,8 @@ def grow_one9(spec) -> Dict:
             'audit': au['verdict'], 'audit_d': au['d_last'],
             'profile': ' '.join(f"{r['N']}:{r['B_sqrtN']:.2f}/{r['dead']}/{r['deg7_interior']}"
                                 f"/{r['ecc0']:.0f}" for r in rows),
+            'profile5': ' '.join(f"{r['N']}:{r['deg5_interior']}/{r['deg7_interior']}/{r['B']}"
+                                 for r in rows),
             'seconds': round(time.time() - t0)}
 
 
@@ -725,6 +731,112 @@ def scan9(jobs: int) -> None:
                   f"{r['dead_end']} [{r['seconds']} s]", flush=True)
     print(f"saved: {out}")
     read9(rows)
+
+
+def read10(rows: List[Dict]) -> None:
+    """Wave 10 frozen readings (docs/superpowers/specs/2026-10-19-wave10-preregistration.md):
+    `disloc` at beta 0.5 and 0.75 to 2^22. Per growth, the crossing reading over the last four
+    octaves (base N_end / 16), the octave factors of B/sqrtN, and the remainder n7 - n5 against
+    the boundary; per cell, the feedback verdict, the remainder per boundary edge at N_end
+    against N_end / 4, and the net disc law."""
+    cells: Dict[float, List[Dict]] = {}
+    for r in rows:
+        cells.setdefault(r['beta'], []).append(r)
+    for b, rs in sorted(cells.items()):
+        print(f"W10 disloc beta {b}:")
+        kinds, acc, sett, law = [], 0, 0, []
+        q = {}   # checkpoint N -> [sum of n7 - n5, sum of boundary edges] over the cell
+        for r in rs:
+            prof = {int(t.split(':')[0]): float(t.split(':')[1].split('/')[0])
+                    for t in r['profile'].split()}
+            n_end = r['n_end']
+            base = n_end // 16
+            if r['stalled'] or base not in prof:
+                kinds.append('short')
+                print(f"    seed {r['seed']}: short / stalled (N {n_end})")
+                continue
+            ratio = r['B_sqrtN_end'] / prof[base]
+            ecc = r['ecc_exp_last']
+            kind = ('flat' if 0.85 <= ratio <= 1.15 and 0.40 <= ecc <= 0.60 else
+                    'crossed' if ratio > 1.3 or ecc < 0.35 else 'neither')
+            kinds.append(kind)
+            octs = [base * 2 ** k for k in range(5)]
+            g = [prof[octs[k + 1]] / prof[octs[k]] for k in range(4)]
+            if g[-1] > g[0] + 0.01:
+                acc += 1
+            elif g[-1] < g[0] - 0.01:
+                sett += 1
+            rem = []
+            for t in r['profile5'].split():
+                nn, rest = t.split(':')
+                d5, d7, bb = (int(x) for x in rest.split('/'))
+                if int(nn) >= 2 ** 16:
+                    rem.append((int(nn), d7 - d5, bb))
+                    q.setdefault(int(nn), [0, 0])
+                    q[int(nn)][0] += d7 - d5
+                    q[int(nn)][1] += bb
+            pairs = _law_pairs(r)
+            law += pairs
+            print(f"    seed {r['seed']}: B/sqrtN {r['B_sqrtN_end']:.2f} (x{ratio:.3f} over 4 "
+                  f"octaves), ecc exp {ecc:.2f} -> {kind}; octave factors "
+                  f"{' '.join(f'{x:.3f}' for x in g)}; remainder/boundary "
+                  f"{' '.join(f'{d}/{bb}' for _, d, bb in rem)}; law "
+                  f"{sum(abs(h - 1) <= 0.10 for _, h, _ in pairs)}/{len(pairs)}; dead {r['dead_end']}")
+        m = len(rs)
+        if kinds.count('short') >= m / 2:
+            cv = 'STALLED'
+        elif kinds.count('flat') >= math.ceil(7 / 8 * m):
+            cv = 'FLAT'
+        elif kinds.count('crossed') >= math.ceil(6 / 8 * m):
+            cv = 'CROSSOVER'
+        else:
+            cv = 'UNDECIDED'
+        fb = ('ACCELERATING' if acc >= math.ceil(6 / 8 * m) else
+              'SETTLING' if sett >= math.ceil(6 / 8 * m) else 'STEADY')
+        n_hi = max(r['n_end'] for r in rs)
+        n_lo = n_hi // 4
+        if n_hi in q and n_lo in q and q[n_lo][0] > 0:
+            ratio_q = (q[n_hi][0] / q[n_hi][1]) / (q[n_lo][0] / q[n_lo][1])
+            rv = ('SHRINKING' if ratio_q < 0.7 else 'BOUNDARY-PROPORTIONAL' if ratio_q <= 1.4 else
+                  'BETWEEN' if ratio_q < 1.6 else 'AREA-LIKE')
+            rtxt = (f"q = sum(n7 - n5) / sum(B): {q[n_lo][0]}/{q[n_lo][1]} at {n_lo}, "
+                    f"{q[n_hi][0]}/{q[n_hi][1]} at {n_hi}, ratio {ratio_q:.2f} -> {rv}")
+        else:
+            rtxt = 'no remainder at N_end / 4 -> UNREAD'
+        within = sum(abs(h - 1) <= 0.10 for _, h, _ in law)
+        lv = 'HOLDS' if law and within >= 0.90 * len(law) else 'MISSED'
+        print(f"  cell: {cv}; feedback {fb} (accelerating {acc}/{m}, settling {sett}/{m}); "
+              f"remainder {rtxt}; net disc law {within}/{len(law)} "
+              f"-> {lv}")
+
+
+def scan10(jobs: int) -> None:
+    out = f"results/sheet_variants_w10_{time.strftime('%Y%m%d_%H%M%S')}.csv"
+    rows: List[Dict] = []
+    with ProcessPoolExecutor(jobs) as ex, open(out, 'w', newline='') as f:
+        w = None
+        for r in ex.map(grow_one9, W10_SPECS):
+            if w is None:
+                w = csv.DictWriter(f, fieldnames=list(r.keys()))
+                w.writeheader()
+            w.writerow(r)
+            f.flush()
+            rows.append(r)
+            print(f"disloc beta {r['beta']} seed {r['seed']}: N {r['n_end']} B/sqrtN "
+                  f"{r['B_sqrtN_end']:.2f} i5 {r['i5']} i7 {r['i7']} [{r['seconds']} s]", flush=True)
+    print(f"saved: {out}")
+    read10(rows)
+
+
+def _load10(path: str) -> List[Dict]:
+    rows = []
+    for r in csv.DictReader(open(path)):
+        for k in ('beta', 'rate', 'B_sqrtN_end', 'ecc_exp_last'):
+            r[k] = float(r[k])
+        for k in ('seed', 'n_end', 'stalled', 'i5', 'i7', 'dead_end', 'r_complete'):
+            r[k] = int(r[k])
+        rows.append(r)
+    return rows
 
 
 def read7(rows: List[Dict]) -> None:
@@ -901,6 +1013,8 @@ def main() -> None:
     m.add_argument('--read8', type=str, metavar='CSV')
     m.add_argument('--scan9', action='store_true')
     m.add_argument('--read9', type=str, metavar='CSV')
+    m.add_argument('--scan10', action='store_true')
+    m.add_argument('--read10', type=str, metavar='CSV')
     ap.add_argument('--jobs', type=int, default=6)
     ap.add_argument('--seed', type=int, default=0)
     args = ap.parse_args()
@@ -918,6 +1032,10 @@ def main() -> None:
         scan8(args.jobs)
     elif args.scan9:
         scan9(args.jobs)
+    elif args.scan10:
+        scan10(args.jobs)
+    elif args.read10:
+        read10(_load10(args.read10))
     elif args.read9:
         rows = []
         for r in csv.DictReader(open(args.read9)):
