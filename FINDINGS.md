@@ -2817,7 +2817,9 @@ crossover follows a hyperbolic-disc law, W6-a) the trigger now reads in one line
 `sheet` crossover is the deposition of permanent negative curvature by the lost race --
 on the boundary as a dead or frozen corner, or in the interior as a cone point.** A rule that
 removes the configuration rather than relabelling it remains untested; that would be the
-next variant (e.g. a closure that is allowed to proceed and flip a neighbouring triangle).
+next variant (e.g. a closure that is allowed to proceed and flip a neighbouring triangle). *(Wave 9 built four such rules; a flip-repair closure reduces by
+Gauss-Bonnet to a frozen corner or a 5-7 pair, so the 5-7 pair (`disloc`) was built directly.
+Only local cancellation keeps the plane.)*
 
 Reproduce: `python sheet_variants.py --scan7 --jobs 24`; `--read7 CSV`.
 
@@ -2870,6 +2872,101 @@ ratio determines the radius") with the increase rate set by a kinetic barrier.
 
 Reproduce: `python sheet_variants.py --scan8 --jobs 24`; `--read8 CSV`;
 `python cone_lattice.py --calibrate --seed 1`.
+
+## Wave 9 (2026-10-19): cancelling the lost race's curvature locally keeps the plane; removing it or diluting it does not
+
+*Pre-registration `docs/superpowers/specs/2026-10-19-wave9-preregistration.md` (committed
+before any registered growth; it discloses the code checks, the sampler bug found and fixed
+in `detach`, the pilots and the reader dry runs that made the `pent` spherical side
+descriptive). Four labelled, default-off variants of `grow_sheet` (the default `sheet` is
+bit-identical): `disloc` (every degree-7 cone point leaves a credit that a later degree-5
+closure consumes: bound 5-7 pairs), `pent` (degree-5 closures at a fixed small rate,
+independent of the 7s), `eager` (closure rate rho instead of 1), `detach` (C4: reversible
+attachment on `sheet`). 124 growths on jaga, 21:11-22:57 PDT, 24 workers; CSV
+`results/sheet_variants_w9_20261019_211135.csv` (md5-verified copy; log
+`results/wave1_logs/wave9_jaga.log`), read locally with `--read9`.*
+
+| reading | result | prediction |
+|---|---|---|
+| W9-a `disloc` gate (no stall, no dead corner, max degree 7, interior degrees 5-7, >= 95% of 5s with a 7 within two hops) | **PASS** (24/24; 5s paired 99.7-100%) | held (75%) |
+| W9-a cells: beta 1.0 / 0.75 / 0.5 | **FLAT / FLAT / CROSSOVER** (beta 0.75: 7/8 flat, the eighth "neither") | held (85% / 65% / 45%) |
+| W9-a net-curvature law | **HOLDS** (359/372 pairs within 10%, mean ratio 1.023) | held (65%) |
+| W9-a `relief` controls crossed | **12/12** (B/sqrtN 19-21 / 43-45 / 92-94 at beta 1.0 / 0.75 / 0.5) | held (95%) |
+| W9-b `pent` net law | **NET LAW MISSED** (288/339 = 85% within 10%; discriminating pairs 93: net mean 0.974, gross mean 0.760) | held (55%) |
+| W9-b gross law on discriminating pairs below 0.90 | **0.760** | held (80%) |
+| W9-b cells: rate 3e-6 / 6e-6 / 1e-5 | **CROSSOVER / CROSSOVER / CROSSOVER** | held, held, **missed** (I gave UNDECIDED 50%) |
+| W9-c `eager` race law: slope of ln lambda vs ln rho | **RACE LAW** (-0.934 at beta 0.5, -0.927 at 0.75) | held (65%) |
+| W9-d `detach` cells: beta 1.0 mu 3 / 3.8, beta 1.25 mu 3 / 3.8 | **CROSSOVER x 4** (32/32 crossed) | held (90% / 75% / 70% / 60%) |
+
+Fifteen of sixteen registered calls held; the miss is the near-balance `pent` cell, which
+crossed where I expected the fluctuations to leave it undecided.
+
+**W9-a, `disloc`: the first variant with no dead or frozen corner that stays a disc at
+beta 0.75.** At beta 1.0 every growth is flat to 2^20 (B/sqrtN 4.11-4.13; the flat reference
+is 3.85 and `relief` on the same footing is 19-21), with 306-350 degree-5 and 308-351
+degree-7 points, every 5 within two hops of a 7. At beta 0.75 (1,582-1,719 pairs) B/sqrtN
+drifts 4.1 -> 4.9 over eight octaves but stays inside the flat window, and the ball around
+node 0 keeps close to the lattice's slope (2.03 at r = 100, 2.06 at r = 250). `strict` crossed at both
+betas; `veto` leaked. The disc law with lambda_net = (n7 - n5)/N predicts both cells to
+within 10% at every eligible radius (256/256 pairs).
+
+At beta 0.5 it crosses, as I gave most weight to, but not quite for the reason I registered.
+I wrote that a crossing there would be roughness from the dense dislocations (one pair per
+~135 nodes), not curvature. The ball around node 0 says otherwise: its local slope climbs
+2.17 / 2.36 / 2.58 at r = 100 / 200 / 300 against the lattice's ~2.0. The source is the
+unpaired remainder: at 2^20 each beta 0.5 growth has 18-34 more 7s than 5s, credits not yet
+spent that ride outward on the boundary (beta 0.75: 2-10; beta 1.0: 0-2). The net law with
+that remainder accounts for most of the excess (103/116 pairs within 10%); all 13 misses are
+here, all high (1.10-1.13 at r = 150-250). So the beta 0.5 crossing is mostly real curvature
+from cancellation that lags behind the growth front, with something extra on top. Whether
+the remainder grows with the boundary, and so whether every beta eventually crosses, is not
+answered by this wave.
+
+**W9-b, `pent`: on average the net curvature sets the disc, but independent defects do not
+cancel ball by ball.** Where the two laws differ by more than 10%, the net law sits at 0.974
+and the 7s-alone law at 0.760: degree-5 points do subtract their curvature. But the
+registered 90% clause failed, the way I expected: within 10% at 91% / 87% / 77% of pairs at
+rates 3e-6 / 6e-6 / 1e-5, the misses at r >= 50 and growing with the rate and the radius
+(rate 1e-5 beyond r = 200: 4/14). Individual balls wander between 0.67 and 1.28, the sqrt(n)
+excess the dry run estimated. Against `disloc`, where the same law holds at 96.5%: **the
+curvature must cancel locally, as bound pairs do, for the disc law to hold ball by ball.**
+The descriptive spherical side (rates 3e-5, 1e-4, to 2^18) behaved as the dry runs warned:
+pinched bulbs (28-128 dead corners from capped boundary nodes under the relief guard), one
+stall at 7,443 nodes, one growth whose node 0 sits in a closed bulb (ball volume saturates,
+ratios -> 0); complete-ball pairs' mean 0.778. That side does not test a disc law.
+
+**W9-c, `eager`: the cone density is one race.** Across rho = 1-64 the cone density falls as
+rho^-0.93 at both betas (beta 0.75: 1,323-1,414 cones at rho 1 down to 25-34 at rho 64). So
+the curvature radius grows only as sqrt(rho): no finite closure speed gives a plane. Every
+`eager` growth crossed at 2^20, including rho 64 (B/sqrtN 6.5-7.8 at beta 0.75), whose pilot
+had stayed flat to 2^18; at lambda = 2.8e-5 the curvature radius 1/sqrt(1.209 lambda) ~ 170
+spacings sits well inside a 2^20 disc (hex radius ~590). *Post hoc, descriptive:* the
+hex-corrected disc law of wave 8 holds on all 32 `eager` growths, 376/385 pairs within 10%,
+cell means 0.988-1.022, over a factor 190 in cone density (5.3e-3 down to 2.8e-5).
+
+**W9-d, `detach`: reversibility heals some dead corners but not enough.** Detachment
+removed 3-13% of all nodes grown and healed (a dead corner present at one checkpoint, gone at
+the next) 16% / 40% / 6% / 21% of dead corners in the four cells. Dead corners at 2^20 fall
+from `sheet`'s ~1,550 (beta 1.0) and ~470 (beta 1.25; wave 5, other seeds) to 900-1,070 / 360-590 / 220-360 /
+120-190, and B/sqrtN from 55-58 / 29-34 to 42-47 / 27-36 / 21-29 / 15-22: a weaker crossover,
+not none. A dead corner heals only when one of its degree-6 nodes detaches, at rate
+exp(-beta (12 - mu)), slower than the attachments that bury it.
+
+**What wave 9 settles.** Gauss-Bonnet leaves a local rule four things to do with the -1 of
+turning the lost race fixes: keep it (`sheet`, `strict`, `relief`: all cross), dilute it
+(`eager`: the density falls as 1/rho but never reaches zero; still crosses), remove the
+material (`detach`: heals a fraction; still crosses), or cancel it with a +1. Only
+cancellation keeps the plane, and only when the cancellation is local: bound 5-7 pairs
+(`disloc`) give a flat disc to a million nodes at beta >= 0.75, independent 5s (`pent`)
+cancel on average but leave the ball-to-ball excess of a random walk. **What ends the plane is
+the net curvature, not the defect**, and the disc law with the net density predicts the ball
+in every variant tested (relief, eager, disloc; pent on average). One caveat about cost:
+`disloc`'s credit is a node-state token carried to neighbours, so it is local, but it is a
+conservation law written into the rule by hand. It shows what a rule must do to stay flat;
+it is not evidence that a rule without such bookkeeping would find it.
+
+Reproduce: `python sheet_variants.py --scan9 --jobs 24`; `--read9 CSV`;
+`python sheet_variants.py --validate`; `python sheet_sampler_audit.py`.
 
 ## Supporting-literature reproductions (2026-10-18, side quests, not pre-registered)
 
