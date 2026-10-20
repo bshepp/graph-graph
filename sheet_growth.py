@@ -72,7 +72,7 @@ def _closable(adj: Adj, x: int, c: int, guard: Optional[int] = None
     return a, b
 
 
-VARIANTS = ('sheet', 'relief', 'veto', 'strict')
+VARIANTS = ('sheet', 'relief', 'veto', 'strict', 'disloc', 'pent', 'eager', 'detach')
 
 
 def _makes_dead(adj: Adj, nodes: Tuple[int, ...], c: int) -> bool:
@@ -100,13 +100,36 @@ def _vetoed(adj: Adj, u: int, v: int, c: int) -> bool:
     return False
 
 
+def _removable(adj: Adj, w: int) -> bool:
+    """`detach` variant: can boundary node w be removed with the sheet staying a
+    disc? Its link must be a path whose inner vertices are all interior, both
+    ends must keep degree >= 2, and a degree-2 tip's base edge must be in two
+    triangles. Reads w's neighbours and their adjacency only."""
+    nb = adj[w]
+    if len(nb) < 2:
+        return False
+    ends = [y for y in nb if _is_boundary(adj, w, y)]
+    if len(ends) != 2:
+        return False
+    a, b = ends
+    if len(adj[a]) < 3 or len(adj[b]) < 3:
+        return False
+    if len(nb) == 2:
+        return len(adj[a] & adj[b]) == 2
+    for y in nb:
+        if y != a and y != b and any(_is_boundary(adj, y, z) for z in adj[y]):
+            return False
+    return True
+
+
 def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
                seed: int | None = None,
                checkpoints: Sequence[int] = (),
                on_checkpoint: Optional[Callable[[int, Adj], None]] = None,
                on_event: Optional[Callable[[str, Tuple[int, ...], Adj],
                                            Optional[bool]]] = None,
-               variant: str = 'sheet'
+               variant: str = 'sheet',
+               rate: float = 1.0
                ) -> Adj:
     """
     Grow a sheet from a seed triangle; returns adjacency as a list of sets.
@@ -134,17 +157,58 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
     other boundary neighbour is already capped is refused. 'strict' (wave 6):
     any event, attachment or closure, after which a node within one hop of the
     event would be a dead corner is refused (applied, checked, reverted).
+
+    Wave 9 (all on top of `relief` except `detach`; `rate` is the variant's
+    one constant):
+    'disloc': every interior degree-(c + 1) cone point leaves a credit on the
+    two link ends of the closure that made it; a boundary node holding a
+    credit closes at degree c - 1 (an interior degree-5 point, positive
+    curvature) at the closure rate, consuming it. A credit holder that closes
+    at c or more passes its credits to its link ends. 5-7 pairs: no net
+    curvature.
+    'pent': any closable boundary node at degree c - 1 closes at rate `rate`
+    (relative to the closure rate 1): uncompensated positive curvature.
+    'eager': the closure rate is `rate` instead of 1.
+    'detach' (on `sheet`, C4 of the 2026-10-17 survey): a boundary node of
+    degree b whose removal leaves a disc (`_removable`) detaches at rate
+    `rate` * exp(-beta (b + c)), so a tip (b = 2) leaves at the rate of an
+    attachment between two degree-2 nodes. Removed nodes keep their id with
+    an empty neighbour set (ids stay birth order; `n_nodes` and checkpoints
+    count live nodes); on_event gets kind 'detach' with nodes (w, *former
+    neighbours). Nodes 0-2 never detach.
     """
     if variant not in VARIANTS:
         raise ValueError(f"unknown variant {variant!r}")
-    guard = c + 1 if variant == 'relief' else c
+    guard = c + 1 if variant in ('relief', 'disloc', 'pent', 'eager') else c
     rng = np.random.default_rng(seed)
     adj: Adj = [{1, 2}, {0, 2}, {0, 1}]
     kmax = 2 * c
     weight = np.exp(beta * (np.arange(kmax + 1) - kmax))
+    five = variant in ('disloc', 'pent')
+    detach = variant == 'detach'
+    P5 = kmax + 1                         # degree-(c - 1) closures
+    DET = kmax + 2                        # detachment of a degree-b node: DET + b
+    if variant == 'eager':
+        weight[kmax] = rate
+    if five or detach:
+        extra = np.zeros(1 + (c + 2))
+        if five:
+            extra[0] = 1.0 if variant == 'disloc' else rate
+        if detach:
+            extra[1:] = rate * np.exp(-beta * (np.arange(c + 2) + c))
+        weight = np.concatenate([weight, extra])
+    nclass = len(weight)
     buckets: List[List[Tuple[Tuple[int, int], int]]] = \
-        [[] for _ in range(kmax + 1)]
+        [[] for _ in range(nclass)]
     token: Dict[Tuple[int, int], int] = {}
+    credit: Dict[int, List[int]] = {}     # disloc: node -> credit ids
+    holders: Dict[int, Set[int]] = {}     # disloc: credit id -> nodes
+    n_credit = [0]
+    n_live = 3
+
+    def five_ok(x: int) -> bool:
+        return (len(adj[x]) == c - 1 and (variant == 'pent' or bool(credit.get(x)))
+                and _closable(adj, x, c, guard) is not None)
 
     def push(u: int, v: int) -> None:
         e = (u, v) if u < v else (v, u)
@@ -158,6 +222,15 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
                 buckets[kmax].append((e, t))
         else:
             buckets[du + dv].append((e, t))
+        if five and (five_ok(u) or five_ok(v)):
+            buckets[P5].append((e, t))
+
+    def push_node(w: int) -> None:
+        key = (w, -1)
+        t = token.get(key, 0) + 1
+        token[key] = t
+        if w > 2 and _removable(adj, w):
+            buckets[DET + len(adj[w])].append((key, t))
 
     def refresh(x: int) -> None:
         # x's degree changed: re-rate its edges, and its neighbours' boundary
@@ -167,19 +240,50 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
             for z in adj[y]:
                 if z != x and _is_boundary(adj, y, z):
                     push(y, z)
+        if detach:
+            push_node(x)
+            for y in adj[x]:
+                push_node(y)
+
+    def give(x: int, ids: List[int]) -> None:
+        for i in ids:
+            if x not in holders[i]:
+                credit.setdefault(x, []).append(i)
+                holders[i].add(x)
+        refresh(x)
+
+    def close_credit(x: int, a: int, bb: int, deg_x: int) -> None:
+        # disloc bookkeeping after x closed at degree deg_x with link ends a, bb
+        mine = credit.pop(x, [])
+        for i in mine:
+            holders[i].discard(x)
+        if deg_x == c - 1:
+            i = mine.pop()                # consumed: a 5-7 pair is complete
+            for y in holders.pop(i):
+                credit[y].remove(i)
+                if not credit[y]:
+                    del credit[y]
+                refresh(y)
+        if deg_x == c + 1:
+            mine.append(n_credit[0])
+            holders[n_credit[0]] = set()
+            n_credit[0] += 1
+        if mine:
+            give(a, mine)
+            give(bb, mine)
 
     for e in ((0, 1), (0, 2), (1, 2)):
         push(*e)
     marks = sorted(m for m in checkpoints if m <= n_nodes)
-    sizes = np.zeros(kmax + 1)
-    while len(adj) < n_nodes:
-        for k in range(kmax + 1):
+    sizes = np.zeros(nclass)
+    while n_live < n_nodes:
+        for k in range(nclass):
             sizes[k] = len(buckets[k])
         tot = sizes * weight
         s = tot.sum()
         if s <= 0:
             break                         # stalled
-        k = int(rng.choice(kmax + 1, p=tot / s))
+        k = int(rng.choice(nclass, p=tot / s))
         b = buckets[k]
         i = int(rng.integers(len(b)))
         e, t = b[i]
@@ -188,9 +292,27 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
         if token.get(e) != t:
             continue                      # stale entry
         u, v = e
-        if k == kmax:
-            cand = [x for x in e
-                    if len(adj[x]) >= c and _closable(adj, x, c, guard)]
+        if k >= DET:
+            if not _removable(adj, u):
+                continue
+            nb = list(adj[u])
+            for y in nb:
+                adj[y].discard(u)
+            adj[u] = set()
+            n_live -= 1
+            for y in nb:
+                push(u, y)                # invalidates entries on u's old edges
+            push_node(u)
+            for y in nb:
+                refresh(y)
+            if on_event is not None and on_event('detach', (u, *nb), adj):
+                break
+        elif k == kmax or k == P5:
+            if k == kmax:
+                cand = [x for x in e
+                        if len(adj[x]) >= c and _closable(adj, x, c, guard)]
+            else:
+                cand = [x for x in e if five_ok(x)]
             if not cand:
                 continue
             x = cand[int(rng.integers(len(cand)))]
@@ -203,6 +325,11 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
                 continue                  # refused; re-offered when a degree changes
             refresh(a)
             refresh(bb)
+            if detach:
+                for y in adj[x]:              # x is interior now: its neighbours'
+                    push_node(y)              # removability reads that
+            if variant == 'disloc':
+                close_credit(x, a, bb, len(adj[x]))
             if on_event is not None and on_event('close', (x, a, bb), adj):
                 break
         else:
@@ -217,15 +344,27 @@ def grow_sheet(n_nodes: int, c: int = 6, beta: float = 2.0,
                 adj[u].discard(w)
                 adj[v].discard(w)
                 continue                  # refused; re-offered when a degree changes
+            n_live += 1
             refresh(u)
             refresh(v)
-            if marks and len(adj) == marks[0]:
+            if marks and n_live == marks[0]:
                 marks.pop(0)
                 if on_checkpoint is not None:
-                    on_checkpoint(len(adj), adj)
+                    on_checkpoint(n_live, adj)
             if on_event is not None and on_event('attach', (u, v, w), adj):
                 break
     return adj
+
+
+def compact(adj: Adj) -> Adj:
+    """Drop detached (empty) nodes, keeping birth order; identity if none."""
+    if all(adj[i] for i in range(len(adj))) or len(adj) <= 1:
+        return adj
+    new = {}
+    for i, s in enumerate(adj):
+        if s:
+            new[i] = len(new)
+    return [{new[j] for j in s} for s in adj if s]
 
 
 def grow_sheet_reference(n_nodes: int, c: int, beta: float,

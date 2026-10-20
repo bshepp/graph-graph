@@ -21,6 +21,8 @@ Usage:
     python sheet_variants.py --read7 CSV
     python sheet_variants.py --scan8 [--jobs 24]     (wave 8)
     python sheet_variants.py --read8 CSV
+    python sheet_variants.py --scan9 [--jobs 24]     (wave 9)
+    python sheet_variants.py --read9 CSV
 
 Wave 6 (docs/superpowers/specs/2026-10-17-wave6-preregistration.md):
   strict  any event after which a node within one hop of it would be a dead
@@ -33,6 +35,13 @@ Wave 6 (docs/superpowers/specs/2026-10-17-wave6-preregistration.md):
 Wave 8 (docs/superpowers/specs/2026-10-18-wave8-preregistration.md):
   relief  the same law with the graph ball read as a hexagon of equal area
           (x = HEX_AREA r sqrt(K)), flat slope from the exact triangular lattice
+
+Wave 9 (docs/superpowers/specs/2026-10-19-wave9-preregistration.md), new variants of
+`sheet_growth.grow_sheet` (see its docstring):
+  disloc  relief, with every cone point paired with a degree-5 point (5-7 dislocations)
+  pent    relief plus uncompensated degree-5 closures at a rate: the signed disc law
+  eager   relief with the closure rate raised: the race law
+  detach  sheet with reversible attachment (C4)
 """
 
 import argparse
@@ -66,6 +75,17 @@ HEX_AREA = math.sqrt(3 * math.sqrt(3) / (2 * math.pi))
 # V(1.25 r) / V(r / 1.25) on a disc), fixed before any wave 6 growth
 FLAT_SLOPE = {50: 1.94, 100: 1.99, 150: 1.99, 200: 1.99, 250: 2.00, 300: 2.00,
               400: 2.00, 500: 2.00}
+# wave 9: small radii for the spherical side of the signed law
+RADII9 = (10, 15, 20, 25, 30, 40, 50, 60, 75, 100, 125, 150, 175, 200, 250, 300, 400, 500)
+W9_SPECS = ([('detach', b, s, 2 ** 20, math.exp(b * mu)) for b in (1.0, 1.25) for mu in (3.0, 3.8)
+             for s in range(1000, 1008)] +
+            [('eager', b, s, 2 ** 20, rho) for b in (0.5, 0.75) for rho in (1.0, 4.0, 16.0, 64.0)
+             for s in range(1000, 1004)] +
+            [('disloc', b, s, 2 ** 20, 1.0) for b in (0.5, 0.75, 1.0) for s in range(1000, 1008)] +
+            [('relief', 1.0, s, 2 ** 20, 1.0) for s in range(1000, 1004)] +
+            [('pent', 1.0, s, 2 ** 20, p) for p in (3e-6, 6e-6, 1e-5)
+             for s in range(1000, 1008)] +
+            [('pent', 1.0, s, 2 ** 18, p) for p in (3e-5, 1e-4) for s in range(1000, 1004)])
 W8_SPECS = [('relief', b, s, 2 ** 21) for b in (0.75, 0.875, 1.0) for s in range(900, 908)]
 W7_SPECS = [('strict', b, s, 2 ** 20) for b in (1.0, 1.125) for s in range(800, 816)]
 W6_SPECS = ([('relief', b, s, 2 ** 21) for b in (1.0, 1.25, 1.5) for s in range(700, 708)] +
@@ -417,6 +437,296 @@ def scan8(jobs: int) -> None:
     read8(rows)
 
 
+def signed_slope_hex(r: float, lam_net: float) -> float:
+    """Wave 9: the hex-corrected disc law with signed curvature. lam_net is
+    (interior degree-7 minus degree-5 nodes) per node; negative is a spherical
+    cap, A ~ 1 - cos x, slope x sin x / (1 - cos x)."""
+    if lam_net >= 0:
+        return hyperbolic_slope_hex(r, lam_net)
+    x = HEX_AREA * r * math.sqrt(2 * math.pi * -lam_net / (3 * math.sqrt(3)))
+    if x < 1e-6:
+        return 2.0
+    return x * math.sin(x) / (1 - math.cos(x))
+
+
+def dead_set(adj, guard: int) -> set:
+    """Capped boundary nodes that cannot close (ids as grown, detached nodes empty)."""
+    return {x for x in range(len(adj)) if len(adj[x]) >= CAP
+            and any(_is_boundary(adj, x, z) for z in adj[x])
+            and _closable(adj, x, CAP, guard) is None}
+
+
+def flat_or_crossed(r: Dict) -> str:
+    """The wave 6 W6-b per-growth reading (B/sqrtN over the last four octaves and
+    the centre's eccentricity exponent over the last one)."""
+    prof = {int(t.split(':')[0]): float(t.split(':')[1].split('/')[0])
+            for t in r['profile'].split()}
+    if 2 ** 16 not in prof:
+        return 'short'
+    ratio = float(r['B_sqrtN_end']) / prof[2 ** 16]
+    ecc = float(r['ecc_exp_last'])
+    if 0.85 <= ratio <= 1.15 and 0.40 <= ecc <= 0.60:
+        return 'flat'
+    if ratio > 1.3 or ecc < 0.35:
+        return 'crossed'
+    return 'neither'
+
+
+def grow_one9(spec) -> Dict:
+    """One wave 9 growth: (variant, beta, seed, n_max, rate[, stop_net]). With stop_net the
+    growth stops once interior degree-5 minus degree-7 points reach it (a spherical cap
+    still covering itself once; interior degrees never change after a closure)."""
+    from sheet_growth import compact
+    variant, beta, seed, n_max, rate = spec[:5]
+    stop_net = spec[5] if len(spec) > 5 else None
+    net = [0]
+    marks = [2 ** k for k in range(12, 30) if 2 ** k <= n_max]
+    random.seed(seed)
+    np.random.seed(seed)
+    guard = CAP if variant in ('sheet', 'detach') else CAP + 1
+    det = DeadDetector(CAP, guard=guard)
+
+    def on_event(kind, nodes, adj):
+        if kind == 'detach':
+            det.interior.difference_update(nodes)   # a detachment can re-expose them
+            nodes = nodes[1:]
+        det(kind, nodes, adj)
+        if kind == 'close' and stop_net is not None:
+            net[0] += {CAP - 1: 1, CAP + 1: -1}.get(len(adj[nodes[0]]), 0)
+            return net[0] >= stop_net
+        return False
+
+    rows: List[Dict] = []
+    prev_dead = {'s': set()}
+    heal = [0, 0]
+
+    def on_ck(n, adj):
+        ds = dead_set(adj, guard)
+        heal[0] += len(prev_dead['s'])
+        heal[1] += len(prev_dead['s'] - ds)
+        prev_dead['s'] = ds
+        rows.append(checkpoint_stats(compact(adj), guard))
+
+    t0 = time.time()
+    raw = grow_sheet(n_max, CAP, beta, seed, checkpoints=marks, on_checkpoint=on_ck,
+                     on_event=on_event, variant=variant, rate=rate)
+    adj = compact(raw)
+    n = len(adj)
+    on_b = np.zeros(n, dtype=bool)
+    b_edges = 0
+    for u in range(n):
+        for v in adj[u]:
+            if u < v and len(adj[u] & adj[v]) == 1:
+                on_b[u] = on_b[v] = True
+                b_edges += 1
+    deg = np.fromiter((len(s) for s in adj), dtype=np.int64, count=n)
+    i5 = np.nonzero(~on_b & (deg == CAP - 1))[0]
+    i7 = set(np.nonzero(~on_b & (deg == CAP + 1))[0].tolist())
+    other = int((~on_b & ((deg < CAP - 1) | (deg > CAP + 1))).sum())
+    paired = sum(1 for f in i5.tolist()
+                 if any(y in i7 or any(z in i7 for z in adj[y]) for y in adj[f]))
+    A = to_csr(adj)
+    d0 = dijkstra(A, indices=0, unweighted=True)
+    V = np.cumsum(np.bincount(d0[np.isfinite(d0)].astype(int)))
+    sf = []
+    for r in RADII9:
+        if int(r * 1.25) < len(V):
+            sl = float(np.log(V[int(r * 1.25)] / V[int(r / 1.25)]) / np.log(1.5625))
+            sf.append(f"{r}:{sl:.4f}:{V[int(r * 1.25)] / n:.4f}")
+    bd = d0[on_b & np.isfinite(d0)]
+    r_complete = int(bd.min()) if len(bd) else int(d0[np.isfinite(d0)].max()) + 1
+    from curvature_census import disc_audit
+    au = disc_audit(A, seed) if n >= 2000 else {'verdict': 'n/a', 'd_last': float('nan')}
+    last = rows[-1] if rows else {'B_sqrtN': b_edges / math.sqrt(n), 'dead': -1, 'ecc0': 0}
+    if len(rows) >= 2:
+        prev = rows[-2]
+        ecc_exp = float(np.log(last['ecc0'] / prev['ecc0']) / np.log(last['N'] / prev['N']))
+    else:
+        ecc_exp = float('nan')
+    stopped = int(stop_net is not None and net[0] >= stop_net)
+    return {'variant': variant, 'beta': beta, 'seed': seed, 'rate': rate,
+            'stop_net': stop_net if stop_net is not None else -1, 'stopped': stopped, 'n_end': n,
+            'ids': len(raw), 'stalled': int(n < n_max and not stopped), 'B_end': b_edges,
+            'B_sqrtN_end': b_edges / math.sqrt(n), 'ecc_exp_last': ecc_exp,
+            'i5': len(i5), 'i7': len(i7), 'int_other': other, 'paired5': paired,
+            'max_deg': int(deg.max()), 'min_int_deg': int(deg[~on_b].min()) if (~on_b).any() else -1,
+            'dead_end': len(dead_set(adj, guard)),
+            'first_dead': det.records[0]['N'] if det.records else -1,
+            'healed': f"{heal[1]}/{heal[0]}",
+            'slopes_fill': ' '.join(sf), 'r_complete': r_complete,
+            'audit': au['verdict'], 'audit_d': au['d_last'],
+            'profile': ' '.join(f"{r['N']}:{r['B_sqrtN']:.2f}/{r['dead']}/{r['deg7_interior']}"
+                                f"/{r['ecc0']:.0f}" for r in rows),
+            'seconds': round(time.time() - t0)}
+
+
+def _cell_verdict(rs: List[Dict]) -> str:
+    k = [flat_or_crossed(r) for r in rs]
+    m = len(rs)
+    if sum(r['stopped'] for r in rs) >= m / 2:
+        return 'CAP STOP'
+    if sum(r['stalled'] for r in rs) >= m / 2:
+        return 'STALLED'
+    if k.count('flat') >= math.ceil(7 / 8 * m):
+        return 'FLAT'
+    if k.count('crossed') >= math.ceil(6 / 8 * m):
+        return 'CROSSOVER'
+    return 'UNDECIDED'
+
+
+def _law_pairs(r: Dict, gross: bool = False) -> List[tuple]:
+    """(radius, measured / predicted, lambda) on eligible radii: the ball V(1.25 r) holds at
+    most half the graph and no boundary node (a complete geodesic ball). gross: the
+    prediction from the degree-7 points alone, ignoring the degree-5 ones."""
+    lam = (r['i7'] - (0 if gross else r['i5'])) / r['n_end']
+    out = []
+    for t in r['slopes_fill'].split():
+        rr, sl, fr = t.split(':')
+        rr, sl, fr = int(rr), float(sl), float(fr)
+        if fr > 0.5 or int(rr * 1.25) >= r['r_complete']:
+            continue
+        out.append((rr, sl / (signed_slope_hex(rr, lam) * lattice_slope(rr) / 2), lam))
+    return out
+
+
+def read9(rows: List[Dict]) -> None:
+    """Wave 9 frozen readings (docs/superpowers/specs/2026-10-19-wave9-preregistration.md)."""
+    def cells(v):
+        out: Dict[tuple, List[Dict]] = {}
+        for r in rows:
+            if r['variant'] == v:
+                out.setdefault((r['beta'], r['rate'], r['stop_net']), []).append(r)
+        return dict(sorted(out.items()))
+
+    def show(r, extra=''):
+        print(f"      seed {r['seed']}: N {r['n_end']}, B/sqrtN {r['B_sqrtN_end']:.2f}, ecc exp "
+              f"{r['ecc_exp_last']:.2f} -> {flat_or_crossed(r)}; i5 {r['i5']} i7 {r['i7']}, dead "
+              f"{r['dead_end']} (first {r['first_dead']}){extra}")
+
+    # W9-a disloc and its relief controls
+    dl = cells('disloc')
+    if dl:
+        print("W9-a disloc (every cone point paired with a degree-5 point):")
+        gate_fail, law = 0, []
+        for (b, _, _), rs in dl.items():
+            for r in rs:
+                ok = (not r['stalled'] and r['dead_end'] == 0 and r['max_deg'] <= CAP + 1
+                      and r['int_other'] == 0 and r['paired5'] >= 0.95 * r['i5'])
+                gate_fail += int(not ok)
+                law += _law_pairs(r)
+            print(f"  beta {b}: {_cell_verdict(rs)}")
+            for r in rs:
+                show(r, f", 5s with a 7 within two hops {r['paired5']}/{r['i5']}")
+        within = sum(abs(h - 1) <= 0.10 for _, h, _ in law)
+        print(f"  gate: {'PASS' if gate_fail == 0 else f'FAIL ({gate_fail} growths)'}")
+        print(f"  net-curvature law: {within}/{len(law)} pairs within 10% "
+              f"({'HOLDS' if law and within >= 0.9 * len(law) else 'MISSED'}); mean ratio "
+              f"{sum(h for _, h, _ in law) / max(len(law), 1):.3f}")
+        ctl = [r for r in rows if r['variant'] == 'relief' or
+               (r['variant'] == 'eager' and r['rate'] == 1.0)]
+        if ctl:
+            print("  relief controls (relief, and eager at rate 1, which is relief):")
+            for b in sorted({r['beta'] for r in ctl}):
+                rb = [r for r in ctl if r['beta'] == b]
+                k = [flat_or_crossed(r) for r in rb]
+                print(f"    beta {b}: crossed {k.count('crossed')}/{len(rb)}; B/sqrtN "
+                      f"{min(r['B_sqrtN_end'] for r in rb):.2f}-{max(r['B_sqrtN_end'] for r in rb):.2f}")
+    # W9-b pent: the net-curvature law against the gross (degree-7-only) law
+    pc = cells('pent')
+    if pc:
+        print("W9-b pent (uncompensated degree-5 closures): net against gross curvature")
+        law, disc_net, disc_gross, sph = [], [], [], []
+        for (b, rate, stop), rs in pc.items():
+            reg = rate <= 1e-5                  # 3e-5 and 1e-4 are descriptive (spherical side)
+            print(f"  beta {b}, rate {rate:g}: {_cell_verdict(rs)}"
+                  f"{'' if reg else ' (descriptive)'}")
+            for r in rs:
+                p = _law_pairs(r)
+                g = _law_pairs(r, gross=True)
+                if reg:
+                    law += p
+                    for (rr, h, _), (_, hg, _) in zip(p, g):
+                        if abs(hg / h - 1) > 0.10:       # the two predictions differ by > 10%
+                            disc_net.append(h)
+                            disc_gross.append(hg)
+                else:
+                    sph += [h for _, h, lam in p if lam < 0]
+                closed = ' CLOSED' if r['B_end'] == 0 else ''
+                show(r, f", lambda_net {(r['i7'] - r['i5']) / r['n_end']:+.2e}, B {r['B_end']}"
+                        f"{closed}, complete ball to r {r['r_complete']}; net/gross ratios " +
+                        ' '.join(f"{rr}:{h:.3f}/{hg:.3f}" for (rr, h, _), (_, hg, _) in zip(p, g)))
+        within = sum(abs(h - 1) <= 0.10 for _, h, _ in law)
+        mn = sum(disc_net) / len(disc_net) if disc_net else float('nan')
+        mg = sum(disc_gross) / len(disc_gross) if disc_gross else float('nan')
+        print(f"  net law: {within}/{len(law)} pairs within 10%; discriminating pairs "
+              f"{len(disc_net)}: net mean {mn:.3f}, gross mean {mg:.3f}")
+        if len(disc_net) < 10:
+            v = 'UNDERPOWERED'
+        elif within >= 0.9 * len(law) and 0.95 <= mn <= 1.05 and mg < 0.90:
+            v = 'NET LAW HOLDS'
+        else:
+            v = 'NET LAW MISSED'
+        print(f"  W9-b: {v}")
+        if sph:
+            print(f"  spherical side (descriptive): {len(sph)} complete-ball pairs, mean ratio "
+                  f"{sum(sph) / len(sph):.3f}")
+    # W9-c eager: the race law
+    ec = cells('eager')
+    if ec:
+        print("W9-c eager (closure rate rho): cone density against rho")
+        ok_all = True
+        for b in sorted({k[0] for k in ec}):
+            xs, ys = [], []
+            for (bb, rate, _), rs in ec.items():
+                if bb != b:
+                    continue
+                lam = [r['i7'] / r['n_end'] for r in rs]
+                print(f"  beta {b} rho {rate:g}: lambda {np.mean(lam):.3e} (cones "
+                      f"{' '.join(str(r['i7']) for r in rs)}), " +
+                      ', '.join(flat_or_crossed(r) for r in rs))
+                for r in rs:
+                    xs.append(math.log(rate))
+                    ys.append(math.log(max(r['i7'], 0.5) / r['n_end']))
+            sl = float(np.polyfit(xs, ys, 1)[0])
+            ok = -1.25 <= sl <= -0.75
+            ok_all &= ok
+            print(f"  beta {b}: d ln lambda / d ln rho = {sl:.3f} ({'in' if ok else 'outside'} "
+                  f"[-1.25, -0.75])")
+        print(f"  W9-c: {'RACE LAW' if ok_all else 'RACE LAW MISSED'}")
+    # W9-d detach (C4)
+    dc = cells('detach')
+    if dc:
+        print("W9-d detach (C4, reversible attachment on sheet):")
+        for (b, rate, _), rs in dc.items():
+            mu = math.log(rate) / b
+            hp = [tuple(map(int, r['healed'].split('/'))) for r in rs]
+            print(f"  beta {b}, mu {mu:.1f}: {_cell_verdict(rs)}; detached "
+                  f"{sum(r['ids'] - r['n_end'] for r in rs) / sum(r['ids'] for r in rs):.3f} of "
+                  f"all nodes ever grown; dead corners healed between checkpoints "
+                  f"{sum(h for h, _ in hp)}/{sum(t for _, t in hp)}")
+            for r in rs:
+                show(r, f", healed {r['healed']}")
+
+
+def scan9(jobs: int) -> None:
+    out = f"results/sheet_variants_w9_{time.strftime('%Y%m%d_%H%M%S')}.csv"
+    rows: List[Dict] = []
+    with ProcessPoolExecutor(jobs) as ex, open(out, 'w', newline='') as f:
+        w = None
+        for r in ex.map(grow_one9, W9_SPECS):
+            if w is None:
+                w = csv.DictWriter(f, fieldnames=list(r.keys()))
+                w.writeheader()
+            w.writerow(r)
+            f.flush()
+            rows.append(r)
+            print(f"{r['variant']} beta {r['beta']} rate {r['rate']:g} seed {r['seed']}: N "
+                  f"{r['n_end']} B/sqrtN {r['B_sqrtN_end']:.2f} i5 {r['i5']} i7 {r['i7']} dead "
+                  f"{r['dead_end']} [{r['seconds']} s]", flush=True)
+    print(f"saved: {out}")
+    read9(rows)
+
+
 def read7(rows: List[Dict]) -> None:
     """Wave 7 frozen readings: per growth, frozen corners vs crossing."""
     a_n = a_flat = b_n = b_cross = 0
@@ -539,6 +849,39 @@ def _validate() -> bool:
               f"Gauss-Bonnet sum_bdry(4 - d) = {gb} = 6 + {int7} interior degree-7 nodes; "
               f"dead corners {st['dead']}")
         ok &= good
+    # wave 9: eager at rate 1 is relief; every variant stays a manifold disc with
+    # sum_bdry(4 - d) = 6 + (interior 7s) - (interior 5s)
+    from sheet_growth import compact
+    a = grow_sheet(20000, CAP, 1.0, 4, variant='relief')
+    b = grow_sheet(20000, CAP, 1.0, 4, variant='eager', rate=1.0)
+    good = a == b
+    print(f"[{'PASS' if good else 'FAIL'}] eager at rate 1 is bit-identical to relief")
+    ok &= good
+    for v, beta, rate in (('disloc', 0.75, 1.0), ('pent', 1.0, 3e-5), ('eager', 0.75, 16.0),
+                          ('detach', 1.0, math.exp(3.0))):
+        raw = grow_sheet(40000, CAP, beta, 11, variant=v, rate=rate)
+        adj = compact(raw)
+        n = len(adj)
+        E = sum(len(s) for s in adj) // 2
+        F = sum(len(adj[u] & adj[w]) for u in range(n) for w in adj[u] if u < w) // 3
+        bad = sum(1 for u in range(n) for w in adj[u] if u < w and len(adj[u] & adj[w]) not in (1, 2))
+        bset = {u for u in range(n) for w in adj[u] if len(adj[u] & adj[w]) == 1}
+        gb = sum(4 - len(adj[u]) for u in bset)
+        i5 = [u for u in range(n) if u not in bset and len(adj[u]) == 5]
+        i7 = {u for u in range(n) if u not in bset and len(adj[u]) == 7}
+        io = sum(1 for u in range(n) if u not in bset and len(adj[u]) not in (5, 6, 7))
+        good = n - E + F == 1 and bad == 0 and io == 0 and gb == 6 + len(i7) - len(i5)
+        extra = ''
+        if v == 'disloc':
+            near = sum(1 for f in i5 if any(y in i7 or adj[y] & i7 for y in adj[f]))
+            good &= len(i5) <= len(i7) and near == len(i5)
+            extra = f"; every 5 has a 7 within two hops ({near}/{len(i5)})"
+        if v == 'detach':
+            good &= len(raw) > n and all(raw[i] for i in range(3))
+            extra = f"; {len(raw) - n} nodes detached"
+        print(f"[{'PASS' if good else 'FAIL'}] {v}: Euler characteristic {n - E + F}, "
+              f"non-manifold edges {bad}, Gauss-Bonnet {gb} = 6 + {len(i7)} - {len(i5)}{extra}")
+        ok &= good
     print('\nVALIDATION', 'PASSED' if ok else 'FAILED')
     return ok
 
@@ -556,6 +899,8 @@ def main() -> None:
     m.add_argument('--read7', type=str, metavar='CSV')
     m.add_argument('--scan8', action='store_true')
     m.add_argument('--read8', type=str, metavar='CSV')
+    m.add_argument('--scan9', action='store_true')
+    m.add_argument('--read9', type=str, metavar='CSV')
     ap.add_argument('--jobs', type=int, default=6)
     ap.add_argument('--seed', type=int, default=0)
     args = ap.parse_args()
@@ -571,6 +916,19 @@ def main() -> None:
         scan7(args.jobs)
     elif args.scan8:
         scan8(args.jobs)
+    elif args.scan9:
+        scan9(args.jobs)
+    elif args.read9:
+        rows = []
+        for r in csv.DictReader(open(args.read9)):
+            for k in ('beta', 'rate', 'B_sqrtN_end', 'ecc_exp_last', 'audit_d'):
+                r[k] = float(r[k])
+            for k in ('seed', 'stop_net', 'stopped', 'n_end', 'ids', 'stalled', 'B_end', 'i5', 'i7', 'int_other',
+                      'paired5', 'max_deg', 'min_int_deg', 'dead_end', 'first_dead',
+                      'r_complete'):
+                r[k] = int(r[k])
+            rows.append(r)
+        read9(rows)
     elif args.read8:
         rows = []
         for r in csv.DictReader(open(args.read8)):
