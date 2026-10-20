@@ -26,9 +26,15 @@ Full reasoning and citations: `FINDINGS.md` → "Scaling directions."
 | Small | 1K | 6K | ~50 MB | ~10 ms |
 | Medium | 10K | 60K | ~500 MB | ~200 ms |
 | Large | 100K | 600K | ~5 GB | ~5 sec |
-| **Limit** | ~500K | ~3M | ~25 GB | ~30 sec |
+| Hard ceiling | ~500K | ~3M | ~25 GB | ~30 sec |
 
-Beyond 500K nodes, NetworkX becomes impractical due to:
+**Practical limit: ~10K nodes** for the NetworkX reference path (`simulation.py`); from
+~10K to ~500K use the sparse path (`simulation_fast.py`, Phase 1 below). This matches
+README.md / CLAUDE.md / AGENTS.md. The rows above 10K are timing estimates only.
+(These limits are for rule simulation. The standalone `sheet` growth drivers --
+`sheet_growth.py`, `sheet_variants.py`, `sheet_crossover.py` -- reach 2^20-2^22 nodes.)
+
+Beyond ~10K nodes, NetworkX becomes impractical due to:
 - Python object overhead (each node/edge is a dict)
 - Single-threaded execution
 - No vectorization
@@ -37,10 +43,10 @@ Beyond 500K nodes, NetworkX becomes impractical due to:
 
 ## Upgrade Path
 
-### Phase 1: Optimized CPU (up to 1M nodes) -- IMPLEMENTED
+### Phase 1: Optimized CPU (up to ~500K nodes) -- IMPLEMENTED
 
-> Implemented in `simulation_fast.py`. All four rules (activation, reinforcement,
-> majority, rewire) are vectorized using sparse mat-vec operations, Hadamard-product
+> Implemented in `simulation_fast.py`. Six rules (activation, reinforcement,
+> majority, rewire, prune, triadic) are vectorized using sparse mat-vec operations, Hadamard-product
 > clustering, and scipy connected components.
 
 **NumPy/SciPy sparse matrices**
@@ -65,14 +71,14 @@ new_active = np.random.random(len(states)) < activation_prob
 
 **Benefits:**
 - 10-50x speedup on CPU
-- 1M nodes feasible
+- ~500K nodes practical (the supported `simulation_fast.py` range)
 - Keep NetworkX for initialization and measurement only
 
 **Implementation:** See `simulation_fast.py` (already implemented).
 
 ---
 
-### Phase 2: GPU Acceleration (1M - 100M nodes)
+### Phase 2: GPU Acceleration (500K - 100M nodes)
 
 **Option A: PyTorch Geometric**
 
@@ -293,7 +299,7 @@ def qaoa_layer(G, gamma, beta):
 ### Practical Braket Workflow
 
 ```python
-# braket_analysis.py
+# braket_analysis.py  (hypothetical; not in repo -- see braket_walks.py)
 
 from braket.aws import AwsDevice
 from braket.devices import LocalSimulator

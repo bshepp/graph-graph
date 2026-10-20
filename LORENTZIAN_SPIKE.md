@@ -399,6 +399,15 @@ schedule-invariant, P2 self-stabilization real and — on a 12-seed paired estim
 not significantly attenuated). Step 5 (barrier + causal-future-growth) is the
 remaining rung-1 work.
 
+> **Status note (2026-10-19).** Step 5's barrier checkpoint was run on 2026-09-27
+> (`async_barrier.py`; FINDINGS.md "Step 5 (2026-09-27)"): **BARRIER SURVIVES** —
+> `triadic` from a random graph, N = 1000..32000, 8 paired seeds, async extent exponent
+> 0.168 ± 0.013 (95% CI upper bound 0.200, under the 0.25 threshold; lattice 0.515) vs
+> sync 0.158; schedule invariance UNDERPOWERED (paired difference +0.010 ± 0.032). Two
+> gates failed as frozen through badly set tolerances (recorded as failures; Gate 1A is
+> a post-hoc amendment), and the 200-sweep budget is a transient. FINDINGS records no
+> causal-future-growth comparator run, so that half of step 5 stays open.
+
 ## 7. What this rung does not buy
 
 The ladder's own standing requirement is *"a continuum-limit / universality story

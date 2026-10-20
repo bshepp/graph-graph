@@ -26,7 +26,8 @@ hand-coded physics, baked-in spatial coordinates, or pre-programmed correlations
   same seed/parameters.
 - **Determinism via `--seed`.** Every entry-point CLI accepts `--seed`; reproducibility
   matters for this project. New scripts should do the same and seed both `random` and
-  `numpy.random`.
+  `numpy.random`. (Known gaps, not yet fixed: `measure.py` and `visualize.py` sample with
+  unseeded `np.random.choice`; `causal_dag.py` and `showcase.py` have no `--seed`.)
 - **Snapshots are opt-in.** `run_simulation(..., snapshot_interval=0)` is the default
   to keep memory bounded. Don't flip this default; large runs will OOM.
 
@@ -39,6 +40,8 @@ Beyond that:
 - Run artifacts go to `results/` (`run_TIMESTAMP.pkl`, `sweep_TIMESTAMP.csv`); plots
   go to `plots/`; curated demo GIFs go to `showcase/`. Treat these as outputs, not
   source.
+- Pre-registrations live in `docs/superpowers/specs/` (frozen before data; results go to
+  [FINDINGS.md](FINDINGS.md), open design forks to [BRANCHES.md](BRANCHES.md)).
 - GPU / quantum extras in [requirements.txt](requirements.txt) are commented out
   intentionally. Don't enable them without an explicit ask.
 
@@ -53,6 +56,10 @@ points are plain `python <script>.py --help`-style CLIs documented in
 | ≤ 10K | `python simulation.py …` |
 | 10K – 500K | `python simulation_fast.py …` |
 | > 500K | Not supported yet — see [SCALING.md](SCALING.md) before adding code |
+
+This limit is for rule simulation (`simulation*.py`). The `sheet` growth drivers
+(`sheet_growth.py`, `sheet_variants.py`, `sheet_crossover.py`) are standalone generators
+that routinely reach 2^20–2^22 nodes.
 
 Analysis scripts (`measure.py`, `visualize.py`, `dimension.py`) all take a
 `results/run_TIMESTAMP.pkl` path as their first positional arg.
@@ -70,10 +77,12 @@ Analysis scripts (`measure.py`, `visualize.py`, `dimension.py`) all take a
   [visualize.py](visualize.py). Don't inline analysis into the simulation loop.
 - No `pytest` suite — validate changes by running a small reproducible CLI
   invocation (e.g. `python simulation.py --nodes 200 --steps 100 --seed 0`) and
-  inspecting the printed metrics / generated pickle. Two modules ship a built-in
-  self-check against known-answer cases: `python dimension.py --validate` (estimator
-  vs. graphs of known dimension) and `python braket_walks.py --validate` (walks vs.
-  analytic expectations). Run the relevant one after touching those modules.
+  inspecting the printed metrics / generated pickle. Most drivers ship `--validate`
+  (known-answer controls); run the one for any module you touch. Key ones:
+  `dimension.py` (estimator vs. graphs of known dimension), `window_stability.py`,
+  `braket_walks.py` (walks vs. analytic expectations), `async_engine.py`,
+  `causal_sets.py`, `sheet_growth.py`, and `sheet_variants.py` (default generator
+  unchanged).
 
 ## Pitfalls
 
@@ -99,7 +108,8 @@ Analysis scripts (`measure.py`, `visualize.py`, `dimension.py`) all take a
   *structural* adjacency. Edges carry `weight` (0.5 initially, mutated by
   `reinforcement`), and the default uses it — so omitting the flag silently gives a
   weighted matrix. This fails quietly rather than loudly: it scales results by a
-  plausible-looking constant instead of raising. All seven existing call-sites pass it.
+  plausible-looking constant instead of raising. Every existing call-site passes it,
+  except `simulation_fast.py`'s intentionally weighted `FastGraph.weights` matrix.
 - **`scipy.sparse.linalg` routines consume the global numpy RNG** (`expm_multiply` calls
   `onenormest`, which samples). Any driver that interleaves such a call with
   RNG-dependent graph construction is silently non-reproducible, and its results will

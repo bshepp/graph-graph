@@ -31,7 +31,7 @@ Nothing about the project's own emergence-first question changes.
 
 ## Status
 
-**Core simulation working.** Rules, measurement, visualization, and a sparse fast path are all implemented. Ready for experiments.
+Core simulation plus a pre-registered measurement program (dimension audit, portals, async/causal steps, `sheet` growth and its rule variants, waves 1-9). Pre-registrations: `docs/superpowers/specs/`; results: FINDINGS.md; open branches: BRANCHES.md.
 
 ## Setup
 
@@ -47,7 +47,7 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 |------|---------|
 | `simulation.py` | Main simulation loop (NetworkX backend) |
 | `simulation_fast.py` | Sparse-matrix simulation (10-50x faster) |
-| `rules.py` | Local update rules (activation, reinforcement, majority, rewire) |
+| `rules.py` | Local update rules, registered in `RULES`: `activation`, `reinforcement`, `majority`, `rewire`, `prune`, `triadic`, `geometrize`, `ricci` (the last two NetworkX backend only) |
 | `measure.py` | Analysis: correlation functions, agreement fraction, domain detection |
 | `visualize.py` | Metric plots and graph-state visualization |
 | `animate.py` | Animated dashboard: watch rules evolve the graph in real time |
@@ -80,8 +80,28 @@ Requires Python 3.10+. Core dependencies: `numpy`, `networkx`, `scipy`, `matplot
 | `async_barrier.py` | Step 5: the bootstrapping barrier under **asynchronous** updates, paired against the synchronous rule on identical start graphs (`--validate`, `--gate0/1/1a/2`, `--long`) |
 | `spectral_flow.py` | Spectral dimension `d_s(t)` from lazy-walk return probability (Hutchinson trace), with a frozen flat / flow / runaway classifier; anchors include the Sierpinski gasket (`--validate`) |
 | `dp_decomposition.py` | Round 3 of the `d(p)` fine-structure hunt: exact per-radius decomposition of the fitted slope into log-ball-count contributions (`--validate`) |
-| `sheet_growth.py` | `sheet` generator: manifold-respecting frontier growth with wheel closure and coordination-dependent rates — a test of whether strictly local growth can produce a window-stable dimension (`--validate`, `--judge`) |
-| `LORENTZIAN_SPIKE.md` | Scoping spike for the causal-event-DAG upgrade (de-toying rung 1): what ports, what doesn't, and the staged plan with kill criteria. A decision document — nothing is committed |
+| `sheet_growth.py` | `sheet` generator: manifold-respecting frontier growth with wheel closure and coordination-dependent rates — a test of whether strictly local growth can produce a window-stable dimension (`--validate`, `--judge`, `--save-graphs` writes each final graph to `results/sheet_*.npz`). Rule variants exist only as `grow_sheet(variant=..., rate=...)` and are driven by `sheet_variants.py`; the default `variant='sheet'` is the registered generator |
+| `sheet_variants.py` | Labelled rule variants of `sheet` via `grow_sheet(variant=..., rate=...)`, never reported as `sheet`: relief / veto (`--scan`, wave 5); `--cap7` (C6: ball growth rate of saved cap-7 sheets against the Keller-Peyerimhoff bound ln 1.5); strict + relief hyperbolic-disc law (`--scan6/--read6`, wave 6); strict frozen corners (`--scan7/--read7`, wave 7); relief hex-area disc law (`--scan8/--read8`, wave 8); disloc / pent / eager / detach (`--scan9/--read9`, wave 9). `--validate` checks the default generator is unchanged |
+| `disloc_remainder.py` | Descriptive wave 9 follow-up: does `disloc`'s unpaired remainder n7 - n5 scale with the boundary or the area? Per-octave counts on unregistered seeds (`--seed`, `--nmax`) |
+| `sheet_sampler_audit.py` | Brute-force audit of `grow_sheet`'s rejection-free sampler: every valid event has a live bucket entry before every draw (wave 9; small graphs only) |
+| `sheet_transition.py` | Scan of the `sheet` rate strength beta between 1 and 2: crossover size N*(beta) from the boundary exponent, and which law (exponential crossover vs a finite beta_c) it follows (`--validate`, `--analyze`) |
+| `sheet_crossover.py` | Does `sheet` at beta = 2 turn tree-like near a million nodes? Three crossover estimators (boundary exponent, diameter exponent, arm fraction) read at every factor 2, to 2^22 nodes (`--validate`, `--rescan`, `--analyze`) |
+| `crossover_cv.py` | Seed-by-seed distribution of the beta = 2 crossover size N*_B: coefficient of variation and censored fraction (memoryless vs sharp threshold) (`--validate`) |
+| `arm_birth.py` | Finds the first tree-like protrusion ("arm") of a saved `sheet` and characterises its base (`--validate`) |
+| `blocked_closure.py` | Blocked closures: boundary nodes at the degree cap that can never be closed, the permanent local defect at the bottom of a `sheet`'s fjords (`--validate`) |
+| `edge_spectrum.py` | Roughness spectrum of a `sheet`'s boundary height profile, and the onset of roughening in one seed (`--validate`, `--onset`) |
+| `curvature_census.py` | Combinatorial-curvature census of saved `sheet` graphs (Gauss-Bonnet check, dead-corner failure modes) and the "is it still a disc?" audit (wave 1; `--validate`, `--disc`) |
+| `dead_corner_hazard.py` | When does a `sheet` acquire its first permanent dead corner? Exact event-level detector and hazard estimates (exposure MLE, Weibull, Nelson-Aalen, Arrhenius in beta) (wave 1; `--validate`) |
+| `edge_geometry.py` | Edge geometry of saved `sheet` graphs: cone excess (the ruffle), fjords, boundary roughness, B/sqrt(N) spread (wave 2; `--validate`) |
+| `eden_pin.py` | Eden growth on a triangular lattice with one frozen site: the null model for a permanent pin (wave 2; `--validate`) |
+| `cone_lattice.py` | Ring-built triangulated discs with prescribed vertex degrees (flat, {3,7}, random cone points): calibration for the wave 6 hyperbolic-disc law (`--validate`, `--calibrate`) |
+| `wu_network.py` | Reproduction of Wu-Menichetti-Rahmede-Bianconi (2015) growing geometrical networks, the nearest published relative of `sheet` (side quest) |
+| `throat_compare.py` | Throat criticality across substrates (`grown` / `triangular` / `sheet`): one table from the saved FSS CSVs (`--validate`) |
+| `portals_on_geometry.py` | The portal program (E1 censorship, E2 tolerance) re-run on substrates with a dimension (`triangular`, `sheet`) against `grown` (plan step 3; `--e1`, `--e2`, `--report`) |
+| `dp_round4.py` | `d(p)` fine structure round 4: crossover-form fits vs polynomial detrends on fresh seeds (`--validate`, `--analyze`) |
+| `fixed_rules.py` | Wave 4: the fixed-N rules against their literature (`--majority`, `--triadic`, `--br`, `--ricci`, `--squares`, `--ollivier`); labelled experiment dynamics, none registered in `rules.py` (`--validate`) |
+| `instruments.py` | Wave 3 instruments with known-answer controls: spectral plateau, Kesten-McKay gap, effective resistance, random sphere triangulation, ball covering (`--spectral`, `--gap`, `--reff`, `--triang`, `--boxes`; `--validate`) |
+| `LORENTZIAN_SPIKE.md` | Scoping spike for the causal-event-DAG upgrade (de-toying rung 1): what ports, what doesn't, and the staged plan with kill criteria. Steps 1-5 have since been run (results in the spike's status notes and FINDINGS.md; step 5's barrier checkpoint is `async_barrier.py`, its causal-future-growth half is not yet recorded) |
 
 ## Rules
 
@@ -147,12 +167,12 @@ The animation shows a dark-themed dashboard with the graph on the left (active n
 ### Showcase animations
 
 ```bash
-python showcase.py             # generate all 7 showcase GIFs → showcase/
+python showcase.py             # generate all 10 showcase GIFs → showcase/
 python showcase.py --pick 1 3  # just epidemic + majority-vote
 python showcase.py --list      # describe all available showcases
 ```
 
-Seven pre-tuned animations, one for each rule (epidemic spreading, Hebbian reinforcement, majority-vote domains, small-world rewiring), one per notable topology (scale-free hubs, random baseline), and one combining all four rules to show full emergence. Three more (#8-10) are *traversal* showcases driven by `traverse.py` (see below).
+Ten showcases in all. Seven are pre-tuned animations, one for each rule (epidemic spreading, Hebbian reinforcement, majority-vote domains, small-world rewiring), one per notable topology (scale-free hubs, random baseline), and one combining all four rules to show full emergence. Three more (#8-10) are *traversal* showcases driven by `traverse.py` (see below).
 
 ### Graph traversals
 
@@ -373,18 +393,22 @@ Results are saved to `results/sweep_TIMESTAMP.csv` with a summary of which confi
 
 ## Graph Topologies
 
-Four initial topologies are available via `--topology`:
+Seven initial topologies are available via `--topology` in `simulation.py` / `simulation_fast.py` (`animate.py` accepts only the first four):
 
 - `small_world` -- Watts-Strogatz (default, k=6, p=0.1)
 - `scale_free` -- Barabasi-Albert preferential attachment
 - `lattice` -- 2D grid
 - `random` -- Erdos-Renyi
 - `grown` -- degree-capped frontier growth (`k` = degree cap). Triangle-rich locally, tree-like globally (exponential ball growth, diameter ~ log N): it has **no dimension**; the cap tunes a growth rate. ~0.8% of cap-6 seeds go extinct below 20 nodes (a warning is raised)
+- `triangular` -- triangular lattice, the flat reference with a sheet interior's local structure (degree 6, every edge in two triangles); `n_nodes` is rounded down to the largest (s+1)^2 that fits
+- `sheet` -- `sheet_growth.grow_sheet` with closure degree c = `k` (6 = flat) and beta fixed at 3: a two-dimensional disc, with its tree-like crossover far above any size used here
 
 ## Goals
 
 1. **Small scale (1K nodes)** -- Verify rules work, debug
 2. **Medium scale (100K nodes)** -- Look for emergent patterns (use `simulation_fast.py`)
 3. **Large scale (1M+ nodes)** -- GPU acceleration, serious exploration (see `SCALING.md`)
+
+The `sheet` growth program already reaches 2^20-2^22 nodes without a GPU: its drivers (`sheet_growth.py`, `sheet_variants.py`, `sheet_crossover.py`) are standalone generators, not rule simulations.
 
 

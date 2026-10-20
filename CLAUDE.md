@@ -39,13 +39,21 @@ python braket_walks.py --validate
 | 10K – 500K | `python simulation_fast.py --nodes 50000 --steps 2000 --rules activation reinforcement --seed 42` |
 | > 500K     | Not supported yet — see `SCALING.md`                                    |
 
+The size limit is for rule simulation (`simulation*.py`). The `sheet` growth drivers
+(`sheet_growth.py`, `sheet_variants.py`, `sheet_crossover.py`) are standalone generators
+that routinely reach 2^20–2^22 nodes.
+
 Both write a pickle to `results/run_*.pkl`. Rules combine freely; available keys:
 `activation`, `reinforcement`, `majority`, `rewire`, `prune`, `triadic`
 (all vectorized in both backends), plus `geometrize`, `ricci` (NetworkX reference
-backend only — run with `--no-fast`). Topologies (`--topology`):
+backend only: run `simulation.py`, or pass `--no-fast` to `sweep.py`/`track_dimension.py`).
+Topologies (`--topology`):
 `small_world` (default), `scale_free`, `lattice`, `random`, `grown` (degree-capped
 frontier growth; `k` is its degree cap — locally triangle-rich but globally tree-like,
-so it has **no dimension**: see FINDINGS.md, audit of 2026-09-26).
+so it has **no dimension**: see FINDINGS.md, audit of 2026-09-26), `triangular`
+(triangular lattice, the flat degree-6 reference; rounded down to the largest (s+1)^2),
+`sheet` (`sheet_growth.grow_sheet` with c = `k`, beta = 3: a 2D disc). `animate.py`
+accepts only the first four.
 
 ### Analysis / visualization (all take a `results/*.pkl` path as first positional arg)
 
@@ -109,7 +117,9 @@ stages.
 - Python 3.10+ (`int | None` unions, etc.). Type hints on public functions, NumPy-style
   docstrings, `tqdm` for long loops — match `simulation.py` / `rules.py`.
 - Every entry-point CLI takes `--seed` and seeds both `random` and `numpy.random`.
-  New scripts must do the same.
+  New scripts must do the same. (Known gaps, not yet fixed: `measure.py` and
+  `visualize.py` sample with unseeded `np.random.choice`; `causal_dag.py` and
+  `showcase.py` have no `--seed`.)
 - Snapshots are opt-in (`snapshot_interval=0` default) to bound memory — don't flip this.
 - Keep `simulation.py` free of scipy/sparse-only imports so the reference path stays
   minimal; sparse deps belong in `simulation_fast.py`.

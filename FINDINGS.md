@@ -52,7 +52,7 @@ preservation / emergence signal.
 **extent (large diameter)**, not local density. `prune` and `triadic` succeed
 / fail for the *same* reason -- one grows the diameter, the other doesn't.
 `grown` makes it cleanest: bound the degree, force growth to the frontier,
-and dimension falls out, tunable by one local scalar.
+and dimension falls out, tunable by one local scalar. *[superseded by the 2026-09-26 audit: `grown` has no dimension; `sheet` is the working generator]*
 
 ### A spectrum of "emergence"
 
@@ -101,7 +101,7 @@ The reason random / scale-free graphs cannot be geometrized is sharp:
 > There is no seed of geometry to amplify.
 
 This is why `prune` worked on small-world (latent ring = seed) and `grown`
-worked (built geometrically, never passing through an expander), but
+worked (built geometrically, never passing through an expander) *[superseded by the 2026-09-26 audit: `grown` has no dimension; `sheet` is the working generator]*, but
 `geometrize` cannot geometrize a random graph. **The expander/dimensionless
 state is itself a stable phase that local rewiring cannot escape.**
 
@@ -138,7 +138,7 @@ clumped small-world fixed point:
 
 So, under fixed-N local rules: **dimension is bistable, not attracting.
 Geometry must be *seeded* -- grown outward (the `grown` generator, which
-never passes through an expander) or already latent (a small-world ring) --
+never passes through an expander *[superseded by the 2026-09-26 audit: `grown` has no dimension; `sheet` is the working generator]*) or already latent (a small-world ring) --
 it does not spontaneously condense from maximal disorder.** This maps onto
 the "dimensionally incoherent" phase in DIMENSIONAL_COHERENCE.md (the
 dark-matter analog): a stable, non-geometric phase that local dynamics
@@ -164,7 +164,7 @@ escapes. Two honesty notes:
    eccentricity column in the `ricci` table (6→7→8) is the best single piece
    of evidence and is currently one N -- that is the thing to scale.
 2. Not a formal proof. The clean way to *get* a chosen dimension remains the
-   `grown` generator (build it geometrically; the degree cap tunes d).
+   `grown` generator (build it geometrically; the degree cap tunes d). *[superseded by the 2026-09-26 audit: `grown` has no dimension; `sheet` is the working generator]*
 
 ## Preservation: is emergent geometry stable under the local rules?
 
@@ -283,16 +283,16 @@ Reproduce: `python coherence.py --validate` then `python coherence.py`.
   the obstruction now has a measured exponent. See "Quantified barrier" below.
 - **Curvature flow** vs the bootstrapping barrier: tested (`ricci`) -- hits
   the same barrier (above). Ollivier-Ricci (optimal-transport) is the one
-  untested variant but is expected to behave the same and would add little.
+  untested variant but is expected to behave the same and would add little. *(tested: W4-d/W4-f)*
 - **Spatial coherence:** *done* -- Moran's I confirms `grown`'s `d_eff` field is
   spatially coherent (I ≈ 0.88, z ≈ 87) where the field is whole, and the
-  coherence tracks extent under the rules. See "Spatial coherence" above.
+  coherence tracks extent under the rules. See "Spatial coherence" above. *(re-run under the gate 2026-10-13: field fragmented)*
 - **Robustness / scale:** *done (step 1), then superseded (2026-09-26)* -- the
   fixed-radius reading plateaus in N, but it is not a dimension.
 - **Preservation of emergent structure:** *done* -- `grown`'s dimension is a
   stable fixed point under the structure-respecting rules (`prune`, state-only)
   and eroded only by extent-attacking moves (`rewire`, `triadic`). See
-  "Preservation" above.
+  "Preservation" above. *(re-done on real substrates 2026-09-29)*
 - **Portal experiments:** *done (2026-07)* -- tolerance / censorship / walkers;
   see "Portal experiments" below.
 - **Laplacian-generator CTQW cross-check:** *done (2026-07-18)* -- the quantum
@@ -306,6 +306,7 @@ Reproduce: `python coherence.py --validate` then `python coherence.py`.
   survives at 48x (adjacency) / 131x (Laplacian) and sharpens into a qualitative
   result: a portal is a **kinetic** device classically (changes arrival speed,
   provably not long-run occupancy) and a **structural** one quantum-mechanically.
+  *(superseded 2026-09-29: the gain was grown's tree localization; on 2D substrates 1.0x quantum, 1.3-1.4x classical)*
   See "3c. Horizon-free observable". Open: a horizon-free quantum analogue of
   hitting time (needs a measurement model).
 
@@ -515,7 +516,7 @@ runs pure/staircase negative controls.
 Reproduce: `python logperiodic_scan.py --generate` then `python logperiodic_scan.py`;
 instrument check `python logperiodic_scan.py --validate`.
 
-### Dense-grid follow-up (2026-08-11, run on jaga): the d(p) fine structure is REAL -- a log-periodic modulation of the pruned-WS dimension
+### Dense-grid follow-up (2026-08-11, run on jaga): the d(p) fine structure is REAL -- a log-periodic modulation of the pruned-WS dimension *(later refuted: the log-periodic reading failed its pre-registered test the next night (Overnight tests, 2026-08-12, P1); round 4 found a smooth two-crossover curve)*
 
 The "residual curiosity" above was given a dense grid: 30 log-spaced p in [0.02, 0.5],
 N=32000, 6 fresh seeds per point (30-way parallel on jaga, ~2 min wall clock). The
@@ -970,7 +971,7 @@ On this reading there is no mechanism to find: the "multi-bump fine structure" i
 ring → small-world crossover seen through a polynomial detrend, and it is N-invariant,
 seed-deterministic and window-invariant because the crossover is. The banked survival
 under a sextic detrend argues against it and has to be faced by the test. Round 4 would
-fit a crossover form to fresh seeds and ask whether the residual falls to seed noise.
+fit a crossover form to fresh seeds and ask whether the residual falls to seed noise. *(tested, round 4: single crossover REFUTED; two crossovers fit to seed noise)*
 
 Reproduce: `python dp_decomposition.py --validate`, then `python dp_decomposition.py
 --jobs 6`.
@@ -1094,6 +1095,7 @@ grows exponentially whatever the rates do. `c = 6` is flat.
   tests that, and a crossover beyond 512000 is not excluded.
   *[Tested 2026-09-28/29: a crossover, confirmed at 4 M nodes -- beta = 2 turns tree-like
   at ~800,000 nodes, by a sudden per-seed event. See "`sheet` at beta = 2 turns tree-like".]*
+  *(later: ruffled, not tree-like (W1-c); 0.8 M is a four-seed mean, N* is a broad distribution (round of 2026-10-13 item 4))*
 
 **A limit of the window audit, found here.** It labels beta = 1 "DIMENSION DEFINED"
 (drift 0.09). It probes radii up to 40; the beta = 1 graph is two-dimensional at that
@@ -1105,7 +1107,7 @@ Reproduce: `python sheet_growth.py --validate`; `python sheet_growth.py --betas 
 --nodes 512000 --seeds 3 --seed 100 --jobs 7 --save-graphs`; then `python
 sheet_growth.py --judge results/sheet_c6_b2_s100_N512000.npz`.
 
-## `sheet` rate strength (2026-09-28): a crossover, thinly -- the two-dimensional range grows like exp(5.8 beta)
+## `sheet` rate strength (2026-09-28): a crossover, thinly -- the two-dimensional range grows like exp(5.8 beta) *[revised: exp(5.38 beta) on 12 seeds, Part B]*
 
 *Step 1 of the plan of 2026-09-28. Pre-registration
 `docs/superpowers/specs/2026-09-28-sheet-beta-transition-preregistration.md` (committed
@@ -1159,7 +1161,7 @@ like by then if this is a crossover, still compact if there is a transition belo
 
 **What `sheet` is, restated.** A strictly local rule that produces a two-dimensional
 sheet up to a size set by the rate strength, about exp(2.7 + 5.8 beta) nodes: 5e8 at
-beta = 3, 2e11 at beta = 4. Beyond that size it is tree-like, like `grown`. As a substrate
+beta = 3, 2e11 at beta = 4. Beyond that size it is tree-like, like `grown`. *(revised: ln N* = 3.30 + 5.38 beta, ~3e8 at beta 3 (Part B, 12 seeds); past N* ruffled, not tree-like: W1-c)* As a substrate
 for experiments at N <= 1e6 it is two-dimensional at beta >= 3 on this reading, and that
 qualifier has to travel with it.
 
@@ -1328,7 +1330,7 @@ Reproduce: `python portals_on_geometry.py --e1 --jobs 6`, `--e2 --jobs 6`;
 `python shortcut_walkers.py --topology triangular --nodes 1500 --seeds 10 --generators
 adjacency laplacian` (and `sheet`, `grown`).
 
-## `sheet` at beta = 2 turns tree-like near 800,000 nodes (2026-09-29): the crossover is confirmed, and it is a sudden event
+## `sheet` at beta = 2 turns tree-like near 800,000 nodes (2026-09-29): the crossover is confirmed, and it is a sudden event *[revised W1-c: ruffled, not tree-like]*
 
 *Step 2 of the plan. Pre-registration
 `docs/superpowers/specs/2026-09-28-sheet-crossover-4M-preregistration.md` (committed
@@ -1385,7 +1387,7 @@ from 0.5 to above 1 (0.55 → 1.32 for seed 300). The crossover size varies by a
 across four seeds. That is the signature of a nucleation: one protrusion escapes the
 filling-in and, once it is an arm, grows like a tree; the diameter reacts a factor 3
 later because an arm has to become long before it dominates the diameter. Why a
-protrusion escapes at a size that grows like exp(5.4 beta) is not explained here.
+protrusion escapes at a size that grows like exp(5.4 beta) is not explained here. *(no arm: round of 2026-10-13 item 1, W1-c)*
 
 **What `sheet` is, final form.** *[Revised 2026-10-17, wave 1 W1-c: there are no tree-like arms. Past its first dead corner the sheet stays two-dimensional wherever a ball fits inside it and its outer annulus ruffles (excess area, up to 4x a flat disc's mass within a given distance of the centre; the centre's eccentricity grows as N^0.23-0.30). Read 'tree-like' below as 'ruffled'.]* *[Revised 2026-10-13, item 4: twelve seeds put the beta = 2 crossover anywhere from 4e4 to beyond 4.2e6 nodes, consistent with a constant rate per node; the 0.8 M figure is a four-seed mean curve. Quote the distribution, not a size.]* A strictly local growth rule that produces a
 window-stable two-dimensional sheet up to a size of about exp(3.3 + 5.4 beta) nodes --
@@ -1399,7 +1401,7 @@ crossover: the window audit reads d = 1.94-1.99 at every window from radius 6 to
 1.94, 1.84 at radii 250 and 400 (drift 0.15, just over its 0.15 tolerance: MIXED), and the
 spectral flow reads FLAT at d_s = 1.96 with a slow decline from 2.00 to 1.85 over t = 16
 to 11,585. Both say what they should: a plane wherever they look, with the arms just
-becoming visible at the largest radii and longest times.
+becoming visible at the largest radii and longest times. *(no arm: round of 2026-10-13 item 1, W1-c)*
 
 Reproduce: `python sheet_crossover.py --rescan --jobs 12 --old-scan
 results/sheet_transition_20260928_133040.csv`; `python sheet_crossover.py --seeds 300 301
@@ -1596,7 +1598,7 @@ the crossover is a **rare event with a roughly constant rate**, so a given sheet
 what item 4 adds is that the onset of that roughening is triggered stochastically, not at a
 deterministic critical radius -- a critical radius would give a narrow N*. Whatever the
 trigger is, it is a rare local event *[identified 2026-10-14: a dead corner of the rule -- see
-the follow-up section]*. The exp(5.4 beta) law for N*(beta) was fitted on means
+the follow-up section; generalized by waves 5-7 to permanent negative curvature from the lost race]*. The exp(5.4 beta) law for N*(beta) was fitted on means
 of 4-12 seeds per beta and now reads as the beta-dependence of a *rate*; its form is not
 re-tested here.
 
@@ -1852,12 +1854,12 @@ happens at the first dead corner, and the first occurrence of a rare local confi
 growing boundary is a Poisson-like event -- one per 3-4 M nodes grown at beta = 2. And it
 reframes the exp(5.4 beta) law as the beta-dependence of the probability per boundary site of
 producing a dead corner (higher beta favours high-coordination events, which close wheels
-before they can die); that is a hypothesis, not yet a measurement.
+before they can die); that is a hypothesis, not yet a measurement. *(measured in W1-d: a per-node hazard, slope 6.44)*
 
 A sharp prediction follows and goes to BRANCHES: a variant of the rule that cannot leave a dead
 corner -- for instance allowing the closure when a link end is already at the cap (raising its
 degree to c + 1), or choosing the cap so that a closure is always available -- should have **no
-crossover at any beta**. If it does, the mechanism here is wrong.
+crossover at any beta**. If it does, the mechanism here is wrong. *(Answered: wave 5 `relief` has no dead corners yet crosses; waves 6-7: frozen corners; wave 9: only local cancellation keeps the plane. The trigger is permanent negative curvature from the lost race.)*
 
 Reproduce: `python edge_spectrum.py results/sheet_cross_b2_s3*_N4194304.npz` (frozen) and
 `--k-min 16` (post hoc); `python edge_spectrum.py --onset results/sheet_cross_b2_s308_N4194304.npz
@@ -2040,7 +2042,7 @@ So past N* the sheet is two-dimensional wherever a ball fits inside it (every au
 every source), and the outer annulus carries **excess area**: it packs up to four times a
 flat disc's mass within a given distance of the centre. That is what a surface of negative
 curvature does (a hyperbolic disc has excess circumference), and it is the global
-expression of the -1/3 boundary charges of W1-b: each dead corner forces extra boundary,
+expression of the -1/3 boundary charges of W1-b: each dead corner forces extra boundary *(W2-a: the excess is ~0.1 of a one-third-turn cone per dead corner)*,
 the boundary ruffles, and the ruffled outer region is neither flat nor a tree. The banked
 phrase "grows tree-like arms" is withdrawn (item 1 already found no arm); "turns tree-like"
 is replaced by **"stays locally flat and becomes ruffled (negatively curved) at large
@@ -2193,7 +2195,7 @@ post hoc instrument; not run.
 | 11 compact (3 compact seeds at 4.19 M, 8 crossed seeds before their first dead corner) | 0.92-0.96 | 0.96-1.23 | -2.93 to -3.47 |
 | 9 rough (crossed seeds at 4.19 M) | 0.68-0.93 | 0.70-1.09 | -2.39 to -3.18 |
 
-Frozen reading NOT KPZ-LOCAL (0/11 compact edges in [0.4, 0.6]; not anomalous either).
+Frozen reading NOT KPZ-LOCAL (0/11 compact edges in [0.4, 0.6]; not anomalous either). *(note: "anomalous" here means spectral vs local exponent; the survey verification addendum says López et al. define it by local vs global roughness, so this reading uses a too-simple definition)*
 Post hoc check, labelled as such: removing each window's linear trend as well as its mean
 gives 0.77-0.83 on compact edges and 0.96-0.98 on rough ones (0.51 on a random-walk
 control), and the width at the smallest window is 0.31 hops on every edge, which is the
@@ -2232,7 +2234,7 @@ otherwise fills everything: no wide fjord and no excess area (the cluster holds 
 number of sites at the same radius with or without the constraint). The width at R = 40
 (median 100) is the unfilled front, not the channel; by R = 80 it is 1.
 
-**What wave 2 adds.** The dead corner is the cause of everything that happens past N*: the
+**What wave 2 adds.** The dead corner is the cause of everything that happens past N* *(wave 5 ran C1: relief crosses with no dead corner, so the cause is the curvature, not the boundary defect; see W6-a, Wave 9)*: the
 ruffle starts at the dead corners on every graph and nowhere before them (W2-a), and a
 pin that must stay on the edge necessarily leaves a channel (W2-e). But a pin by itself
 leaves only a hairline crack in a compact front, while the sheet's channels are open (no
@@ -2242,7 +2244,7 @@ tested: the dead
 pair blocks attachment on its own boundary edges, and the degree-capped closure cannot fill
 in next to a capped node, so the stalled zone is wider than one site and the boundary near
 it grows extra length. Which of those two local effects carries the excess is the next
-question (it separates cleanly in a rule variant, wave 5's C1).
+question (it separates cleanly in a rule variant, wave 5's C1). *(wave 5 ran C1: relief crosses with no dead corner, so the cause is the curvature, not the boundary defect; see W6-a, Wave 9)*
 
 Reproduce: `python edge_geometry.py results/sheet_cross_b2_s3*_N4194304.npz`; `python
 eden_pin.py --runs 20 --r-max 200`.
@@ -2263,7 +2265,7 @@ rested on a misdescribed brief and was dropped.*
 
 | part | frozen reading | prediction | what it says |
 |---|---|---|---|
-| W3-a spectral plateau + critical trees | **VOID** (gate failed: the saturation fit hit its bound on the 3D torus) | gate 90%, missed | the walk instrument itself reads every known answer (3D torus 3.0-3.2, tree 1.31 vs 4/3, UST 1.22 vs 16/13), so the void is the fit, not the instrument |
+| W3-a spectral plateau + critical trees | **VOID** *(the pre-registration says a failed gate voids W3-a; VOID is shorthand, not a frozen verdict name)* (gate failed: the saturation fit hit its bound on the 3D torus) | gate 90%, missed | the walk instrument itself reads every known answer (3D torus 3.0-3.2, tree 1.31 vs 4/3, UST 1.22 vs 16/13), so the void is the fit, not the instrument |
 | W3-b gap count | not separated (`grown` has the most modes below the edge) | missed (55%) | `grown` is not an expander at N = 5000; the gap count is not a dimension test |
 | W3-c effective resistance | missed on one clause (`triangular` 1.37 > 1.3) | missed (70%) | resistance ratios match the banked hitting gains (1.37 vs 1.4, 1.29 vs 1.3, 3.4 vs 6.7); the rule was self-inconsistent |
 | W3-d portal threshold vs N and radius | **NEWMAN-WATTS COLLAPSE** (slope 0.74, scatter 0.19; banked k* = 20 reproduced) | held (60%) | "20 shortcuts" is the Newman-Watts crossover for N = 5000 and radius 10, not a property of the planes |
@@ -2581,7 +2583,7 @@ frozen run.*
 | part | frozen reading | prediction | what it says |
 |---|---|---|---|
 | `sheet` (reference) | **CROSSOVER** 16/16 | held (95%) | the reference reproduces |
-| `relief` (C1) | **CROSSOVER** 16/16; **HYPERBOLIC INTERIOR** 15/16; zero dead corners 16/16 | held (60%, 50%, 80%) | remove the dead corners by putting their curvature in the interior and the crossover comes back, milder: BRANCHES' "a plane at every beta" was wrong, the curvature theorems were right |
+| `relief` (C1) | **CROSSOVER** 16/16; **HYPERBOLIC INTERIOR** 15/16; zero dead corners 16/16 | held (60%, 50%, 80%) | remove the dead corners by putting their curvature in the interior and the crossover comes back, milder: BRANCHES' "a plane at every beta" was wrong, the curvature theorems were right *[Scope: these theorems do not cover a finite disc (survey verification addendum, 2026-10-18); the prediction was a heuristic, confirmed empirically by W6-a/W8.]* |
 | `veto` (C3) | **UNDECIDED** (flat in 11-12/16, crossed in 4/16); zero dead corners only 10/16 | missed (65%, 75%) | the veto cuts the dead-corner rate by one and a half to three decades but not to zero; **every veto growth with no dead corner is a flat disc (10/10), every one that crossed had dead corners** |
 | C6 cap 7 | **BOUND RESPECTED** (mu 0.48-0.49 >= 0.405 on 3/3) | held (65%) | the cap-7 sheets grow exponentially, above the Keller-Peyerimhoff bound |
 
@@ -2615,7 +2617,7 @@ Caveat on "hyperbolic": the reading as frozen is met, but a local slope of 3-4 i
 volume around node 0 does not by itself separate exponential growth from a steeper power or
 from a ruffled annulus (W1-c's reading of `sheet`); the window audit reads MIXED, d ~ 1.8, on
 14 of 16. What is established is the theorem's qualitative prediction: a constant density of
-negative cone points, with no defect on the boundary, is enough to end the plane. Whether
+negative cone points, with no defect on the boundary, is enough to end the plane. *(settled quantitatively: W6-a, Wave 8 hex law)* Whether
 relief has fjords was not measured.
 
 ### W5-b. `veto`: no dead corner, no crossover -- but the veto leaks
@@ -2665,7 +2667,7 @@ a test of it.
 C2 (fjord-mouth bridging) would never fire: W2-b found no fjord mouth on any graph. C5
 (motif-size programming) has no counterpart in this rule. **C4 (reversible attachment) is
 deferred, not dropped**: detaching nodes breaks the birth-order node ids every prefix tool
-relies on, so it needs its own bookkeeping and pre-registration; flagged for the owner.
+relies on, so it needs its own bookkeeping and pre-registration; flagged for the owner. *(run as `detach`, W9-d: crosses 32/32)*
 
 **What wave 5 adds.** *[Qualified by wave 6: read "dead corner" below as "permanently unclosed capped boundary node"; see wave 6.]* The dead-corner reading survives its sharpest test in both directions.
 With no dead corners and nothing in their place (`veto`, ten growths), the sheet is a plane to
@@ -2674,7 +2676,7 @@ by the same events turned into interior negative curvature (`relief`), it crosse
 ends the plane is the negative curvature the lost race deposits, wherever it sits; the dead
 corner is how `sheet` deposits it on the boundary. BRANCHES' prediction that a variant without
 dead corners would be a plane at every beta was half wrong; the pre-registration's
-curvature-theorem prediction held. The veto's leak (a closure can also make a dead pair) is a
+curvature-theorem prediction held *[Scope: these theorems do not cover a finite disc (survey verification addendum, 2026-10-18); the prediction was a heuristic, confirmed empirically by W6-a/W8.]*. The veto's leak (a closure can also make a dead pair) is a
 measured miss.
 
 Reproduce: `python sheet_variants.py --validate`; `--scan --jobs 4` (writes
@@ -2771,7 +2773,7 @@ unclosed capped boundary node is what is needed**, and a dead corner is one kind
 statement is unchanged and stronger. Untested: a frozen-corner count on the registered
 strict growths (the CSV has only the total capped boundary count, which mixes in waiting
 nodes; it does rank the beta 1.0 growths: the two flat ones have 69-74, the crossed ones
-86-195).
+86-195). *(Wave 7 counted them on 32 fresh strict growths)*
 
 Reproduce: `python sheet_variants.py --validate`; `--scan6 --jobs 24`; `--read6 CSV`.
 
@@ -2927,6 +2929,18 @@ from cancellation that lags behind the growth front, with something extra on top
 the remainder grows with the boundary, and so whether every beta eventually crosses, is not
 answered by this wave.
 
+*Follow-up the same night (descriptive, not registered; `python disloc_remainder.py`, seeds
+20-23, never registered, to 2^19, run after the wave was read).* Per octave, the remainder
+n7 - n5 tracks the boundary, not the area. From 2^15 to 2^19 it is 0.0007-0.006 per boundary
+edge at beta 0.5 (2^19: 10-20 against 5,236-5,372 boundary edges, i.e. 0.002-0.004) and
+0-0.003 at beta 0.75 (2^19: 2-5 against ~3,370). Per node it falls (beta 0.5: ~1e-4 at 2^16
+to 2-4e-5 at 2^19). So the leftover curvature is a boundary effect: unspent credits ride the
+front at a roughly constant density per unit length. But the front itself lengthens faster
+than sqrt(N) at beta 0.5 (boundary edges / sqrt N: 5.0 at 2^15 to 7.3 at 2^19; at beta 0.75,
+4.2 to 4.7). A remainder proportional to a boundary that its own curvature roughens is a
+feedback, and four seeds over four octaves cannot say whether it settles or runs away. That
+is the open question, now sharper: BRANCHES' `disloc` row.
+
 **W9-b, `pent`: on average the net curvature sets the disc, but independent defects do not
 cancel ball by ball.** Where the two laws differ by more than 10%, the net law sits at 0.974
 and the 7s-alone law at 0.760: degree-5 points do subtract their curvature. But the
@@ -3048,6 +3062,7 @@ Three questions only resolve at large `N`:
    extra ingredient CDT's reduction requires"). It is a negative dressed as a
    positive -- worth doing only if that outcome is acceptable upfront. Highest
    cost, highest risk; gate it behind the cheap `cap -> d` check.
+   *(run 2026-09-27, spectral flow: see that section. Not d_s = d_H: `grown`'s ball growth is exponential while D(t) rises slowly from ~1.2 to ~1.9, a tree-like d_s / d_H split, not a CDT-like flow.)*
 2. **`cap -> d` finite-size scaling** -- does the `grown` generator's
    cap→dimension law sharpen to clean integers as `N` climbs, or drift?
    Cheapest of the three; settles an existing open thread and is the
@@ -3183,7 +3198,7 @@ mean degree 6), fitting extent ~ N^alpha:
 
 **The barrier is now a number.** All three fixed-N rewiring rules sit at
 **alpha ~ 0.13**, right next to the expander baseline (0.08) and nowhere near
-the 2D control (0.51). Two supporting observations:
+the 2D control (0.51). *(a transient: the step 5 rider and W4-b found triadic collapses extent over long runs)* Two supporting observations:
 
 - **vs steps:** at N=1.6e4 the rewiring rules move the diameter only from ~10 to
   ~16 over 200 steps while the lattice reference sits at 250 -- they *crumple*,
@@ -3242,7 +3257,7 @@ no clean transition. The clean Ising validation therefore uses a textbook
 avoid synchronous period-2 blinking on the bipartite lattice); `ising_sweep.py
 --model project` reproduces the biased, transition-free behavior of the real
 rule for comparison. Worth remembering when interpreting any `majority` result:
-state 0 is weakly favored. See [[majority-rule-tie-break-bias]].
+state 0 is weakly favored. See [[majority-rule-tie-break-bias]]. *(W4-a: the tie bias decides the outcome on even-degree graphs; 0.994-0.996 consensus)*
 
 ### prune dimensional onset: done (step 3) -- a continuum knob, not a transition
 
@@ -3319,7 +3334,7 @@ than a failed fit). Reproduce: `python prune_dimension.py --validate-real` then
 
 *Run 2026-07-16 for the exotic-transport program (umbrella: `../exotic-transport/00-fence/`, lattice row Q3), but standing alone as graph-graph findings. A "portal" is an injected long-range edge -- the graph skeleton of a wormhole. Program grading: internally A (seeded, controlled, N-swept), externally C (toy model class).*
 
-### 1. Tolerance: geometry doesn't shatter under portals -- it inflates
+### 1. Tolerance: geometry doesn't shatter under portals -- it inflates *[superseded 2026-09-29: on a real dimension portals destroy it; k* is Newman-Watts (W3-d)]*
 
 Inject k random shortcuts (endpoints >= 2*r0+1 apart at injection) into a coherent
 `grown` base (cap 6, d ~ 2.2); measure the d_eff field at the **fixed** radius r0
