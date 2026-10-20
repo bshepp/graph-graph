@@ -58,7 +58,7 @@ def measure_grown(cap: int, n: int, seed: int, max_radius: int,
     random.seed(seed)
     np.random.seed(seed)
     G = create_initial_graph(n, topology="grown", k=cap, seed=seed)
-    A = nx.to_scipy_sparse_array(G, format="csr", dtype=np.float64)
+    A = nx.to_scipy_sparse_array(G, format="csr", dtype=np.float64, weight=None)
     field = fast_dimension_field(A, max_radius=max_radius, n_samples=samples)
     stats = dimension_stats(field, G.number_of_nodes())
     return {

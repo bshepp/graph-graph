@@ -2864,7 +2864,7 @@ minimum, all but two from one beta.
 
 **A by-product, descriptive.** Over 48 relief growths, beta 0.75-1.5, the cone density is
 lambda = 0.193 exp(-6.55 beta). The default rule's per-node dead-corner hazard (W1-d) is
-0.15 exp(-6.44 beta). Per beta the ratio is 1.02-1.18 across a factor 130 in rate: each
+0.15 exp(-6.44 beta). Per beta the ratio is 1.03-1.22 (against the W1-d fit) across a factor 130 in rate: each
 relief cone point is a would-be lost race, and relief's curvature radius
 1 / sqrt|K| = 1 / sqrt(1.209 lambda) ~ 2.07 exp(3.28 beta) lattice spacings follows from one
 local Arrhenius measurement. This is the Henderson-Taimina hyperbolic-crochet relation ("the
@@ -2901,12 +2901,17 @@ attachment on `sheet`). 124 growths on jaga, 21:11-22:57 PDT, 24 workers; CSV
 Fifteen of sixteen registered calls held; the miss is the near-balance `pent` cell, which
 crossed where I expected the fluctuations to leave it undecided.
 
-**W9-a, `disloc`: the first variant with no dead or frozen corner that stays a disc at
-beta 0.75.** At beta 1.0 every growth is flat to 2^20 (B/sqrtN 4.11-4.13; the flat reference
-is 3.85 and `relief` on the same footing is 19-21), with 306-350 degree-5 and 308-351
-degree-7 points, every 5 within two hops of a 7. At beta 0.75 (1,582-1,719 pairs) B/sqrtN
-drifts 4.1 -> 4.9 over eight octaves but stays inside the flat window, and the ball around
-node 0 keeps close to the lattice's slope (2.03 at r = 100, 2.06 at r = 250). `strict` crossed at both
+**W9-a, `disloc`: the first variant with no dead or frozen corner that reads flat at
+beta 0.75 -- marginally.** At beta 1.0 every growth is flat to 2^20 (B/sqrtN 4.11-4.13,
+level over eight octaves; flat `strict` growths read 3.9-4.0, and `relief` on the same footing
+is 19-21), with 306-350 degree-5 and 308-351 degree-7 points, every 5 within two hops of a 7.
+At beta 0.75 (1,582-1,719 pairs) the frozen reading calls 7/8 flat, but only just: B/sqrtN
+rises 4.1 -> 4.9 over eight octaves, the 2^16 -> 2^20 ratio is 1.12-1.15 in every growth
+against the window's 1.15 (seed 1000, 1.152, is the "neither"), it is still rising 4-6% in
+the last octave, and the eccentricity exponent is 0.45-0.46 against 0.48-0.50 at beta 1.0.
+The ball around node 0 stays close to the lattice's slope (2.03 at r = 100, 2.06 at r = 250).
+Flat at 2^20 is what the reading says; whether beta 0.75 stays flat beyond it is open (see
+the beta 0.5 remainder below). `strict` crossed at both
 betas; `veto` leaked. The disc law with lambda_net = (n7 - n5)/N predicts both cells to
 within 10% at every eligible radius (256/256 pairs).
 
@@ -2954,13 +2959,16 @@ exp(-beta (12 - mu)), slower than the attachments that bury it.
 
 **What wave 9 settles.** Gauss-Bonnet leaves a local rule four things to do with the -1 of
 turning the lost race fixes: keep it (`sheet`, `strict`, `relief`: all cross), dilute it
-(`eager`: the density falls as 1/rho but never reaches zero; still crosses), remove the
-material (`detach`: heals a fraction; still crosses), or cancel it with a +1. Only
+(`eager`: the density falls as rho^-0.93 but never reaches zero; still crosses), remove the
+material (`detach`: heals a fraction; still crosses at mu <= 3.8), or cancel it with a +1. Only
 cancellation keeps the plane, and only when the cancellation is local: bound 5-7 pairs
-(`disloc`) give a flat disc to a million nodes at beta >= 0.75, independent 5s (`pent`)
-cancel on average but leave the ball-to-ball excess of a random walk. **What ends the plane is
-the net curvature, not the defect**, and the disc law with the net density predicts the ball
-in every variant tested (relief, eager, disloc; pent on average). One caveat about cost:
+(`disloc`) give a flat disc to a million nodes at beta 1.0 and, marginally and still
+drifting, at 0.75; independent 5s (`pent`) cancel on average but leave the ball-to-ball excess
+of a random walk. **What ends the plane is the net curvature, not the defect**: the disc law
+with the net density predicts the ball within 10% for `relief` (waves 6, 8), `disloc` at
+beta >= 0.75 and `eager` (post hoc); at `disloc` beta 0.5 it misses high at 13 of 116 radii,
+and for `pent` it holds only on average (85%, the registered clause missed). It was not
+tested on `detach` or `strict`. One caveat about cost:
 `disloc`'s credit is a node-state token carried to neighbours, so it is local, but it is a
 conservation law written into the rule by hand. It shows what a rule must do to stay flat;
 it is not evidence that a rule without such bookkeeping would find it.

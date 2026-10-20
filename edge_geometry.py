@@ -428,7 +428,7 @@ def _chord_cycle(n: int, chords) -> sp.csr_array:
         z = n + k
         G.add_edge(a, z)
         G.add_edge(z, b)
-    return sp.csr_array(nx.to_scipy_sparse_array(G, format='csr', dtype=float))
+    return sp.csr_array(nx.to_scipy_sparse_array(G, format='csr', dtype=float, weight=None))
 
 
 def _validate() -> bool:

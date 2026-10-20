@@ -105,7 +105,7 @@ def measure_point_mvm(L, q, n_seeds, equil, sample, sample_interval, base_seed):
         random.seed(seed)
         np.random.seed(seed)
         G = create_initial_graph(n, topology="lattice", seed=seed)
-        A = nx.to_scipy_sparse_array(G, format="csr", dtype=np.float64)
+        A = nx.to_scipy_sparse_array(G, format="csr", dtype=np.float64, weight=None)
         sigma = np.where(np.random.random(n) < 0.5, 1.0, -1.0)
 
         def step(sig):

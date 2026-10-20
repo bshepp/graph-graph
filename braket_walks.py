@@ -390,7 +390,7 @@ def analyze_simulation_results(results_path: str, n_samples: int = 5,
         sub_r = nx.convert_node_labels_to_integers(sub)
         center_idx = sub_nodes.index(center)
 
-        A = nx.to_scipy_sparse_array(sub_r, format='csr', dtype=np.float64)
+        A = nx.to_scipy_sparse_array(sub_r, format='csr', dtype=np.float64, weight=None)
 
         steps = max(int(round(walk_time)), 1)
         c_probs = classical_walk_matrix(A, center_idx, steps=steps)
@@ -454,7 +454,7 @@ def analyze_simulation_results(results_path: str, n_samples: int = 5,
         sub_nodes = list(sub.nodes())
         sub_r = nx.convert_node_labels_to_integers(sub)
         center_idx = sub_nodes.index(center)
-        A = nx.to_scipy_sparse_array(sub_r, format='csr', dtype=np.float64)
+        A = nx.to_scipy_sparse_array(sub_r, format='csr', dtype=np.float64, weight=None)
 
         times = np.linspace(0.5, walk_time * 2, 40)
         scan = scan_time_evolution(A, center_idx, times)
@@ -516,7 +516,7 @@ def validate_step1() -> bool:
     # --- Cycle graph (odd n to avoid bipartite periodicity) ---
     print("\n--- Cycle graph (15 nodes) ---")
     G = nx.cycle_graph(15)
-    A = nx.to_scipy_sparse_array(G, format='csr', dtype=np.float64)
+    A = nx.to_scipy_sparse_array(G, format='csr', dtype=np.float64, weight=None)
     n = 15
     start = 0
     uniform = 1.0 / n
@@ -545,7 +545,7 @@ def validate_step1() -> bool:
     # --- Complete graph ---
     print("\n--- Complete graph (8 nodes) ---")
     G = nx.complete_graph(8)
-    A = nx.to_scipy_sparse_array(G, format='csr', dtype=np.float64)
+    A = nx.to_scipy_sparse_array(G, format='csr', dtype=np.float64, weight=None)
     n = 8
     start = 0
 
@@ -575,7 +575,7 @@ def validate_step1() -> bool:
     # --- Star graph ---
     print("\n--- Star graph (8 nodes, hub=0) ---")
     G = nx.star_graph(7)
-    A = nx.to_scipy_sparse_array(G, format='csr', dtype=np.float64)
+    A = nx.to_scipy_sparse_array(G, format='csr', dtype=np.float64, weight=None)
     start = 1  # leaf
 
     total += 1
@@ -607,7 +607,7 @@ def validate_step1() -> bool:
     ]
     for name, G_test in test_graphs:
         total += 1
-        A_t = nx.to_scipy_sparse_array(G_test, format='csr', dtype=np.float64)
+        A_t = nx.to_scipy_sparse_array(G_test, format='csr', dtype=np.float64, weight=None)
         q = quantum_walk_ctqw(A_t, 0, time=3.0)
         c = classical_walk_matrix(A_t, 0, steps=10)
         ok = abs(q.sum() - 1.0) < 1e-6 and abs(c.sum() - 1.0) < 1e-6
@@ -619,7 +619,7 @@ def validate_step1() -> bool:
     # --- Cross-validation: matrix vs Monte Carlo ---
     print("\n--- Cross-validation: matrix vs Monte Carlo ---")
     G = nx.cycle_graph(15)
-    A = nx.to_scipy_sparse_array(G, format='csr', dtype=np.float64)
+    A = nx.to_scipy_sparse_array(G, format='csr', dtype=np.float64, weight=None)
     total += 1
     np.random.seed(42)
     c_matrix = classical_walk_matrix(A, 0, steps=20)
@@ -649,7 +649,7 @@ def validate_step2() -> bool:
     total = 0
 
     G = nx.barbell_graph(8, 1)
-    A = nx.to_scipy_sparse_array(G, format='csr', dtype=np.float64)
+    A = nx.to_scipy_sparse_array(G, format='csr', dtype=np.float64, weight=None)
     n = len(G)
     start = 0
 

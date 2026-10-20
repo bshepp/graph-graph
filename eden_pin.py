@@ -45,7 +45,7 @@ def build_lattice(r_max: int) -> Tuple[List[np.ndarray], int, np.ndarray]:
     side = 2 * (r_max + 20)
     G = nx.triangular_lattice_graph(side, 2 * side)
     G = nx.convert_node_labels_to_integers(G, ordering='sorted')
-    A = sp.csr_array(nx.to_scipy_sparse_array(G, format='csr', dtype=float))
+    A = sp.csr_array(nx.to_scipy_sparse_array(G, format='csr', dtype=float, weight=None))
     deg = np.diff(A.indptr)
     frame = np.nonzero(deg < 6)[0]
     dfr = dijkstra(A, indices=frame, unweighted=True, min_only=True)

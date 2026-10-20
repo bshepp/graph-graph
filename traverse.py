@@ -200,7 +200,7 @@ def animate_ball(G, xy, start, label, args):
 
 def animate_walk(G, xy, start, label, args):
     n = G.number_of_nodes()
-    A = nx.to_scipy_sparse_array(G, format="csr", dtype=np.float64)
+    A = nx.to_scipy_sparse_array(G, format="csr", dtype=np.float64, weight=None)
 
     import scipy.sparse as sp
     from scipy.sparse.linalg import expm_multiply
